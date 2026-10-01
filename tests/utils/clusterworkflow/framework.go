@@ -79,7 +79,10 @@ func NewDestroyer(profile profilehandler.ProfileHandler, token, workspace string
 
 // NewNodePoolReplica creates the fixed-replica day-2 strategy for the selected
 // profile backend.
-func NewNodePoolReplica(profile profilehandler.ProfileHandler, clusterID, nodePoolName string) (exec.NodePoolReplicaLifecycle, error) {
+func NewNodePoolReplica(
+	profile profilehandler.ProfileHandler,
+	clusterID, nodePoolName string,
+) (exec.NodePoolReplicaLifecycle, error) {
 	clusterType := profile.Profile().GetClusterType()
 	switch clusterType.String() {
 	case constants.ROSA_HCP.String():

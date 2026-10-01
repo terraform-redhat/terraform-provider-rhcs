@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -208,6 +209,18 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "AllowedKernelArguments.",
 				Optional:            true,
 			},
+			"http_proxy": schema.StringAttribute{
+				MarkdownDescription: "HttpProxy.",
+				Optional:            true,
+			},
+			"https_proxy": schema.StringAttribute{
+				MarkdownDescription: "HttpsProxy.",
+				Optional:            true,
+			},
+			"no_proxy": schema.StringAttribute{
+				MarkdownDescription: "NoProxy.",
+				Optional:            true,
+			},
 			"image_content_sources": schema.StringAttribute{
 				MarkdownDescription: "ImageContentSources.",
 				Optional:            true,
@@ -392,15 +405,18 @@ func (r *ClusterResource) Schema(
 						MarkdownDescription: "Aws_subnet_ids.",
 						Required:            true,
 						ElementType:         types.StringType,
+						PlanModifiers:       []planmodifier.List{listplanmodifier.RequiresReplace()},
 					},
 					"availability_zones": schema.ListAttribute{
 						MarkdownDescription: "Availability_zones.",
 						Required:            true,
 						ElementType:         types.StringType,
+						PlanModifiers:       []planmodifier.List{listplanmodifier.RequiresReplace()},
 					},
 					"aws_partition": schema.StringAttribute{
 						MarkdownDescription: "Aws_partition.",
 						Computed:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 					},
 				},
 				Required: true,
@@ -481,7 +497,11 @@ func (r *ClusterResource) Create(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeClusterToTerraform(&nativeState)
+	responseState, responseDiags := nativeClusterToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into plan to preserve consumer-only fields
 	// This keeps user-provided values while adding computed fields from the API
@@ -538,7 +558,11 @@ func (r *ClusterResource) Read(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeClusterToTerraform(&nativeState)
+	responseState, responseDiags := nativeClusterToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into state to preserve consumer-only fields
 	// (fields with no SDK path, e.g. immutable creation-only inputs) that
@@ -626,7 +650,11 @@ func (r *ClusterResource) Update(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeClusterToTerraform(&nativeState)
+	responseState, responseDiags := nativeClusterToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into plan to preserve consumer-only fields
 	// This keeps user-provided values while adding computed fields from the API
@@ -704,7 +732,11 @@ func (r *ClusterResource) ImportState(
 	}
 
 	// Convert native state to Terraform state
-	state := nativeClusterToTerraform(&nativeState)
+	state, conversionDiags := nativeClusterToTerraform(&nativeState)
+	resp.Diagnostics.Append(conversionDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Call handler to populate computed fields and adjust state after flatten
 	r.Handler.PostFlatten(ctx, state, obj)
@@ -833,6 +865,15 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.AllowedKernelArguments.IsNull() && !tf.AllowedKernelArguments.IsUnknown() {
 		native.AllowedKernelArguments = tf.AllowedKernelArguments.ValueString()
 	}
+	if !tf.HttpProxy.IsNull() && !tf.HttpProxy.IsUnknown() {
+		native.HttpProxy = tf.HttpProxy.ValueString()
+	}
+	if !tf.HttpsProxy.IsNull() && !tf.HttpsProxy.IsUnknown() {
+		native.HttpsProxy = tf.HttpsProxy.ValueString()
+	}
+	if !tf.NoProxy.IsNull() && !tf.NoProxy.IsUnknown() {
+		native.NoProxy = tf.NoProxy.ValueString()
+	}
 	if !tf.ImageContentSources.IsNull() && !tf.ImageContentSources.IsUnknown() {
 		native.ImageContentSources = tf.ImageContentSources.ValueString()
 	}
@@ -956,11 +997,12 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 
 // nativeClusterToTerraform converts native Go types to Terraform framework types.
 // This is used after pathbind.Flatten to prepare output for state persistence.
-func nativeClusterToTerraform(native *ClusterStateNative) *ClusterState {
+func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.Diagnostics) {
 	if native == nil {
-		return nil
+		return nil, nil
 	}
 	tf := &ClusterState{}
+	var diags diag.Diagnostics
 	tf.Name = toTerraformString(native.Name)
 	tf.Id = toTerraformString(native.Id)
 	tf.Delete_protection = toTerraformBool(native.Delete_protection)
@@ -984,6 +1026,9 @@ func nativeClusterToTerraform(native *ClusterStateNative) *ClusterState {
 	tf.StreamingConnectionIdleTimeout = toTerraformString(native.StreamingConnectionIdleTimeout)
 	tf.SystemReserved = toTerraformMap(native.SystemReserved)
 	tf.AllowedKernelArguments = toTerraformString(native.AllowedKernelArguments)
+	tf.HttpProxy = toTerraformString(native.HttpProxy)
+	tf.HttpsProxy = toTerraformString(native.HttpsProxy)
+	tf.NoProxy = toTerraformString(native.NoProxy)
 	tf.ImageContentSources = toTerraformString(native.ImageContentSources)
 	tf.AllocateNodeCIDRs = toTerraformString(native.AllocateNodeCIDRs)
 	tf.AdvertiseAddress = toTerraformString(native.AdvertiseAddress)
@@ -1052,5 +1097,5 @@ func nativeClusterToTerraform(native *ClusterStateNative) *ClusterState {
 			"aws_partition":                 types.StringType,
 		}, bundleAttrs)
 	}
-	return tf
+	return tf, diags
 }

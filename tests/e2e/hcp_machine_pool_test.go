@@ -1348,7 +1348,12 @@ var _ = Describe("Shared nodepool replica workflow", ci.Day2, ci.FeatureMachinep
 			Skip("an existing cluster ID is required for the nodepool day-2 workflow")
 		}
 
-		nodePool, err := clusterworkflow.NewNodePoolReplica(profile, clusterID, profile.Profile().GetName()+"-np1")
+		clusterName := config.GetRHCSClusterName()
+		if clusterName == "" {
+			clusterName = profile.Profile().GetName()
+		}
+		nodePoolName := fmt.Sprintf("%s-np-%d", clusterName, time.Now().Unix())
+		nodePool, err := clusterworkflow.NewNodePoolReplica(profile, clusterID, nodePoolName)
 		Expect(err).NotTo(HaveOccurred())
 		DeferCleanup(func(cleanupCtx SpecContext) {
 			Expect(nodePool.Destroy()).To(Succeed())

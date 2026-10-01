@@ -9,6 +9,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -138,8 +139,32 @@ func (r *NodePoolResource) Schema(
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
+			"max": schema.Int64Attribute{
+				MarkdownDescription: "Max.",
+				Optional:            true,
+			},
+			"min": schema.Int64Attribute{
+				MarkdownDescription: "Min.",
+				Optional:            true,
+			},
 			"cluster_name": schema.StringAttribute{
 				MarkdownDescription: "ClusterName.",
+				Optional:            true,
+			},
+			"config": schema.ListNestedAttribute{
+				MarkdownDescription: "ConfigMap references containing serialized nodepool configuration.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							MarkdownDescription: "Name of the ConfigMap containing serialized nodepool configuration.",
+							Required:            true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			"node_drain_timeout": schema.StringAttribute{
+				MarkdownDescription: "NodeDrainTimeout.",
 				Optional:            true,
 			},
 			"ami": schema.StringAttribute{
@@ -233,6 +258,38 @@ func (r *NodePoolResource) Schema(
 				MarkdownDescription: "Replicas.",
 				Optional:            true,
 			},
+			"taints": schema.ListNestedAttribute{
+				MarkdownDescription: "Node taints applied to nodes in this pool.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"effect": schema.StringAttribute{
+							MarkdownDescription: "",
+							Required:            true,
+						},
+						"key": schema.StringAttribute{
+							MarkdownDescription: "",
+							Required:            true,
+						},
+						"value": schema.StringAttribute{
+							MarkdownDescription: "",
+							Optional:            true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			"tuning_config": schema.ListNestedAttribute{
+				MarkdownDescription: "ConfigMap references containing tuning configuration.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							MarkdownDescription: "Name of the ConfigMap containing serialized tuning configuration.",
+							Required:            true,
+						},
+					},
+				},
+				Optional: true,
+			},
 			"cluster_id": schema.StringAttribute{
 				MarkdownDescription: "Cluster_id.",
 				Required:            true,
@@ -323,7 +380,11 @@ func (r *NodePoolResource) Create(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeNodePoolToTerraform(&nativeState)
+	responseState, responseDiags := nativeNodePoolToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into plan to preserve consumer-only fields
 	// This keeps user-provided values while adding computed fields from the API
@@ -380,7 +441,11 @@ func (r *NodePoolResource) Read(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeNodePoolToTerraform(&nativeState)
+	responseState, responseDiags := nativeNodePoolToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into state to preserve consumer-only fields
 	// (fields with no SDK path, e.g. immutable creation-only inputs) that
@@ -468,7 +533,11 @@ func (r *NodePoolResource) Update(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeNodePoolToTerraform(&nativeState)
+	responseState, responseDiags := nativeNodePoolToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into plan to preserve consumer-only fields
 	// This keeps user-provided values while adding computed fields from the API
@@ -555,7 +624,11 @@ func (r *NodePoolResource) ImportState(
 	}
 
 	// Convert native state to Terraform state
-	state := nativeNodePoolToTerraform(&nativeState)
+	state, conversionDiags := nativeNodePoolToTerraform(&nativeState)
+	resp.Diagnostics.Append(conversionDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Call handler to populate computed fields and adjust state after flatten
 	r.Handler.PostFlatten(ctx, state, obj)
@@ -591,8 +664,34 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 		diags = append(diags, collectionDiags...)
 		native.Labels = values
 	}
+	if !tf.Max.IsNull() && !tf.Max.IsUnknown() {
+		value := tf.Max.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field Max value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.Max = &i
+		}
+	}
+	if !tf.Min.IsNull() && !tf.Min.IsUnknown() {
+		value := tf.Min.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field Min value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.Min = &i
+		}
+	}
 	if !tf.ClusterName.IsNull() && !tf.ClusterName.IsUnknown() {
 		native.ClusterName = tf.ClusterName.ValueString()
+	}
+	if !tf.Config.IsNull() && !tf.Config.IsUnknown() {
+		encoded, collectionDiags := terraformObjectListToJSON(tf.Config)
+		diags = append(diags, collectionDiags...)
+		native.Config = encoded
+	}
+	if !tf.NodeDrainTimeout.IsNull() && !tf.NodeDrainTimeout.IsUnknown() {
+		native.NodeDrainTimeout = tf.NodeDrainTimeout.ValueString()
 	}
 	if !tf.Ami.IsNull() && !tf.Ami.IsUnknown() {
 		native.Ami = tf.Ami.ValueString()
@@ -669,6 +768,16 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 			native.Replicas = &i
 		}
 	}
+	if !tf.Taints.IsNull() && !tf.Taints.IsUnknown() {
+		encoded, collectionDiags := terraformObjectListToJSON(tf.Taints)
+		diags = append(diags, collectionDiags...)
+		native.Taints = encoded
+	}
+	if !tf.Tuning_config.IsNull() && !tf.Tuning_config.IsUnknown() {
+		encoded, collectionDiags := terraformObjectListToJSON(tf.Tuning_config)
+		diags = append(diags, collectionDiags...)
+		native.Tuning_config = encoded
+	}
 	if !tf.Cluster_id.IsNull() && !tf.Cluster_id.IsUnknown() {
 		native.Cluster_id = tf.Cluster_id.ValueString()
 	}
@@ -680,17 +789,28 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 
 // nativeNodePoolToTerraform converts native Go types to Terraform framework types.
 // This is used after pathbind.Flatten to prepare output for state persistence.
-func nativeNodePoolToTerraform(native *NodePoolStateNative) *NodePoolState {
+func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, diag.Diagnostics) {
 	if native == nil {
-		return nil
+		return nil, nil
 	}
 	tf := &NodePoolState{}
+	var diags diag.Diagnostics
 	tf.Name = toTerraformString(native.Name)
 	tf.Id = toTerraformString(native.Id)
 	tf.AutoRepair = toTerraformBoolPtr(native.AutoRepair)
 	tf.DisplayName = toTerraformString(native.DisplayName)
 	tf.Labels = toTerraformMap(native.Labels)
+	tf.Max = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.Max))
+	tf.Min = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.Min))
 	tf.ClusterName = toTerraformString(native.ClusterName)
+	{
+		var collectionDiags diag.Diagnostics
+		tf.Config, collectionDiags = terraformJSONToObjectList(native.Config, map[string]attr.Type{
+			"name": types.StringType,
+		})
+		diags = append(diags, collectionDiags...)
+	}
+	tf.NodeDrainTimeout = toTerraformString(native.NodeDrainTimeout)
 	tf.Ami = toTerraformString(native.Ami)
 	tf.ImageType = toTerraformString(native.ImageType)
 	tf.InstanceProfile = toTerraformString(native.InstanceProfile)
@@ -713,7 +833,23 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) *NodePoolState {
 	tf.Platform_type = toTerraformString(native.Platform_type)
 	tf.Image = toTerraformString(native.Image)
 	tf.Replicas = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.Replicas))
+	{
+		var collectionDiags diag.Diagnostics
+		tf.Taints, collectionDiags = terraformJSONToObjectList(native.Taints, map[string]attr.Type{
+			"effect": types.StringType,
+			"key":    types.StringType,
+			"value":  types.StringType,
+		})
+		diags = append(diags, collectionDiags...)
+	}
+	{
+		var collectionDiags diag.Diagnostics
+		tf.Tuning_config, collectionDiags = terraformJSONToObjectList(native.Tuning_config, map[string]attr.Type{
+			"name": types.StringType,
+		})
+		diags = append(diags, collectionDiags...)
+	}
 	tf.Cluster_id = toTerraformString(native.Cluster_id)
 	tf.Phase = toTerraformString(native.Phase)
-	return tf
+	return tf, diags
 }

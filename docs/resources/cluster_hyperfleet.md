@@ -36,6 +36,8 @@ Manages Cluster resources.
 - `display_name` (String) Display_name.
 - `expiration_timestamp` (String) Expiration_timestamp.
 - `filters` (String) Filters.
+- `http_proxy` (String) HttpProxy.
+- `https_proxy` (String) HttpsProxy.
 - `image_content_sources` (String) ImageContentSources.
 - `image_gc_high_threshold_percent` (Number) ImageGCHighThresholdPercent.
 - `image_gc_low_threshold_percent` (Number) ImageGCLowThresholdPercent.
@@ -47,6 +49,7 @@ Manages Cluster resources.
 - `max_pods` (Number) MaxPods.
 - `network` (Attributes) (see [below for nested schema](#nestedatt--network))
 - `network_arn` (String) NetworkARN.
+- `no_proxy` (String) NoProxy.
 - `node_pool_management_arn` (String) NodePoolManagementARN.
 - `oidc_config_id` (String) OidcConfigId.
 - `platform` (String) Platform.

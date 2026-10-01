@@ -198,6 +198,39 @@ resources:
 
       - path: spec.labels
         type: map
+      - path: spec.nodePool.config
+        description: "ConfigMap references containing serialized nodepool configuration."
+        type: list(object)
+        element:
+          attributes:
+            name:
+              type: string
+              required: true
+              description: "Name of the ConfigMap containing serialized nodepool configuration."
+      - path: spec.nodePool.taints
+        description: "Node taints applied to nodes in this pool."
+        type: list(object)
+        element:
+          attributes:
+            key:
+              type: string
+              required: true
+            value:
+              type: string
+              optional: true
+            effect:
+              type: string
+              required: true
+      - path: spec.nodePool.tuningConfig
+        alias: tuning_config
+        description: "ConfigMap references containing tuning configuration."
+        type: list(object)
+        element:
+          attributes:
+            name:
+              type: string
+              required: true
+              description: "Name of the ConfigMap containing serialized tuning configuration."
       - path: spec.nodePool.platform.aws.resourceTags
         type: string
       - path: spec.nodePool.platform.aws.securityGroups

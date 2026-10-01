@@ -4,6 +4,7 @@
 package e2e
 
 import (
+	"context"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,11 +12,10 @@ import (
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
@@ -25,16 +25,11 @@ var _ = Describe("Create cluster", func() {
 			// Generate/build cluster by profile selected
 			profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
 			Expect(err).ToNot(HaveOccurred())
-			clusterID, err := profileHandler.CreateRHCSClusterByProfile(token)
+			backend, err := clusterworkflow.New(profileHandler, token, profileHandler.Profile().GetName())
 			Expect(err).ToNot(HaveOccurred())
-			Expect(clusterID).ToNot(BeEmpty())
-			//TODO: implement waiter for  the private cluster once bastion is implemented
-			if config.IsWaitForOperators() && !profileHandler.Profile().IsPrivate() {
-				// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
-				timeout := 60
-				err = openshift.WaitForOperatorsToBeReady(cms.RHCSConnection, clusterID, timeout)
-				Expect(err).ToNot(HaveOccurred())
-			}
+			clusterID, err := exec.CreateAndWaitReady(context.Background(), backend.Lifecycle)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterID).NotTo(BeEmpty())
 		})
 
 	It("Cluster can be recreated if it was not deleted from tf - [id:66071]", ci.Day3, ci.Medium,

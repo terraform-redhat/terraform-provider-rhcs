@@ -45,22 +45,16 @@ resources:
 
       - alias: aws_subnet_ids
         type: string[]
+        bundle: aws
         required: true
         immutable: true
         operations:
           - create
         description: "IDs of worker-node subnets. The first entry is used as the cluster subnet. Typically sourced from `data.aws_subnet`. Immutable after creation."
 
-      - alias: vpc_id
-        type: string
-        required: true
-        immutable: true
-        operations:
-          - create
-        description: "ID of the VPC that contains the worker subnet. Typically sourced from `data.aws_subnet.*.vpc_id`. Immutable after creation."
-
       - alias: availability_zones
         type: string[]
+        bundle: aws
         required: true
         immutable: true
         operations:
@@ -69,6 +63,7 @@ resources:
 
       - alias: aws_partition
         type: string
+        bundle: aws
         immutable: true
         computed: true
         default: "aws"
@@ -101,17 +96,57 @@ resources:
       - path: spec.hostedCluster.imageContentSources
         type: string
       - path: spec.hostedCluster.networking.apiServer.allowedCIDRBlocks
+        alias: api_allowed_cidr_blocks
         type: string
+        bundle: network
       - path: spec.hostedCluster.networking.clusterNetwork
+        alias: pod_cidr
         type: string
+        bundle: network
       - path: spec.hostedCluster.networking.machineNetwork
+        alias: machine_cidr
         type: string
+        bundle: network
+      - path: spec.hostedCluster.networking.networkType
+        alias: network_type
+        type: string
+        bundle: network
       - path: spec.hostedCluster.networking.serviceNetwork
+        alias: service_cidr
         type: string
+        bundle: network
+      - path: spec.hostedCluster.channel
+        alias: channel
+        type: string
+      - path: spec.hostedCluster.release.image
+        alias: version
+        type: string
+      - path: spec.hostedCluster.platform.aws.region
+        alias: region
+        type: string
+        bundle: aws
+      - path: spec.hostedCluster.platform.aws.endpointAccess
+        alias: endpoint_access
+        type: string
+        bundle: aws
+      - path: spec.hostedCluster.platform.aws.multiArch
+        alias: multi_arch
+        type: bool
+        bundle: aws
       - path: spec.hostedCluster.platform.aws.additionalAllowedPrincipals
+        alias: additional_allowed_principals
         type: string
+        bundle: aws
       - path: spec.hostedCluster.platform.aws.cloudProviderConfig.subnet.filters
         type: string
+      - path: spec.hostedCluster.platform.aws.cloudProviderConfig.vpc
+        alias: vpc_id
+        type: string
+        bundle: aws
+      - path: spec.hostedCluster.platform.aws.cloudProviderConfig.zone
+        alias: availability_zone
+        type: string
+        bundle: aws
       - path: spec.hostedCluster.platform.aws.resourceTags
         type: string
       - path: spec.hostedCluster.platform.aws.serviceEndpoints
@@ -163,6 +198,39 @@ resources:
 
       - path: spec.labels
         type: map
+      - path: spec.nodePool.config
+        description: "ConfigMap references containing serialized nodepool configuration."
+        type: list(object)
+        element:
+          attributes:
+            name:
+              type: string
+              required: true
+              description: "Name of the ConfigMap containing serialized nodepool configuration."
+      - path: spec.nodePool.taints
+        description: "Node taints applied to nodes in this pool."
+        type: list(object)
+        element:
+          attributes:
+            key:
+              type: string
+              required: true
+            value:
+              type: string
+              optional: true
+            effect:
+              type: string
+              required: true
+      - path: spec.nodePool.tuningConfig
+        alias: tuning_config
+        description: "ConfigMap references containing tuning configuration."
+        type: list(object)
+        element:
+          attributes:
+            name:
+              type: string
+              required: true
+              description: "Name of the ConfigMap containing serialized tuning configuration."
       - path: spec.nodePool.platform.aws.resourceTags
         type: string
       - path: spec.nodePool.platform.aws.securityGroups

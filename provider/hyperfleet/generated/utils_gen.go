@@ -5,6 +5,9 @@ package hyperfleetgenerated
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -14,6 +17,33 @@ import (
 
 func isNotFound(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "404")
+}
+
+// mergeTerraformObject overlays response values for computed or required child
+// attributes while preserving optional and consumer-only values from the plan.
+func mergeTerraformObject(plan, response types.Object, fields []string) types.Object {
+	if len(fields) == 0 || response.IsNull() || response.IsUnknown() {
+		return plan
+	}
+	if plan.IsNull() || plan.IsUnknown() {
+		return response
+	}
+	attributes := plan.Attributes()
+	responseAttributes := response.Attributes()
+	for _, name := range fields {
+		if value, ok := responseAttributes[name]; ok && !value.IsNull() && !value.IsUnknown() {
+			attributes[name] = value
+		}
+	}
+	typesByName := make(map[string]attr.Type, len(attributes))
+	for name, value := range attributes {
+		typesByName[name] = value.Type(context.Background())
+	}
+	merged, diags := types.ObjectValue(typesByName, attributes)
+	if diags.HasError() {
+		return plan
+	}
+	return merged
 }
 
 // Type conversion utilities
@@ -85,6 +115,311 @@ func terraformMapToStringMap(m types.Map) (map[string]string, diag.Diagnostics) 
 	var result map[string]string
 	diags := m.ElementsAs(context.Background(), &result, false)
 	return result, diags
+}
+
+// terraformObjectListToJSON converts a Terraform list of nested objects to JSON
+// for the pathbind native string representation.
+func terraformObjectListToJSON(list types.List) (string, diag.Diagnostics) {
+	if list.IsNull() || list.IsUnknown() {
+		return "", nil
+	}
+	items := make([]map[string]any, 0, len(list.Elements()))
+	var diags diag.Diagnostics
+	for index, element := range list.Elements() {
+		object, ok := element.(types.Object)
+		if !ok || object.IsNull() || object.IsUnknown() {
+			diags.AddError("Invalid object list", fmt.Sprintf("element %d must be a known object", index))
+			continue
+		}
+		item := make(map[string]any, len(object.Attributes()))
+		for name, value := range object.Attributes() {
+			if value.IsUnknown() {
+				diags.AddError("Invalid object list", fmt.Sprintf("element %d attribute %s is unknown", index, name))
+				continue
+			}
+			if value.IsNull() {
+				item[name] = nil
+				continue
+			}
+			switch typed := value.(type) {
+			case types.String:
+				item[name] = typed.ValueString()
+			case types.Bool:
+				item[name] = typed.ValueBool()
+			case types.Int64:
+				item[name] = typed.ValueInt64()
+			default:
+				diags.AddError("Invalid object list", fmt.Sprintf("element %d attribute %s has unsupported value type %T", index, name, value))
+			}
+		}
+		items = append(items, item)
+	}
+	if diags.HasError() {
+		return "", diags
+	}
+	encoded, err := json.Marshal(items)
+	if err != nil {
+		diags.AddError("Invalid object list", fmt.Sprintf("encoding list of objects: %v", err))
+		return "", diags
+	}
+	return string(encoded), diags
+}
+
+// terraformJSONToObjectList converts the native pathbind JSON representation
+// back to a typed Terraform list of nested objects.
+func terraformJSONToObjectList(encoded string, childTypes map[string]attr.Type) (types.List, diag.Diagnostics) {
+	objectType := types.ObjectType{AttrTypes: childTypes}
+	if encoded == "" {
+		return types.ListNull(objectType), nil
+	}
+	var rawItems []map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(encoded), &rawItems); err != nil {
+		var diags diag.Diagnostics
+		diags.AddError("Invalid API object list", fmt.Sprintf("decoding JSON: %v", err))
+		return types.ListNull(objectType), diags
+	}
+	if rawItems == nil {
+		return types.ListNull(objectType), nil
+	}
+	items := make([]attr.Value, 0, len(rawItems))
+	var diags diag.Diagnostics
+	for index, rawItem := range rawItems {
+		attributes := make(map[string]attr.Value, len(childTypes))
+		for name, childType := range childTypes {
+			raw, ok := rawItem[name]
+			if !ok || string(raw) == "null" {
+				attributes[name] = nullObjectAttribute(childType)
+				continue
+			}
+			value, err := decodeObjectAttribute(raw, childType)
+			if err != nil {
+				diags.AddError("Invalid API object list", fmt.Sprintf("element %d attribute %s: %v", index, name, err))
+				continue
+			}
+			attributes[name] = value
+		}
+		if diags.HasError() {
+			return types.ListNull(objectType), diags
+		}
+		object, objectDiags := types.ObjectValue(childTypes, attributes)
+		diags.Append(objectDiags...)
+		if diags.HasError() {
+			return types.ListNull(objectType), diags
+		}
+		items = append(items, object)
+	}
+	list, listDiags := types.ListValue(objectType, items)
+	diags.Append(listDiags...)
+	if diags.HasError() {
+		return types.ListNull(objectType), diags
+	}
+	return list, diags
+}
+
+func nullObjectAttribute(attributeType attr.Type) attr.Value {
+	switch {
+	case attributeType.Equal(types.StringType):
+		return types.StringNull()
+	case attributeType.Equal(types.BoolType):
+		return types.BoolNull()
+	case attributeType.Equal(types.Int64Type):
+		return types.Int64Null()
+	default:
+		return types.StringNull()
+	}
+}
+
+func decodeObjectAttribute(encoded json.RawMessage, attributeType attr.Type) (attr.Value, error) {
+	switch {
+	case attributeType.Equal(types.StringType):
+		var value string
+		if err := json.Unmarshal(encoded, &value); err != nil {
+			return nil, err
+		}
+		return types.StringValue(value), nil
+	case attributeType.Equal(types.BoolType):
+		var value bool
+		if err := json.Unmarshal(encoded, &value); err != nil {
+			return nil, err
+		}
+		return types.BoolValue(value), nil
+	case attributeType.Equal(types.Int64Type):
+		var value int64
+		if err := json.Unmarshal(encoded, &value); err != nil {
+			return nil, err
+		}
+		return types.Int64Value(value), nil
+	default:
+		return nil, fmt.Errorf("unsupported attribute type %s", attributeType.String())
+	}
+}
+
+// objectToNative copies a Terraform object into a generated native bundle.
+// Field names are supplied by the generator so this conversion remains shared
+// by top-level and bundled fields.
+func objectToNative(object types.Object, target any, fields map[string]string) diag.Diagnostics {
+	if object.IsNull() || object.IsUnknown() {
+		return nil
+	}
+	targetValue := reflect.ValueOf(target)
+	if targetValue.Kind() != reflect.Pointer || targetValue.Elem().Kind() != reflect.Struct {
+		return diag.Diagnostics{diag.NewErrorDiagnostic("Invalid bundle target", "bundle target must be a pointer to a struct")}
+	}
+	var diags diag.Diagnostics
+	for attrName, goName := range fields {
+		value, ok := object.Attributes()[attrName]
+		if !ok || value.IsNull() || value.IsUnknown() {
+			continue
+		}
+		field := targetValue.Elem().FieldByName(goName)
+		if !field.IsValid() || !field.CanSet() {
+			continue
+		}
+		if err := setObjectValue(field, value); err != nil {
+			diags.AddError("Invalid bundle value", fmt.Sprintf("attribute %s: %v", attrName, err))
+		}
+	}
+	return diags
+}
+
+func setObjectValue(field reflect.Value, value attr.Value) error {
+	switch typed := value.(type) {
+	case types.String:
+		return setNativeValue(field, typed.ValueString())
+	case types.Bool:
+		return setNativeValue(field, typed.ValueBool())
+	case types.Int64:
+		return setNativeValue(field, typed.ValueInt64())
+	case types.List:
+		var values []string
+		if diags := typed.ElementsAs(context.Background(), &values, false); diags.HasError() {
+			return fmt.Errorf("invalid list value: %v", diags)
+		}
+		return setNativeValue(field, values)
+	case types.Map:
+		var values map[string]string
+		if diags := typed.ElementsAs(context.Background(), &values, false); diags.HasError() {
+			return fmt.Errorf("invalid map value: %v", diags)
+		}
+		return setNativeValue(field, values)
+	default:
+		return fmt.Errorf("unsupported Terraform value %T", value)
+	}
+}
+
+func setNativeValue(field reflect.Value, value any) error {
+	source := reflect.ValueOf(value)
+	targetType := field.Type()
+	if field.Kind() == reflect.Pointer {
+		targetType = field.Type().Elem()
+		if !source.Type().ConvertibleTo(targetType) {
+			return fmt.Errorf("cannot assign %T to %s", value, field.Type())
+		}
+		if integerConversionOverflows(source, targetType) {
+			return fmt.Errorf("integer value %v overflows %s", value, targetType)
+		}
+		converted := source.Convert(targetType)
+		field.Set(reflect.New(targetType))
+		field.Elem().Set(converted)
+		return nil
+	}
+	if !source.Type().ConvertibleTo(field.Type()) {
+		return fmt.Errorf("cannot assign %T to %s", value, field.Type())
+	}
+	if integerConversionOverflows(source, targetType) {
+		return fmt.Errorf("integer value %v overflows %s", value, targetType)
+	}
+	field.Set(source.Convert(field.Type()))
+	return nil
+}
+
+func integerConversionOverflows(source reflect.Value, target reflect.Type) bool {
+	switch source.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		switch target.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return target.OverflowInt(source.Int())
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return source.Int() < 0 || target.OverflowUint(uint64(source.Int()))
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		switch target.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			maxInt := (uint64(1) << uint(target.Bits()-1)) - 1
+			return source.Uint() > maxInt
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return target.OverflowUint(source.Uint())
+		}
+	}
+	return false
+}
+
+func nativeBundleAttributes(bundle any, fields map[string]string) map[string]attr.Value {
+	value := reflect.Indirect(reflect.ValueOf(bundle))
+	attrs := make(map[string]attr.Value, len(fields))
+	for attrName, goName := range fields {
+		field := value.FieldByName(goName)
+		if !field.IsValid() {
+			continue
+		}
+		attrs[attrName] = nativeValue(field)
+	}
+	return attrs
+}
+
+func nativeValue(field reflect.Value) attr.Value {
+	if field.Kind() == reflect.Pointer {
+		if field.IsNil() {
+			switch field.Type().Elem().Kind() {
+			case reflect.Bool:
+				return types.BoolNull()
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				return types.Int64Null()
+			case reflect.Slice:
+				return types.ListNull(types.StringType)
+			case reflect.Map:
+				return types.MapNull(types.StringType)
+			default:
+				return types.StringNull()
+			}
+		}
+		field = field.Elem()
+	}
+	switch field.Kind() {
+	case reflect.String:
+		return toTerraformString(field.String())
+	case reflect.Bool:
+		return toTerraformBool(field.Bool())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return toTerraformInt64(field.Int())
+	case reflect.Slice:
+		if field.Type().Elem().Kind() != reflect.String {
+			return types.ListNull(types.StringType)
+		}
+		if field.IsNil() {
+			return types.ListNull(types.StringType)
+		}
+		items := make([]string, field.Len())
+		for i := range items {
+			items[i] = field.Index(i).String()
+		}
+		return toTerraformList(items)
+	case reflect.Map:
+		if field.Type().Key().Kind() != reflect.String || field.Type().Elem().Kind() != reflect.String {
+			return types.MapNull(types.StringType)
+		}
+		if field.IsNil() {
+			return types.MapNull(types.StringType)
+		}
+		values := make(map[string]string, field.Len())
+		iter := field.MapRange()
+		for iter.Next() {
+			values[iter.Key().String()] = iter.Value().String()
+		}
+		return toTerraformMap(values)
+	default:
+		return types.StringNull()
+	}
 }
 
 // toTerraformMap converts a Go map[string]string to a Terraform types.Map.

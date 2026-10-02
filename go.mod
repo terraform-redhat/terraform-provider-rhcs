@@ -23,8 +23,8 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/openshift-online/ocm-common v0.0.45
 	github.com/openshift-online/ocm-sdk-go v0.1.509
-	github.com/openshift-online/rosa-hyperfleet-api/api v0.1.12
-	github.com/openshift-online/rosa-hyperfleet-api/clientset v0.1.12
+	github.com/openshift-online/rosa-hyperfleet-api/api v0.1.13
+	github.com/openshift-online/rosa-hyperfleet-api/clientset v0.1.14
 	github.com/openshift/hypershift/api v0.0.0-20260803100438-deb947936de7
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4

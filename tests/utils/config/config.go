@@ -41,7 +41,8 @@ const (
 	EnvManifestsFolder                   = "MANIFESTS_FOLDER"
 	EnvSharedVpcAWSSharedCredentialsFile = "SHARED_VPC_AWS_SHARED_CREDENTIALS_FILE"
 
-	EnvNoClusterDestroy = "NO_CLUSTER_DESTROY"
+	EnvNoClusterDestroy        = "NO_CLUSTER_DESTROY"
+	EnvWaitForNodePoolDeletion = "WAIT_FOR_NODEPOOL_DELETION"
 
 	EnvSubnetIDs         = "SUBNET_IDS"
 	EnvAvailabilityZones = "AVAILABILITY_ZONES"
@@ -133,6 +134,26 @@ func GetAvailabilityZones() string {
 	return GetEnvWithDefault(EnvAvailabilityZones, "")
 }
 
+// GetSubnetIDList returns SUBNET_IDS as trimmed, non-empty values.
+func GetSubnetIDList() []string {
+	return splitCSV(GetSubnetIDs())
+}
+
+// GetAvailabilityZoneList returns AVAILABILITY_ZONES as trimmed, non-empty values.
+func GetAvailabilityZoneList() []string {
+	return splitCSV(GetAvailabilityZones())
+}
+
+func splitCSV(value string) []string {
+	var values []string
+	for _, item := range strings.Split(value, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			values = append(values, item)
+		}
+	}
+	return values
+}
+
 func GetRHCSSource() string {
 	return GetEnvWithDefault(EnvRHCSSource, "")
 }
@@ -151,6 +172,10 @@ func IsWaitForOperators() bool {
 
 func IsNoClusterDestroy() bool {
 	return GetEnvWithDefault(EnvNoClusterDestroy, "false") == "true"
+}
+
+func IsWaitForNodePoolDeletion() bool {
+	return GetEnvWithDefault(EnvWaitForNodePoolDeletion, "false") == "true"
 }
 
 func GetManifestsDir() string {

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -146,6 +147,10 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "ProvisionerConfigName.",
 				Optional:            true,
 			},
+			"channel": schema.StringAttribute{
+				MarkdownDescription: "Channel.",
+				Optional:            true,
+			},
 			"container_log_max_files": schema.Int64Attribute{
 				MarkdownDescription: "ContainerLogMaxFiles.",
 				Optional:            true,
@@ -204,6 +209,18 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "AllowedKernelArguments.",
 				Optional:            true,
 			},
+			"http_proxy": schema.StringAttribute{
+				MarkdownDescription: "HttpProxy.",
+				Optional:            true,
+			},
+			"https_proxy": schema.StringAttribute{
+				MarkdownDescription: "HttpsProxy.",
+				Optional:            true,
+			},
+			"no_proxy": schema.StringAttribute{
+				MarkdownDescription: "NoProxy.",
+				Optional:            true,
+			},
 			"image_content_sources": schema.StringAttribute{
 				MarkdownDescription: "ImageContentSources.",
 				Optional:            true,
@@ -216,32 +233,8 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "AdvertiseAddress.",
 				Optional:            true,
 			},
-			"allowed_cidr_blocks": schema.StringAttribute{
-				MarkdownDescription: "AllowedCIDRBlocks.",
-				Optional:            true,
-			},
 			"port": schema.Int64Attribute{
 				MarkdownDescription: "Port.",
-				Optional:            true,
-			},
-			"cluster_network": schema.StringAttribute{
-				MarkdownDescription: "ClusterNetwork.",
-				Optional:            true,
-			},
-			"machine_network": schema.StringAttribute{
-				MarkdownDescription: "MachineNetwork.",
-				Optional:            true,
-			},
-			"network_type": schema.StringAttribute{
-				MarkdownDescription: "NetworkType.",
-				Optional:            true,
-			},
-			"service_network": schema.StringAttribute{
-				MarkdownDescription: "ServiceNetwork.",
-				Optional:            true,
-			},
-			"additional_allowed_principals": schema.StringAttribute{
-				MarkdownDescription: "AdditionalAllowedPrincipals.",
 				Optional:            true,
 			},
 			"filters": schema.StringAttribute{
@@ -254,26 +247,6 @@ func (r *ClusterResource) Schema(
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-			},
-			"vpc": schema.StringAttribute{
-				MarkdownDescription: "Vpc.",
-				Optional:            true,
-			},
-			"zone": schema.StringAttribute{
-				MarkdownDescription: "Zone.",
-				Optional:            true,
-			},
-			"endpoint_access": schema.StringAttribute{
-				MarkdownDescription: "EndpointAccess.",
-				Optional:            true,
-			},
-			"multi_arch": schema.BoolAttribute{
-				MarkdownDescription: "MultiArch.",
-				Optional:            true,
-			},
-			"region": schema.StringAttribute{
-				MarkdownDescription: "Region.",
-				Optional:            true,
 			},
 			"resource_tags": schema.StringAttribute{
 				MarkdownDescription: "ResourceTags.",
@@ -331,8 +304,8 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "Type.",
 				Optional:            true,
 			},
-			"image": schema.StringAttribute{
-				MarkdownDescription: "Image.",
+			"version": schema.StringAttribute{
+				MarkdownDescription: "Version.",
 				Optional:            true,
 			},
 			"oidc_config_id": schema.StringAttribute{
@@ -356,36 +329,6 @@ func (r *ClusterResource) Schema(
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"aws_subnet_ids": schema.ListAttribute{
-				MarkdownDescription: "Aws_subnet_ids.",
-				Required:            true,
-				ElementType:         types.StringType,
-				PlanModifiers: []planmodifier.List{
-					listplanmodifier.RequiresReplace(),
-				},
-			},
-			"vpc_id": schema.StringAttribute{
-				MarkdownDescription: "Vpc_id.",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
-			"availability_zones": schema.ListAttribute{
-				MarkdownDescription: "Availability_zones.",
-				Required:            true,
-				ElementType:         types.StringType,
-				PlanModifiers: []planmodifier.List{
-					listplanmodifier.RequiresReplace(),
-				},
-			},
-			"aws_partition": schema.StringAttribute{
-				MarkdownDescription: "Aws_partition.",
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 			"cloud_region": schema.StringAttribute{
 				MarkdownDescription: "Cloud_region.",
 				Computed:            true,
@@ -406,6 +349,77 @@ func (r *ClusterResource) Schema(
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"network": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"api_allowed_cidr_blocks": schema.StringAttribute{
+						MarkdownDescription: "Api_allowed_cidr_blocks.",
+						Optional:            true,
+					},
+					"pod_cidr": schema.StringAttribute{
+						MarkdownDescription: "Pod_cidr.",
+						Optional:            true,
+					},
+					"machine_cidr": schema.StringAttribute{
+						MarkdownDescription: "Machine_cidr.",
+						Optional:            true,
+					},
+					"network_type": schema.StringAttribute{
+						MarkdownDescription: "Network_type.",
+						Optional:            true,
+					},
+					"service_cidr": schema.StringAttribute{
+						MarkdownDescription: "Service_cidr.",
+						Optional:            true,
+					},
+				},
+				Optional: true,
+			},
+			"aws": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"additional_allowed_principals": schema.StringAttribute{
+						MarkdownDescription: "Additional_allowed_principals.",
+						Optional:            true,
+					},
+					"vpc_id": schema.StringAttribute{
+						MarkdownDescription: "Vpc_id.",
+						Optional:            true,
+					},
+					"availability_zone": schema.StringAttribute{
+						MarkdownDescription: "Availability_zone.",
+						Optional:            true,
+					},
+					"endpoint_access": schema.StringAttribute{
+						MarkdownDescription: "Endpoint_access.",
+						Optional:            true,
+					},
+					"multi_arch": schema.BoolAttribute{
+						MarkdownDescription: "Multi_arch.",
+						Optional:            true,
+					},
+					"region": schema.StringAttribute{
+						MarkdownDescription: "Region.",
+						Optional:            true,
+					},
+					"aws_subnet_ids": schema.ListAttribute{
+						MarkdownDescription: "Aws_subnet_ids.",
+						Required:            true,
+						ElementType:         types.StringType,
+						PlanModifiers:       []planmodifier.List{listplanmodifier.RequiresReplace()},
+					},
+					"availability_zones": schema.ListAttribute{
+						MarkdownDescription: "Availability_zones.",
+						Required:            true,
+						ElementType:         types.StringType,
+						PlanModifiers:       []planmodifier.List{listplanmodifier.RequiresReplace()},
+					},
+					"aws_partition": schema.StringAttribute{
+						MarkdownDescription: "Aws_partition.",
+						Computed:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
+					},
+				},
+				Required: true,
 			},
 		},
 	}
@@ -483,7 +497,11 @@ func (r *ClusterResource) Create(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeClusterToTerraform(&nativeState)
+	responseState, responseDiags := nativeClusterToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into plan to preserve consumer-only fields
 	// This keeps user-provided values while adding computed fields from the API
@@ -540,7 +558,11 @@ func (r *ClusterResource) Read(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeClusterToTerraform(&nativeState)
+	responseState, responseDiags := nativeClusterToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into state to preserve consumer-only fields
 	// (fields with no SDK path, e.g. immutable creation-only inputs) that
@@ -628,7 +650,11 @@ func (r *ClusterResource) Update(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeClusterToTerraform(&nativeState)
+	responseState, responseDiags := nativeClusterToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into plan to preserve consumer-only fields
 	// This keeps user-provided values while adding computed fields from the API
@@ -706,7 +732,11 @@ func (r *ClusterResource) ImportState(
 	}
 
 	// Convert native state to Terraform state
-	state := nativeClusterToTerraform(&nativeState)
+	state, conversionDiags := nativeClusterToTerraform(&nativeState)
+	resp.Diagnostics.Append(conversionDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Call handler to populate computed fields and adjust state after flatten
 	r.Handler.PostFlatten(ctx, state, obj)
@@ -747,6 +777,9 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	}
 	if !tf.ProvisionerConfigName.IsNull() && !tf.ProvisionerConfigName.IsUnknown() {
 		native.ProvisionerConfigName = tf.ProvisionerConfigName.ValueString()
+	}
+	if !tf.Channel.IsNull() && !tf.Channel.IsUnknown() {
+		native.Channel = tf.Channel.ValueString()
 	}
 	if !tf.ContainerLogMaxFiles.IsNull() && !tf.ContainerLogMaxFiles.IsUnknown() {
 		value := tf.ContainerLogMaxFiles.ValueInt64()
@@ -832,6 +865,15 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.AllowedKernelArguments.IsNull() && !tf.AllowedKernelArguments.IsUnknown() {
 		native.AllowedKernelArguments = tf.AllowedKernelArguments.ValueString()
 	}
+	if !tf.HttpProxy.IsNull() && !tf.HttpProxy.IsUnknown() {
+		native.HttpProxy = tf.HttpProxy.ValueString()
+	}
+	if !tf.HttpsProxy.IsNull() && !tf.HttpsProxy.IsUnknown() {
+		native.HttpsProxy = tf.HttpsProxy.ValueString()
+	}
+	if !tf.NoProxy.IsNull() && !tf.NoProxy.IsUnknown() {
+		native.NoProxy = tf.NoProxy.ValueString()
+	}
 	if !tf.ImageContentSources.IsNull() && !tf.ImageContentSources.IsUnknown() {
 		native.ImageContentSources = tf.ImageContentSources.ValueString()
 	}
@@ -840,9 +882,6 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	}
 	if !tf.AdvertiseAddress.IsNull() && !tf.AdvertiseAddress.IsUnknown() {
 		native.AdvertiseAddress = tf.AdvertiseAddress.ValueString()
-	}
-	if !tf.AllowedCIDRBlocks.IsNull() && !tf.AllowedCIDRBlocks.IsUnknown() {
-		native.AllowedCIDRBlocks = tf.AllowedCIDRBlocks.ValueString()
 	}
 	if !tf.Port.IsNull() && !tf.Port.IsUnknown() {
 		value := tf.Port.ValueInt64()
@@ -853,42 +892,11 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 			native.Port = &i
 		}
 	}
-	if !tf.ClusterNetwork.IsNull() && !tf.ClusterNetwork.IsUnknown() {
-		native.ClusterNetwork = tf.ClusterNetwork.ValueString()
-	}
-	if !tf.MachineNetwork.IsNull() && !tf.MachineNetwork.IsUnknown() {
-		native.MachineNetwork = tf.MachineNetwork.ValueString()
-	}
-	if !tf.NetworkType.IsNull() && !tf.NetworkType.IsUnknown() {
-		native.NetworkType = tf.NetworkType.ValueString()
-	}
-	if !tf.ServiceNetwork.IsNull() && !tf.ServiceNetwork.IsUnknown() {
-		native.ServiceNetwork = tf.ServiceNetwork.ValueString()
-	}
-	if !tf.AdditionalAllowedPrincipals.IsNull() && !tf.AdditionalAllowedPrincipals.IsUnknown() {
-		native.AdditionalAllowedPrincipals = tf.AdditionalAllowedPrincipals.ValueString()
-	}
 	if !tf.Filters.IsNull() && !tf.Filters.IsUnknown() {
 		native.Filters = tf.Filters.ValueString()
 	}
 	if !tf.Subnet_id.IsNull() && !tf.Subnet_id.IsUnknown() {
 		native.Subnet_id = tf.Subnet_id.ValueString()
-	}
-	if !tf.Vpc.IsNull() && !tf.Vpc.IsUnknown() {
-		native.Vpc = tf.Vpc.ValueString()
-	}
-	if !tf.Zone.IsNull() && !tf.Zone.IsUnknown() {
-		native.Zone = tf.Zone.ValueString()
-	}
-	if !tf.EndpointAccess.IsNull() && !tf.EndpointAccess.IsUnknown() {
-		native.EndpointAccess = tf.EndpointAccess.ValueString()
-	}
-	if !tf.MultiArch.IsNull() && !tf.MultiArch.IsUnknown() {
-		b := tf.MultiArch.ValueBool()
-		native.MultiArch = &b
-	}
-	if !tf.Region.IsNull() && !tf.Region.IsUnknown() {
-		native.Region = tf.Region.ValueString()
 	}
 	if !tf.ResourceTags.IsNull() && !tf.ResourceTags.IsUnknown() {
 		native.ResourceTags = tf.ResourceTags.ValueString()
@@ -932,8 +940,8 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.Type.IsNull() && !tf.Type.IsUnknown() {
 		native.Type = tf.Type.ValueString()
 	}
-	if !tf.Image.IsNull() && !tf.Image.IsUnknown() {
-		native.Image = tf.Image.ValueString()
+	if !tf.Version.IsNull() && !tf.Version.IsUnknown() {
+		native.Version = tf.Version.ValueString()
 	}
 	if !tf.OidcConfigId.IsNull() && !tf.OidcConfigId.IsUnknown() {
 		native.OidcConfigId = tf.OidcConfigId.ValueString()
@@ -951,22 +959,6 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.Operator_roles_prefix.IsNull() && !tf.Operator_roles_prefix.IsUnknown() {
 		native.Operator_roles_prefix = tf.Operator_roles_prefix.ValueString()
 	}
-	if !tf.Aws_subnet_ids.IsNull() && !tf.Aws_subnet_ids.IsUnknown() {
-		items, collectionDiags := terraformListToStringSlice(tf.Aws_subnet_ids)
-		diags = append(diags, collectionDiags...)
-		native.Aws_subnet_ids = items
-	}
-	if !tf.Vpc_id.IsNull() && !tf.Vpc_id.IsUnknown() {
-		native.Vpc_id = tf.Vpc_id.ValueString()
-	}
-	if !tf.Availability_zones.IsNull() && !tf.Availability_zones.IsUnknown() {
-		items, collectionDiags := terraformListToStringSlice(tf.Availability_zones)
-		diags = append(diags, collectionDiags...)
-		native.Availability_zones = items
-	}
-	if !tf.Aws_partition.IsNull() && !tf.Aws_partition.IsUnknown() {
-		native.Aws_partition = tf.Aws_partition.ValueString()
-	}
 	if !tf.Cloud_region.IsNull() && !tf.Cloud_region.IsUnknown() {
 		native.Cloud_region = tf.Cloud_region.ValueString()
 	}
@@ -976,16 +968,41 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.Phase.IsNull() && !tf.Phase.IsUnknown() {
 		native.Phase = tf.Phase.ValueString()
 	}
+	if !tf.Network.IsNull() && !tf.Network.IsUnknown() {
+		bundleDiags := objectToNative(tf.Network, &native.Network, map[string]string{
+			"api_allowed_cidr_blocks": "Api_allowed_cidr_blocks",
+			"pod_cidr":                "Pod_cidr",
+			"machine_cidr":            "Machine_cidr",
+			"network_type":            "Network_type",
+			"service_cidr":            "Service_cidr",
+		})
+		diags = append(diags, bundleDiags...)
+	}
+	if !tf.Aws.IsNull() && !tf.Aws.IsUnknown() {
+		bundleDiags := objectToNative(tf.Aws, &native.Aws, map[string]string{
+			"additional_allowed_principals": "Additional_allowed_principals",
+			"vpc_id":                        "Vpc_id",
+			"availability_zone":             "Availability_zone",
+			"endpoint_access":               "Endpoint_access",
+			"multi_arch":                    "Multi_arch",
+			"region":                        "Region",
+			"aws_subnet_ids":                "Aws_subnet_ids",
+			"availability_zones":            "Availability_zones",
+			"aws_partition":                 "Aws_partition",
+		})
+		diags = append(diags, bundleDiags...)
+	}
 	return native, diags
 }
 
 // nativeClusterToTerraform converts native Go types to Terraform framework types.
 // This is used after pathbind.Flatten to prepare output for state persistence.
-func nativeClusterToTerraform(native *ClusterStateNative) *ClusterState {
+func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.Diagnostics) {
 	if native == nil {
-		return nil
+		return nil, nil
 	}
 	tf := &ClusterState{}
+	var diags diag.Diagnostics
 	tf.Name = toTerraformString(native.Name)
 	tf.Id = toTerraformString(native.Id)
 	tf.Delete_protection = toTerraformBool(native.Delete_protection)
@@ -994,6 +1011,7 @@ func nativeClusterToTerraform(native *ClusterStateNative) *ClusterState {
 	tf.RoleARN = toTerraformString(native.RoleARN)
 	tf.Platform = toTerraformString(native.Platform)
 	tf.ProvisionerConfigName = toTerraformString(native.ProvisionerConfigName)
+	tf.Channel = toTerraformString(native.Channel)
 	tf.ContainerLogMaxFiles = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.ContainerLogMaxFiles))
 	tf.ContainerLogMaxSize = toTerraformString(native.ContainerLogMaxSize)
 	tf.ImageGCHighThresholdPercent = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.ImageGCHighThresholdPercent))
@@ -1008,23 +1026,15 @@ func nativeClusterToTerraform(native *ClusterStateNative) *ClusterState {
 	tf.StreamingConnectionIdleTimeout = toTerraformString(native.StreamingConnectionIdleTimeout)
 	tf.SystemReserved = toTerraformMap(native.SystemReserved)
 	tf.AllowedKernelArguments = toTerraformString(native.AllowedKernelArguments)
+	tf.HttpProxy = toTerraformString(native.HttpProxy)
+	tf.HttpsProxy = toTerraformString(native.HttpsProxy)
+	tf.NoProxy = toTerraformString(native.NoProxy)
 	tf.ImageContentSources = toTerraformString(native.ImageContentSources)
 	tf.AllocateNodeCIDRs = toTerraformString(native.AllocateNodeCIDRs)
 	tf.AdvertiseAddress = toTerraformString(native.AdvertiseAddress)
-	tf.AllowedCIDRBlocks = toTerraformString(native.AllowedCIDRBlocks)
 	tf.Port = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.Port))
-	tf.ClusterNetwork = toTerraformString(native.ClusterNetwork)
-	tf.MachineNetwork = toTerraformString(native.MachineNetwork)
-	tf.NetworkType = toTerraformString(native.NetworkType)
-	tf.ServiceNetwork = toTerraformString(native.ServiceNetwork)
-	tf.AdditionalAllowedPrincipals = toTerraformString(native.AdditionalAllowedPrincipals)
 	tf.Filters = toTerraformString(native.Filters)
 	tf.Subnet_id = toTerraformString(native.Subnet_id)
-	tf.Vpc = toTerraformString(native.Vpc)
-	tf.Zone = toTerraformString(native.Zone)
-	tf.EndpointAccess = toTerraformString(native.EndpointAccess)
-	tf.MultiArch = toTerraformBoolPtr(native.MultiArch)
-	tf.Region = toTerraformString(native.Region)
 	tf.ResourceTags = toTerraformString(native.ResourceTags)
 	tf.ControlPlaneOperatorARN = toTerraformString(native.ControlPlaneOperatorARN)
 	tf.ImageRegistryARN = toTerraformString(native.ImageRegistryARN)
@@ -1039,17 +1049,53 @@ func nativeClusterToTerraform(native *ClusterStateNative) *ClusterState {
 	tf.SharedVPCRolesRefIngressARN = toTerraformString(native.SharedVPCRolesRefIngressARN)
 	tf.TerminationHandlerQueueURL = toTerraformString(native.TerminationHandlerQueueURL)
 	tf.Type = toTerraformString(native.Type)
-	tf.Image = toTerraformString(native.Image)
+	tf.Version = toTerraformString(native.Version)
 	tf.OidcConfigId = toTerraformString(native.OidcConfigId)
 	tf.Properties = toTerraformMap(native.Properties)
 	tf.Tags = toTerraformMap(native.Tags)
 	tf.Operator_roles_prefix = toTerraformString(native.Operator_roles_prefix)
-	tf.Aws_subnet_ids = toTerraformList(native.Aws_subnet_ids)
-	tf.Vpc_id = toTerraformString(native.Vpc_id)
-	tf.Availability_zones = toTerraformList(native.Availability_zones)
-	tf.Aws_partition = toTerraformString(native.Aws_partition)
 	tf.Cloud_region = toTerraformString(native.Cloud_region)
 	tf.Api_url = toTerraformString(native.Api_url)
 	tf.Phase = toTerraformString(native.Phase)
-	return tf
+	{
+		bundleAttrs := nativeBundleAttributes(native.Network, map[string]string{
+			"api_allowed_cidr_blocks": "Api_allowed_cidr_blocks",
+			"pod_cidr":                "Pod_cidr",
+			"machine_cidr":            "Machine_cidr",
+			"network_type":            "Network_type",
+			"service_cidr":            "Service_cidr",
+		})
+		tf.Network, _ = types.ObjectValue(map[string]attr.Type{
+			"api_allowed_cidr_blocks": types.StringType,
+			"pod_cidr":                types.StringType,
+			"machine_cidr":            types.StringType,
+			"network_type":            types.StringType,
+			"service_cidr":            types.StringType,
+		}, bundleAttrs)
+	}
+	{
+		bundleAttrs := nativeBundleAttributes(native.Aws, map[string]string{
+			"additional_allowed_principals": "Additional_allowed_principals",
+			"vpc_id":                        "Vpc_id",
+			"availability_zone":             "Availability_zone",
+			"endpoint_access":               "Endpoint_access",
+			"multi_arch":                    "Multi_arch",
+			"region":                        "Region",
+			"aws_subnet_ids":                "Aws_subnet_ids",
+			"availability_zones":            "Availability_zones",
+			"aws_partition":                 "Aws_partition",
+		})
+		tf.Aws, _ = types.ObjectValue(map[string]attr.Type{
+			"additional_allowed_principals": types.StringType,
+			"vpc_id":                        types.StringType,
+			"availability_zone":             types.StringType,
+			"endpoint_access":               types.StringType,
+			"multi_arch":                    types.BoolType,
+			"region":                        types.StringType,
+			"aws_subnet_ids":                types.ListType{ElemType: types.StringType},
+			"availability_zones":            types.ListType{ElemType: types.StringType},
+			"aws_partition":                 types.StringType,
+		}, bundleAttrs)
+	}
+	return tf, diags
 }

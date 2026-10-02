@@ -36,6 +36,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/breakglasscredential"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterosdgcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/classic"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
@@ -51,6 +52,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/logforwarder"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machine_types"
 	machinepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/classic"
+	machinepoolgcp "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/gcp"
 	nodepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/notificationcontacts"
 	classicStsPolicies "github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/classic"
@@ -63,6 +65,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/trusted_ip_addresses"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/tuningconfigs"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/versions"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/wifconfig"
 )
 
 // Provider is the implementation of the Provider.
@@ -244,6 +247,9 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		logforwarder.New,
 		notificationcontacts.New,
 		ocmrole.New,
+		wifconfig.New,
+		clusterosdgcp.New,
+		machinepoolgcp.New,
 	}
 }
 
@@ -265,5 +271,6 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		trusted_ip_addresses.New,
 		imagemirror.NewDataSource,
 		logforwarder.NewDataSource,
+		wifconfig.NewDataSource,
 	}
 }

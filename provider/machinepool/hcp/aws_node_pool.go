@@ -70,8 +70,12 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 			Optional: true,
 		},
 		"ec2_metadata_http_tokens": schema.StringAttribute{
-			Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the nodes." +
-				"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from " + common.ValueCannotBeChangedStringDescription,
+			Description: "This value determines which EC2 Instance Metadata Service mode " +
+				"to use for EC2 instances in the nodes. " +
+				"This can be set as `required` (IMDSv2 only) or `optional` (IMDS v1 or v2). " +
+				"When omitted, the API determines the value. " +
+				"Set `required` or `optional` explicitly if you need a specific mode. " +
+				common.ValueCannotBeChangedStringDescription,
 			Optional: true,
 			Computed: true,
 			Validators: []validator.String{attrvalidators.EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
@@ -189,8 +193,10 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 			Optional:    true,
 		},
 		"ec2_metadata_http_tokens": schema.StringAttribute{
-			Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the nodes." +
-				"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from " + common.ValueCannotBeChangedStringDescription,
+			Description: "EC2 Instance Metadata Service mode for EC2 instances in the nodes " +
+				"(`required` for IMDSv2 only, or `optional` for IMDS v1 or v2). " +
+				"Configure this value on the `rhcs_hcp_machine_pool` resource; " +
+				"this data source only reports it.",
 			Optional: true,
 			Computed: true,
 		},

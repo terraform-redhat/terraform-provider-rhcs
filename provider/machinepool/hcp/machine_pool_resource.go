@@ -332,10 +332,11 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 			awsNodePoolBuilder.AdditionalSecurityGroupIds(additionalSecurityGroupIds...)
 		}
 
-		if common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.Ec2MetadataHttpTokens) {
-			plan.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional))
+		if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.Ec2MetadataHttpTokens) {
+			awsNodePoolBuilder.Ec2MetadataHttpTokens(
+				cmv1.Ec2MetadataHttpTokens(plan.AWSNodePool.Ec2MetadataHttpTokens.ValueString()),
+			)
 		}
-		awsNodePoolBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(plan.AWSNodePool.Ec2MetadataHttpTokens.ValueString()))
 
 		if workerDiskSize := common.OptionalInt64(plan.AWSNodePool.DiskSize); workerDiskSize != nil {
 			err := diskValidator.ValidateNodePoolRootDiskSize(int(*workerDiskSize))
@@ -1450,11 +1451,13 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 			len(state.AWSNodePool.AdditionalSecurityGroupIds.Elements()) > 0 {
 			state.AWSNodePool.AdditionalSecurityGroupIds = types.ListNull(types.StringType)
 		}
-		if httpTokensState, ok := awsNodePool.GetEc2MetadataHttpTokens(); ok {
-			state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional))
-			if httpTokensState != "" {
-				state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
-			}
+		if httpTokensState, ok := awsNodePool.GetEc2MetadataHttpTokens(); ok && httpTokensState != "" {
+			state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
+		} else if common.IsStringAttributeUnknownOrEmpty(state.AWSNodePool.Ec2MetadataHttpTokens) {
+			// When the API omits the field and Terraform state has no known value, assume required
+			// (current API default for new machine pools). Imported legacy pools that omit the field
+			// may not actually use required; set the attribute explicitly after import if needed.
+			state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensRequired))
 		}
 
 		state.AWSNodePool.DiskSize = types.Int64Null()

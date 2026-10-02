@@ -694,15 +694,28 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 	It("can be created with imdsv2 - [id:75373]", ci.Critical,
 		func() {
-			imdsv2Values := []string{constants.OptionalEc2MetadataHttpTokens,
-				constants.RequiredEc2MetadataHttpTokens}
+			optional := constants.OptionalEc2MetadataHttpTokens
+			required := constants.RequiredEc2MetadataHttpTokens
+			imdsv2Cases := []struct {
+				description string
+				value       *string
+				expected    string
+			}{
+				{description: optional, value: &optional, expected: optional},
+				{description: required, value: &required, expected: required},
+				{
+					description: "omitted",
+					value:       nil,
+					expected:    constants.DefaultEc2MetadataHttpTokens,
+				},
+			}
 
 			replicas := 3
 			machineType := "m5.xlarge"
 			subnetId := vpcOutput.PrivateSubnets[0]
 
-			for _, imdsv2Value := range imdsv2Values {
-				By("Create a machinepool with --ec2-metadata-http-tokens = " + imdsv2Value)
+			for _, imdsv2Case := range imdsv2Cases {
+				By("Create a machinepool with ec2_metadata_http_tokens = " + imdsv2Case.description)
 				name := helper.GenerateRandomName("np-75373", 2)
 				mpArgs := &exec.MachinePoolArgs{
 					Cluster:               new(clusterID),
@@ -712,7 +725,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 					SubnetID:              new(subnetId),
 					MachineType:           new(machineType),
 					AutoRepair:            new(true),
-					Ec2MetadataHttpTokens: new(imdsv2Value),
+					Ec2MetadataHttpTokens: imdsv2Case.value,
 				}
 				_, err := mpService.Apply(mpArgs)
 				Expect(err).ToNot(HaveOccurred())
@@ -721,7 +734,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(mpResponseBody.AWSNodePool().Ec2MetadataHttpTokens())).
-					To(Equal(imdsv2Value))
+					To(Equal(imdsv2Case.expected))
 
 				mpService.Destroy()
 			}

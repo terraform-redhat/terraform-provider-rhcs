@@ -1535,13 +1535,14 @@ var _ = Describe("HCP Cluster", func() {
 					VerifyJQ(`.cloud_provider.id`, "aws"),
 					VerifyJQ(`.region.id`, "us-west-1"),
 					VerifyJQ(`.product.id`, "rosa"),
-					VerifyJQ(`.aws.ec2_metadata_http_tokens`, "optional"),
+					// Provider omits the field when unset so the API default applies.
+					VerifyJQ(`(.aws | has("ec2_metadata_http_tokens"))`, false),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
-					  	  "ec2_metadata_http_tokens" : "optional",
+					  	  "ec2_metadata_http_tokens" : "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -1584,7 +1585,7 @@ var _ = Describe("HCP Cluster", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.ec2_metadata_http_tokens", "optional"))
+			Expect(resource).To(MatchJQ(".attributes.ec2_metadata_http_tokens", "required"))
 		})
 
 		Context("Creates cluster with etcd encryption", func() {

@@ -270,6 +270,70 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(httpTokens))
 		})
 
+		It("Defaults ec2_metadata_http_tokens to required when API omits it and state is empty", func() {
+			clusterState := &ClusterRosaClassicState{}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			delete(clusterJson["aws"].(map[string]any), "ec2_metadata_http_tokens")
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)).To(Succeed())
+
+			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(string(cmv1.Ec2MetadataHttpTokensRequired)))
+		})
+
+		It("Defaults ec2_metadata_http_tokens to required when API returns empty and state is empty", func() {
+			clusterState := &ClusterRosaClassicState{}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["aws"].(map[string]any)["ec2_metadata_http_tokens"] = ""
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)).To(Succeed())
+
+			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(string(cmv1.Ec2MetadataHttpTokensRequired)))
+		})
+
+		It("Preserves known optional ec2_metadata_http_tokens when API omits it", func() {
+			clusterState := &ClusterRosaClassicState{
+				Ec2MetadataHttpTokens: types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional)),
+			}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			delete(clusterJson["aws"].(map[string]any), "ec2_metadata_http_tokens")
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)).To(Succeed())
+
+			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(string(cmv1.Ec2MetadataHttpTokensOptional)))
+		})
+
+		It("Preserves known required ec2_metadata_http_tokens when API omits it", func() {
+			clusterState := &ClusterRosaClassicState{
+				Ec2MetadataHttpTokens: types.StringValue(string(cmv1.Ec2MetadataHttpTokensRequired)),
+			}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			delete(clusterJson["aws"].(map[string]any), "ec2_metadata_http_tokens")
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)).To(Succeed())
+
+			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(string(cmv1.Ec2MetadataHttpTokensRequired)))
+		})
+
 		It("Populates Channel and nulls ChannelGroup when cluster has channel", func() {
 			clusterState := &ClusterRosaClassicState{}
 			clusterJson := generateBasicRosaClassicClusterJson()

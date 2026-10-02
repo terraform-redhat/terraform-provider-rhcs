@@ -409,9 +409,12 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 			},
 			"ec2_metadata_http_tokens": schema.StringAttribute{
-				Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster." +
-					"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from " +
-					"OpenShift version 4.11.0 and newer. " + common.ValueCannotBeChangedStringDescription,
+				Description: "This value determines which EC2 Instance Metadata Service mode " +
+					"to use for EC2 instances in the cluster. " +
+					"This can be set as `required` (IMDSv2 only) or `optional` (IMDS v1 or v2). This feature is available from " +
+					"OpenShift version 4.11.0 and newer. When omitted, the API determines the value. " +
+					"Set `required` or `optional` explicitly if you need a specific mode. " +
+					common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{attrvalidators.EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
@@ -1836,9 +1839,11 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()
 	if ok && httpTokensState != "" {
 		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
-	} else {
-		// Need to add default as future ocm versions will have this flag as default and not empty string
-		state.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional))
+	} else if common.IsStringAttributeUnknownOrEmpty(state.Ec2MetadataHttpTokens) {
+		// When the API omits the field and Terraform state has no known value, assume required
+		// (current API default for new clusters). Imported legacy clusters that omit the field
+		// may not actually use required; set the attribute explicitly after import if needed.
+		state.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensRequired))
 	}
 
 	stsState, ok := object.AWS().GetSTS()

@@ -495,7 +495,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(clusterState.AutoNode.RoleARN.ValueString()).To(Equal(autoNodeRoleArn))
 		})
 
-		It("Populates replicas from API compute nodes count", func() {
+		It("Does not populate replicas from cluster-wide compute when null", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
 			clusterJson["nodes"].(map[string]any)["compute"] = 5
@@ -508,7 +508,77 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 
 			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(clusterState.Replicas.ValueInt64()).To(Equal(int64(5)))
+			Expect(common.HasValue(clusterState.Replicas)).To(BeFalse())
+		})
+
+		It("Does not overwrite known replicas with cluster-wide compute", func() {
+			clusterState := &ClusterRosaHcpState{
+				Replicas: types.Int64Value(3),
+			}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["nodes"].(map[string]any)["compute"] = 15
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.Replicas.ValueInt64()).To(Equal(int64(3)))
+		})
+
+		It("Nulls unknown replicas even when compute is present", func() {
+			clusterState := &ClusterRosaHcpState{
+				Replicas: types.Int64Unknown(),
+			}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["nodes"].(map[string]any)["compute"] = 5
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.Replicas.IsNull()).To(BeTrue())
+		})
+
+		It("Leaves unknown replicas null when compute is absent", func() {
+			clusterState := &ClusterRosaHcpState{
+				Replicas: types.Int64Unknown(),
+			}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			delete(clusterJson["nodes"].(map[string]any), "compute")
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.Replicas.IsNull()).To(BeTrue())
+		})
+
+		It("Leaves null replicas unset when compute is present", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["nodes"].(map[string]any)["compute"] = 15
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(common.HasValue(clusterState.Replicas)).To(BeFalse())
 		})
 
 		It("Populates compute_machine_type from API response", func() {
@@ -567,7 +637,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 	})
 
 	Context("Read restores default machine pool attributes absent from configuration", func() {
-		It("Restores replicas and compute_machine_type from API response", func() {
+		It("Restores compute_machine_type but not replicas from API", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
 			clusterJson["nodes"].(map[string]any)["compute"] = 6
@@ -584,7 +654,8 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(clusterState.Replicas.ValueInt64()).To(Equal(int64(6)))
+			// replicas is create-only; null stays null (never filled from compute).
+			Expect(clusterState.Replicas.IsNull()).To(BeTrue())
 			Expect(clusterState.ComputeMachineType.ValueString()).To(Equal(machineType))
 		})
 	})

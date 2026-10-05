@@ -356,7 +356,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(clusterState.Sts.OIDCEndpointURL.ValueString()).To(Equal("nonce.com"))
 		})
 
-		It("Populates replicas from API compute nodes count", func() {
+		It("Does not populate replicas from cluster-wide compute when null", func() {
 			clusterState := &ClusterRosaClassicState{}
 			clusterJson := generateBasicRosaClassicClusterJson()
 			clusterJson["nodes"].(map[string]any)["compute"] = 5
@@ -369,7 +369,77 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 
 			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(clusterState.Replicas.ValueInt64()).To(Equal(int64(5)))
+			Expect(common.HasValue(clusterState.Replicas)).To(BeFalse())
+		})
+
+		It("Does not overwrite known replicas with cluster-wide compute", func() {
+			clusterState := &ClusterRosaClassicState{
+				Replicas: types.Int64Value(3),
+			}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["nodes"].(map[string]any)["compute"] = 15
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.Replicas.ValueInt64()).To(Equal(int64(3)))
+		})
+
+		It("Nulls unknown replicas even when compute is present", func() {
+			clusterState := &ClusterRosaClassicState{
+				Replicas: types.Int64Unknown(),
+			}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["nodes"].(map[string]any)["compute"] = 5
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.Replicas.IsNull()).To(BeTrue())
+		})
+
+		It("Leaves unknown replicas null when compute is absent", func() {
+			clusterState := &ClusterRosaClassicState{
+				Replicas: types.Int64Unknown(),
+			}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			delete(clusterJson["nodes"].(map[string]any), "compute")
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.Replicas.IsNull()).To(BeTrue())
+		})
+
+		It("Leaves null replicas unset when compute is present", func() {
+			clusterState := &ClusterRosaClassicState{}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["nodes"].(map[string]any)["compute"] = 15
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(common.HasValue(clusterState.Replicas)).To(BeFalse())
 		})
 
 		It("Populates compute_machine_type from API response", func() {
@@ -424,7 +494,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 	})
 
 	Context("Read restores default machine pool attributes absent from configuration", func() {
-		It("Restores replicas, compute_machine_type, and default_mp_labels from API response", func() {
+		It("Restores compute_machine_type and default_mp_labels but not replicas from API", func() {
 			clusterState := &ClusterRosaClassicState{}
 			clusterJson := generateBasicRosaClassicClusterJson()
 			clusterJson["nodes"].(map[string]any)["compute"] = 3
@@ -446,7 +516,8 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(clusterState.Replicas.ValueInt64()).To(Equal(int64(3)))
+			// replicas is create-only; null stays null (never filled from compute).
+			Expect(clusterState.Replicas.IsNull()).To(BeTrue())
 			Expect(clusterState.ComputeMachineType.ValueString()).To(Equal(machineType))
 			labels, err := common.OptionalMap(context.Background(), clusterState.DefaultMPLabels)
 			Expect(err).ToNot(HaveOccurred())

@@ -63,6 +63,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/planmodifiers"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 )
@@ -226,12 +227,21 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 			},
 			"replicas": schema.Int64Attribute{
-				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
-					"multizone clusters need at least 3 nodes. " + rosaTypes.PoolMessage,
+				Description: "Number of worker nodes to provision for the default machine pool at cluster creation. " +
+					"Single-AZ clusters need at least 2 nodes, multi-AZ clusters need at least 3 nodes. " +
+					"This attribute is create-only: after create, Terraform keeps state aligned with config " +
+					"(or null when omitted) and warns on changes; it does not resize running pools. " +
+					"Day-2 scaling must use the rhcs_machine_pool resource. " +
+					"Any modifications to the default machine pool should be made through the imported " +
+					"rhcs_machine_pool resource. For more details, refer to " +
+					"[the default machine pool Terraform documentation]" +
+					"(https://registry.terraform.io/providers/terraform-redhat/rhcs/latest/docs/" +
+					"guides/worker-machine-pool)",
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
+					// Omit must plan null (not copy prior state) so Update can clear state.
+					planmodifiers.CreateOnlyOptionalInt64(),
 				},
 			},
 			"compute_machine_type": schema.StringAttribute{
@@ -1088,6 +1098,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.
 
 	// Capture prior delete protection before populate overwrites it with a default.
 	priorDeleteProtection := state.DeleteProtection
+	// replicas is create-only: never fill null/unknown from nodes.compute on Read.
 
 	// Save the state:
 	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
@@ -1156,7 +1167,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Dia
 
 	// default machine pool's attributes
 	common.ValidateStateAndPlanEquals(state.AutoScalingEnabled, plan.AutoScalingEnabled, "autoscaling_enabled", &diags)
-	common.ValidateStateAndPlanEquals(state.Replicas, plan.Replicas, "replicas", &diags)
+	// replicas is create-only and reconciled separately (sync/warn); not hard-immutable.
 	common.ValidateStateAndPlanEquals(state.MinReplicas, plan.MinReplicas, "min_replicas", &diags)
 	common.ValidateStateAndPlanEquals(state.MaxReplicas, plan.MaxReplicas, "max_replicas", &diags)
 	common.ValidateStateAndPlanEquals(state.ComputeMachineType, plan.ComputeMachineType, "compute_machine_type", &diags)
@@ -1278,6 +1289,33 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 	if diags.HasError() {
 		response.Diagnostics.Append(diags...)
 		return
+	}
+
+	// Create-only replicas: align state to config (or null when omitted). Use
+	// request.Config so plan/state copies are never mistaken for an explicit setting.
+	config := &ClusterRosaClassicState{}
+	diags = request.Config.Get(ctx, config)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+	// Match create-time validation: autoscaling and replicas are mutually exclusive.
+	if common.HasValue(config.Replicas) &&
+		common.HasValue(state.AutoScalingEnabled) && state.AutoScalingEnabled.ValueBool() {
+		response.Diagnostics.AddError(
+			"Can't update cluster",
+			"When autoscaling is enabled, replicas should not be configured",
+		)
+		return
+	}
+	reconciled, warning := rosa.ReconcileCreateOnlyReplicas(
+		common.HasValue(config.Replicas), state.Replicas, config.Replicas,
+		rosa.ClassicCreateOnlyReplicasWarning,
+	)
+	state.Replicas = reconciled
+	plan.Replicas = reconciled
+	if warning != "" {
+		response.Diagnostics.AddWarning("Cluster replicas is create-only", warning)
 	}
 
 	//assert no changes on specific attributes
@@ -1408,33 +1446,66 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 		}
 	}
 
-	clusterSpec, err := clusterBuilder.Build()
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't build cluster patch",
-			fmt.Sprintf(
-				"Can't build patch for cluster with identifier '%s': %v",
-				state.ID.ValueString(), err,
-			),
-		)
-		return
-	}
+	// Derive PATCH vs GET from the builder itself so future attributes only need
+	// to populate clusterBuilder (no parallel needsClusterPatch flag).
+	var object *cmv1.Cluster
+	if !clusterBuilder.Empty() {
+		clusterSpec, err := clusterBuilder.Build()
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't build cluster patch",
+				fmt.Sprintf(
+					"Can't build patch for cluster with identifier '%s': %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
 
-	update, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Update().
-		Body(clusterSpec).
-		SendContext(ctx)
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't update cluster",
-			fmt.Sprintf(
-				"Can't update cluster with identifier '%s': %v",
-				state.ID.ValueString(), err,
-			),
-		)
-		return
-	}
+		_, err = r.ClusterCollection.Cluster(state.ID.ValueString()).Update().
+			Body(clusterSpec).
+			SendContext(ctx)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't update cluster",
+				fmt.Sprintf(
+					"Can't update cluster with identifier '%s': %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
 
-	object := update.Body()
+		// Prefer GET over the PATCH body so state is not populated from a
+		// potentially partial update response.
+		get, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't refresh cluster",
+				fmt.Sprintf(
+					"Can't refresh cluster with identifier '%s' after update: %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
+		object = get.Body()
+	} else {
+		// State-only updates (for example create-only replicas reconcile) must not
+		// send an empty cluster PATCH. Refresh via GET instead.
+		get, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't refresh cluster",
+				fmt.Sprintf(
+					"Can't refresh cluster with identifier '%s': %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
+		object = get.Body()
+	}
 
 	// Update the state:
 	err = populateRosaClassicClusterState(ctx, object, plan, common.DefaultHttpClient{})
@@ -2023,9 +2094,9 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.AdminCredentials = rosaTypes.AdminCredentialsNull()
 	}
 
-	if compute, ok := object.Nodes().GetCompute(); ok {
-		state.Replicas = types.Int64Value(int64(compute))
-	} else if state.Replicas.IsUnknown() {
+	// replicas is create-only Terraform state (config or null). Never map
+	// cluster-wide nodes.compute into replicas on read/populate.
+	if state.Replicas.IsUnknown() {
 		state.Replicas = types.Int64Null()
 	}
 	if mt, ok := object.Nodes().GetComputeMachineType(); ok {

@@ -33,9 +33,17 @@ const (
 
 	MaxClusterNameLength         = 54
 	MaxClusterDomainPrefixLength = 15
+
+	// LogFieldClusterID is the tflog field key for cluster identifiers.
+	LogFieldClusterID = "cluster_id"
 )
 
 var UserArnRE = regexp.MustCompile("^(arn:(?:aws|aws-us-gov|aws-cn):(?:iam|sts)::\\d{12}(?:|:(?:root|user|assumed-role|role)(?:\\/?.+\\/?)?)(?:\\/[0-9A-Za-z\\+\\.@_,-]{1,64}))$")
+
+// StandardWorkerPoolNameRE matches HCP default worker pools ("workers" or
+// "workers-N" for multi-AZ). Custom Classic pools may also use names that match
+// this pattern; Classic default-pool identity is the OCM ID "worker".
+var StandardWorkerPoolNameRE = regexp.MustCompile(`^workers?(-[0-9]+)?$`)
 
 var OCMProperties = map[string]string{
 	PropertyRosaTfVersion: build.Version,

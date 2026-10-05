@@ -59,12 +59,7 @@ var nodePoolNameRE = regexp.MustCompile(
 )
 
 // This is a magic name to trigger special handling for the cluster's default
-// machine pool
-// TODO: this should be in ocm-common repo
-var standardNodePoolRegex = regexp.MustCompile(
-	"^workers?(-[0-9]+)?$",
-)
-
+// machine pool. Matching is shared with cluster resources via rosa.StandardWorkerPoolNameRE.
 type HcpMachinePoolResource struct {
 	clusterCollection *cmv1.ClustersClient
 	versionCollection *cmv1.VersionsClient
@@ -298,7 +293,7 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 
 	// The default machine pool is created automatically when the cluster is created.
 	// We want to import it instead of creating it.
-	if standardNodePoolRegex.MatchString(nodePoolName) {
+	if rosa.StandardWorkerPoolNameRE.MatchString(nodePoolName) {
 		r.magicImport(ctx, plan, resp)
 		return
 	}

@@ -19,6 +19,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
@@ -76,6 +77,62 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		Expect(mpResponseBody.InstanceType()).To(Equal(mpOut.MachineType))
 		Expect(mpResponseBody.ID()).To(Equal(mpOut.Name))
 	})
+
+	It("cluster apply after extra pool does not fail on replicas",
+		ci.Critical, ci.FeatureClusterCompute, func() {
+			if profileHandler.Profile().IsAutoscaling() {
+				Skip("Requires fixed cluster replicas (non-autoscaling profile)")
+			}
+
+			By("Record initial cluster compute and terraform replicas")
+			clusterRespBody, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			initialCompute := clusterRespBody.Body().Nodes().Compute()
+
+			clusterService, err := profileHandler.Services().GetClusterService()
+			Expect(err).ToNot(HaveOccurred())
+			clusterArgs, err := clusterService.ReadTFVars()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterArgs.Replicas).ToNot(BeNil())
+			configuredReplicas := *clusterArgs.Replicas
+
+			By("Create a second machine pool")
+			mpReplicas := 3
+			name := helper.GenerateRandomName("mp-replicas", 2)
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:     new(clusterID),
+				Replicas:    new(mpReplicas),
+				MachineType: new("r5.xlarge"),
+				Name:        new(name),
+			}
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Confirm the extra machine pool exists in OCM")
+			mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.Replicas()).To(Equal(mpReplicas))
+
+			// Classic nodes.compute often stays at the default-pool size and does not
+			// reliably sum additional pools. Do not gate on inflation; log for diagnosis.
+			afterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			afterCompute := afterResp.Body().Nodes().Compute()
+			Logger.Infof(
+				"Classic compute after extra pool: initial=%d after=%d configured_replicas=%d extra_pool_replicas=%d",
+				initialCompute, afterCompute, configuredReplicas, mpReplicas,
+			)
+
+			By("Re-apply cluster with unchanged replicas")
+			applyOut, err := clusterService.Apply(clusterArgs)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(applyOut).ToNot(ContainSubstring("Attribute replicas, cannot be changed"))
+
+			By("Confirm terraform still has the original replicas value")
+			resource, err := clusterService.GetStateResource("rhcs_cluster_rosa_classic", "rosa_sts_cluster")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(helper.DigInt(resource, "instances", 0, "attributes", "replicas")).To(Equal(configuredReplicas))
+		})
 
 	// Will fail with known issue OCM-5285
 	It("can edit/delete second machinepool labels - [id:64905]", ci.High, ci.Exclude, func() {

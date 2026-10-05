@@ -79,12 +79,12 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 			var initialMinReplicas int
 			var initialMaxReplicas int
-			var initialReplicas int
+			var initialCompute int
 			if profileHandler.Profile().IsAutoscaling() {
 				initialMinReplicas = clusterRespBody.Body().Nodes().AutoscaleCompute().MinReplicas()
 				initialMaxReplicas = clusterRespBody.Body().Nodes().AutoscaleCompute().MaxReplicas()
 			} else {
-				initialReplicas = clusterRespBody.Body().Nodes().Compute()
+				initialCompute = clusterRespBody.Body().Nodes().Compute()
 			}
 
 			By("Create machinepool")
@@ -124,7 +124,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 					return clusterRespBody.Body().Nodes().AutoscaleCompute().MaxReplicas() == (initialMaxReplicas+replicas) &&
 						clusterRespBody.Body().Nodes().AutoscaleCompute().MinReplicas() == (initialMinReplicas+replicas), nil
 				} else {
-					return clusterRespBody.Body().Nodes().Compute() == (initialReplicas + replicas), nil
+					return clusterRespBody.Body().Nodes().Compute() == (initialCompute + replicas), nil
 				}
 			})
 			helper.AssertWaitPollNoErr(err, "Replicas are not ready after 600")
@@ -134,6 +134,68 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			Expect(err).ToNot(HaveOccurred())
 			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).To(HaveOccurred())
+		})
+
+	It("cluster apply after extra pool does not fail on replicas",
+		ci.Critical, ci.FeatureClusterCompute, func() {
+			if profileHandler.Profile().IsAutoscaling() {
+				Skip("Requires fixed cluster replicas (non-autoscaling profile)")
+			}
+
+			By("Record initial cluster compute and terraform replicas")
+			clusterRespBody, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			initialCompute := clusterRespBody.Body().Nodes().Compute()
+
+			clusterService, err := profileHandler.Services().GetClusterService()
+			Expect(err).ToNot(HaveOccurred())
+			clusterArgs, err := clusterService.ReadTFVars()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterArgs.Replicas).ToNot(BeNil())
+			configuredReplicas := *clusterArgs.Replicas
+
+			By("Create extra HCP machine pool")
+			mpReplicas := 3
+			name := helper.GenerateRandomName("np-replicas", 2)
+			mpArgs := getDefaultMPArgs(name)
+			mpArgs.Replicas = new(mpReplicas)
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Confirm the extra node pool exists in OCM")
+			mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.Replicas()).To(Equal(mpReplicas))
+
+			By("Wait until OCM cluster-wide compute includes the extra pool")
+			var observedCompute int
+			expectedCompute := initialCompute + mpReplicas
+			err = wait.PollUntilContextTimeout(context.Background(), 30*time.Second, 20*time.Minute, false, func(context.Context) (bool, error) {
+				resp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+				if err != nil {
+					return false, err
+				}
+				observedCompute = resp.Body().Nodes().Compute()
+				return observedCompute == expectedCompute, nil
+			})
+			helper.AssertWaitPollNoErr(err, fmt.Sprintf(
+				"Cluster compute did not inflate after extra pool: initial=%d expected=%d observed=%d configured_replicas=%d extra_pool_replicas=%d",
+				initialCompute, expectedCompute, observedCompute, configuredReplicas, mpReplicas,
+			))
+			Logger.Infof(
+				"HCP compute after extra pool: initial=%d after=%d configured_replicas=%d extra_pool_replicas=%d",
+				initialCompute, observedCompute, configuredReplicas, mpReplicas,
+			)
+
+			By("Re-apply cluster with unchanged replicas")
+			applyOut, err := clusterService.Apply(clusterArgs)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(applyOut).ToNot(ContainSubstring("Attribute replicas, cannot be changed"))
+
+			By("Confirm terraform still has the original replicas value")
+			resource, err := clusterService.GetStateResource("rhcs_cluster_rosa_hcp", "rosa_hcp_cluster")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(helper.DigInt(resource, "instances", 0, "attributes", "replicas")).To(Equal(configuredReplicas))
 		})
 
 	It("can create/edit autoscaling - [id:72505]",

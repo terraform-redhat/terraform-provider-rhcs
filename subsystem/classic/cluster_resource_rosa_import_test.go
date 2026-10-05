@@ -79,13 +79,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 		}
 	}`
 	Context("rhcs_cluster_rosa_classic - import", func() {
-		It("can import a cluster", func() {
-			// Prepare the server:
+		It("leaves replicas null on import with empty config", func() {
 			TestServer.AppendHandlers(
-				// CombineHandlers(
-				// 	VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-				// 	RespondWithJSON(http.StatusOK, versionListPage1),
-				// ),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
@@ -125,7 +120,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 				),
 			)
 
-			// Run the apply command:
 			Terraform.Source(`
 			  resource "rhcs_cluster_rosa_classic" "my_cluster" { }
 			`)
@@ -133,6 +127,101 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 			Expect(runOutput.ExitCode).To(BeZero())
 			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "4.10.0"))
+			Expect(resource).To(MatchJQ(".attributes.replicas", nil))
+		})
+
+		It("leaves replicas null on import when compute is inflated (two pools)", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "ec2_metadata_http_tokens": "optional",
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"master_role_arn" : "",
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+						  "op": "add",
+						  "path": "/nodes",
+						  "value": {
+							"availability_zones": [
+								"us-west-1a",
+								"us-west-1b",
+								"us-west-1c"
+							],
+							"compute": 15,
+							"compute_machine_type": {
+								"id": "r5.xlarge"
+							}
+						  }
+						}]`),
+				),
+			)
+
+			Terraform.Source(`
+			  resource "rhcs_cluster_rosa_classic" "my_cluster" { }
+			`)
+			runOutput := Terraform.Import("rhcs_cluster_rosa_classic.my_cluster", "123")
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.replicas", nil))
+		})
+
+		It("leaves replicas null on import when compute is high and no worker pool exists", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "add",
+						  "path": "/nodes",
+						  "value": {
+							"availability_zones": ["us-west-1a"],
+							"compute": 15,
+							"compute_machine_type": {"id": "r5.xlarge"}
+						  }
+						}]`),
+				),
+			)
+			Terraform.Source(`resource "rhcs_cluster_rosa_classic" "my_cluster" {}`)
+			Expect(Terraform.Import("rhcs_cluster_rosa_classic.my_cluster", "123").ExitCode).To(BeZero())
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", nil))
+		})
+
+		It("leaves replicas null on import when worker pool uses autoscaling", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "add",
+						  "path": "/nodes",
+						  "value": {
+							"availability_zones": ["us-west-1a"],
+							"compute": 15,
+							"compute_machine_type": {"id": "r5.xlarge"}
+						  }
+						}]`),
+				),
+			)
+			Terraform.Source(`resource "rhcs_cluster_rosa_classic" "my_cluster" {}`)
+			Expect(Terraform.Import("rhcs_cluster_rosa_classic.my_cluster", "123").ExitCode).To(BeZero())
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", nil))
 		})
 
 	})

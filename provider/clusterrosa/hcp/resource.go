@@ -65,6 +65,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/planmodifiers"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
@@ -205,13 +206,21 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Optional:    true,
 			},
 			"replicas": schema.Int64Attribute{
-				Description: "Number of worker/compute nodes to provision. " +
+				Description: "Number of worker nodes to provision for the default machine pool(s) at cluster creation. " +
 					"Requires that the number supplied be a multiple of the number of private subnets. " +
-					rosaTypes.PoolMessage,
+					"This attribute is create-only: after create, Terraform keeps state aligned with config " +
+					"(or null when omitted) and warns on changes; it does not resize running pools. " +
+					"Day-2 scaling must use the rhcs_hcp_machine_pool resource. " +
+					"Any modifications to the initial machine pool(s) should be made through the Terraform " +
+					"imported Machine Pool resource. For more details, refer to " +
+					"[the default machine pool Terraform documentation]" +
+					"(https://registry.terraform.io/providers/terraform-redhat/rhcs/latest/docs/" +
+					"guides/worker-machine-pool)",
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
+					// Omit must plan null (not copy prior state) so Update can clear state.
+					planmodifiers.CreateOnlyOptionalInt64(),
 				},
 				Validators: []validator.Int64{
 					int64validator.AtLeast(2),
@@ -1306,6 +1315,7 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 
 	// Capture prior delete protection before populate overwrites it with a default.
 	priorDeleteProtection := state.DeleteProtection
+	// replicas is create-only: never fill null/unknown from nodes.compute on Read.
 
 	// Save the state:
 	err = populateRosaHcpClusterState(ctx, object, state)
@@ -1382,8 +1392,8 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.AWSAdditionalComputeSecurityGroupIds, plan.AWSAdditionalComputeSecurityGroupIds, "aws_additional_compute_security_group_ids", &diags)
 
 	// default node pool's attributes
+	// replicas is create-only and reconciled separately (sync/warn); not hard-immutable.
 	common.ValidateStateAndPlanEquals(state.AutoScalingEnabled, plan.AutoScalingEnabled, "autoscaling_enabled", &diags)
-	common.ValidateStateAndPlanEquals(state.Replicas, plan.Replicas, "replicas", &diags)
 	common.ValidateStateAndPlanEquals(state.MinReplicas, plan.MinReplicas, "min_replicas", &diags)
 	common.ValidateStateAndPlanEquals(state.MaxReplicas, plan.MaxReplicas, "max_replicas", &diags)
 	common.ValidateStateAndPlanEquals(state.ComputeMachineType, plan.ComputeMachineType, "compute_machine_type", &diags)
@@ -1398,6 +1408,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	}
 
 	common.ValidateStateAndPlanEquals(state.BaseDNSDomain, plan.BaseDNSDomain, "base_dns_domain", &diags)
+
 	if !reflect.DeepEqual(state.SharedVpc, plan.SharedVpc) {
 		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "shared_vpc",
 			common.GetJsonStringOrNullString(state.SharedVpc), common.GetJsonStringOrNullString(plan.SharedVpc)))
@@ -1521,6 +1532,33 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 	if diags.HasError() {
 		response.Diagnostics.Append(diags...)
 		return
+	}
+
+	// Create-only replicas: align state to config (or null when omitted). Use
+	// request.Config so plan/state copies are never mistaken for an explicit setting.
+	config := &ClusterRosaHcpState{}
+	diags = request.Config.Get(ctx, config)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+	// Match create-time validation: autoscaling and replicas are mutually exclusive.
+	if common.HasValue(config.Replicas) &&
+		common.HasValue(state.AutoScalingEnabled) && state.AutoScalingEnabled.ValueBool() {
+		response.Diagnostics.AddError(
+			"Can't update cluster",
+			"When autoscaling is enabled, replicas should not be configured",
+		)
+		return
+	}
+	reconciled, warning := rosa.ReconcileCreateOnlyReplicas(
+		common.HasValue(config.Replicas), state.Replicas, config.Replicas,
+		rosa.HCPCreateOnlyReplicasWarning,
+	)
+	state.Replicas = reconciled
+	plan.Replicas = reconciled
+	if warning != "" {
+		response.Diagnostics.AddWarning("Cluster replicas is create-only", warning)
 	}
 
 	//assert no changes on specific attributes
@@ -1699,33 +1737,66 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		clusterBuilder.AWS(awsBuilder)
 	}
 
-	clusterSpec, err := clusterBuilder.Build()
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't build cluster patch",
-			fmt.Sprintf(
-				"Can't build patch for cluster with identifier '%s': %v",
-				state.ID.ValueString(), err,
-			),
-		)
-		return
-	}
+	// Derive PATCH vs GET from the builder itself so future attributes only need
+	// to populate clusterBuilder (no parallel needsClusterPatch flag).
+	var object *cmv1.Cluster
+	if !clusterBuilder.Empty() {
+		clusterSpec, err := clusterBuilder.Build()
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't build cluster patch",
+				fmt.Sprintf(
+					"Can't build patch for cluster with identifier '%s': %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
 
-	update, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Update().
-		Body(clusterSpec).
-		SendContext(ctx)
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't update cluster",
-			fmt.Sprintf(
-				"Can't update cluster with identifier '%s': %v",
-				state.ID.ValueString(), err,
-			),
-		)
-		return
-	}
+		_, err = r.ClusterCollection.Cluster(state.ID.ValueString()).Update().
+			Body(clusterSpec).
+			SendContext(ctx)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't update cluster",
+				fmt.Sprintf(
+					"Can't update cluster with identifier '%s': %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
 
-	object := update.Body()
+		// Prefer GET over the PATCH body so state is not populated from a
+		// potentially partial update response.
+		get, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't refresh cluster",
+				fmt.Sprintf(
+					"Can't refresh cluster with identifier '%s' after update: %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
+		object = get.Body()
+	} else {
+		// State-only updates (for example create-only replicas reconcile) must not
+		// send an empty cluster PATCH. Refresh via GET instead.
+		get, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't refresh cluster",
+				fmt.Sprintf(
+					"Can't refresh cluster with identifier '%s': %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
+		object = get.Body()
+	}
 
 	var plannedNoProxy types.String
 	if plan.Proxy != nil {
@@ -2370,9 +2441,9 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 
 	state.LogForwarderIds = types.ListNull(types.StringType)
 
-	if compute, ok := object.Nodes().GetCompute(); ok {
-		state.Replicas = types.Int64Value(int64(compute))
-	} else if state.Replicas.IsUnknown() {
+	// replicas is create-only Terraform state (config or null). Never map
+	// cluster-wide nodes.compute into replicas on read/populate.
+	if state.Replicas.IsUnknown() {
 		state.Replicas = types.Int64Null()
 	}
 	if mt, ok := object.Nodes().GetComputeMachineType(); ok {

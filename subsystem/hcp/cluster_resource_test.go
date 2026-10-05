@@ -840,9 +840,9 @@ var _ = Describe("HCP Cluster", func() {
 						}`),
 					),
 
-					// Patch the cluster (w/ no changes)
+					// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 					CombineHandlers(
-						VerifyRequest(http.MethodPatch, cluster123Route),
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithJSON(http.StatusOK, template),
 					),
 				)
@@ -900,6 +900,25 @@ var _ = Describe("HCP Cluster", func() {
 					CombineHandlers(
 						VerifyRequest(http.MethodPatch, cluster123Route),
 						VerifyJQ(`.channel`, "fast-4.14"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.14.0",
+								"raw_id": "4.14.0",
+								"channel_group": "fast"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "fast-4.14"
+						}]`),
+					),
+					// GET after cluster PATCH (authoritative state)
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 						{
 							"op": "add",
@@ -2136,6 +2155,42 @@ var _ = Describe("HCP Cluster", func() {
 						}
 					}]`, build.Commit, build.Version)),
 				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "required",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/aws/billing_account_id",
+						"value": "123456799012"
+					},
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s"
+						}
+					}]`, build.Commit, build.Version)),
+				),
 			)
 
 			// Run the apply command:
@@ -2284,6 +2339,38 @@ var _ = Describe("HCP Cluster", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "required",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  },
+						  "additional_allowed_principals": ["arn:aws:iam::123456789012:role/dummy2"]
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s"
+						}
+					}]`, build.Commit, build.Version)),
+				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
 					{
 					  "op": "add",
@@ -2496,6 +2583,38 @@ var _ = Describe("HCP Cluster", func() {
 						}
 					}]`, build.Commit, build.Version, propKey, propValue+"_1")),
 				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "required",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s",
+						  	"%s": "%s"
+						}
+					}]`, build.Commit, build.Version, propKey, propValue+"_1")),
+				),
 			)
 
 			// Run the apply command:
@@ -2654,6 +2773,37 @@ var _ = Describe("HCP Cluster", func() {
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, cluster123Route),
 					VerifyJQ(`.properties.`+propKey, nil),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "required",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+                    {
+						"op": "add",
+						"path": "/properties",
+						"value": {
+						  "rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  "rosa_tf_commit":"%s",
+						  "rosa_tf_version":"%s"
+						}
+					}]`, build.Commit, build.Version)),
+				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
 					{
 					  "op": "add",
@@ -3619,6 +3769,52 @@ var _ = Describe("HCP Cluster", func() {
 						}
 					}]`, build.Commit, build.Version)),
 				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "required",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/aws/billing_account_id",
+						"value": "123456799012"
+					},
+					{
+					  "op": "add",
+					  "path": "/registry_config",
+					  "value": {
+						  "platform_allowlist": {
+								"id": "id1"
+							},
+						  "allowed_registries_for_import": []
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s"
+						}
+					}]`, build.Commit, build.Version)),
+				),
 			)
 
 			// Run the apply command:
@@ -3796,6 +3992,56 @@ var _ = Describe("HCP Cluster", func() {
 							"ec2_metadata_http_tokens": "required",
 							"billing_account_id": "123456799012"
 						}
+					},
+					{
+					  "op": "add",
+					  "path": "/registry_config",
+					  "value": {
+						  "platform_allowlist": {
+								"id": "id1"
+							},
+							"blocked_registries": ["registry2.io"],
+							"allowed_registries_for_import": [{
+								"domain_name": "registry2.io",
+								"insecure": true
+							}]
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s"
+						}
+					}]`, build.Commit, build.Version)),
+				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "required",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/aws/billing_account_id",
+						"value": "123456799012"
 					},
 					{
 					  "op": "add",
@@ -4006,6 +4252,56 @@ var _ = Describe("HCP Cluster", func() {
 							"ec2_metadata_http_tokens": "required",
 							"billing_account_id": "123456799012"
 						}
+					},
+					{
+					  "op": "add",
+					  "path": "/registry_config",
+					  "value": {
+						  "platform_allowlist": {
+								"id": "id1"
+							},
+							"additional_trusted_ca": {
+							  "registry7.io": "REDACTED"
+							},
+							"registry_sources": {},
+							"allowed_registries_for_import": []
+					  	}
+					},
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s"
+						}
+					}]`, build.Commit, build.Version)),
+				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "required",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/aws/billing_account_id",
+						"value": "123456799012"
 					},
 					{
 					  "op": "add",
@@ -4456,6 +4752,43 @@ var _ = Describe("HCP Cluster", func() {
 						}
 						}]`),
 					),
+					// GET after cluster PATCH (authoritative state)
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"ec2_metadata_http_tokens": "required",
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						},
+						{
+						"op": "add",
+						"path": "/proxy",
+						"value": {
+							"https_proxy" : "https://proxy2.com",
+							"no_proxy" : "test"
+						}
+						},
+						{
+						"op": "add",
+						"path": "/",
+						"value": {
+							"additional_trust_bundle" : "REDACTED"
+						}
+						}]`),
+					),
 				)
 
 				// update the attribute "proxy"
@@ -4583,6 +4916,28 @@ var _ = Describe("HCP Cluster", func() {
 					CombineHandlers(
 						VerifyRequest(http.MethodPatch, cluster123Route),
 						VerifyJQ(`.additional_trust_bundle`, "123"),
+						RespondWithPatchedJSON(http.StatusCreated, templateWithTrustBundle, `[
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"ec2_metadata_http_tokens": "required",
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						}]`),
+					),
+					// GET after cluster PATCH (authoritative state)
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithPatchedJSON(http.StatusCreated, templateWithTrustBundle, `[
 						{
 						"op": "add",
@@ -5231,6 +5586,43 @@ var _ = Describe("HCP Cluster", func() {
 							}
 						}]`),
 					),
+					// GET after cluster PATCH (authoritative state)
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"ec2_metadata_http_tokens": "required",
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "test.example.com,another.custom.com"
+							}
+						}]`),
+					),
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, cluster123Route, "fetch_service_inquiries=true"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
@@ -5403,6 +5795,28 @@ var _ = Describe("HCP Cluster", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+				{
+				  "op": "add",
+				  "path": "/aws",
+				  "value": {
+					  "ec2_metadata_http_tokens": "required",
+					  "sts" : {
+						  "oidc_endpoint_url": "https://127.0.0.1",
+						  "thumbprint": "111111",
+						  "role_arn": "",
+						  "support_role_arn": "",
+						  "instance_iam_roles" : {
+							"worker_role_arn" : ""
+						  },
+						  "operator_role_prefix" : "test"
+					  }
+				  }
+				}]`),
+				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 				{
 				  "op": "add",
@@ -6056,9 +6470,9 @@ var _ = Describe("HCP Cluster", func() {
 						"enable_minor_version_upgrades": true
 					}`),
 				),
-				// Patch the cluster (w/ no changes)
+				// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusCreated, template, `
 					[
 						{
@@ -6358,9 +6772,9 @@ var _ = Describe("HCP Cluster", func() {
 						"enable_minor_version_upgrades": true
 					}`),
 				),
-				// Patch the cluster (w/ no changes)
+				// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithJSON(http.StatusOK, template),
 				),
 			)
@@ -6435,8 +6849,9 @@ var _ = Describe("HCP Cluster", func() {
 						}
 					}`),
 				),
+				// No cluster attribute changes — refresh via GET instead of empty PATCH.
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithJSON(http.StatusOK, template),
 				),
 			)
@@ -6592,8 +7007,9 @@ var _ = Describe("HCP Cluster", func() {
 						"enable_minor_version_upgrades": true
 					}`),
 				),
+				// No cluster attribute changes — refresh via GET instead of empty PATCH.
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithJSON(http.StatusOK, template),
 				),
 			)
@@ -6772,8 +7188,9 @@ var _ = Describe("HCP Cluster", func() {
 						"enable_minor_version_upgrades": true
 					}`),
 				),
+				// No cluster attribute changes — refresh via GET instead of empty PATCH.
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithJSON(http.StatusOK, template),
 				),
 			)
@@ -6857,9 +7274,9 @@ var _ = Describe("HCP Cluster", func() {
 					VerifyRequest(http.MethodDelete, cluster123Route+"/control_plane/upgrade_policies/456"),
 					RespondWithJSON(http.StatusOK, "{}"),
 				),
-				// Patch the cluster (w/ no changes)
+				// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithJSON(http.StatusOK, template),
 				),
 			)
@@ -6957,9 +7374,9 @@ var _ = Describe("HCP Cluster", func() {
 							"value": "4.14.1"
 						}]`),
 				),
-				// Patch the cluster (w/ no changes)
+				// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithJSON(http.StatusOK, template),
 				),
 			)
@@ -7192,9 +7609,9 @@ var _ = Describe("HCP Cluster", func() {
 							"enable_minor_version_upgrades": true
 						}`),
 					),
-					// Patch the cluster (w/ no changes)
+					// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 					CombineHandlers(
-						VerifyRequest(http.MethodPatch, cluster123Route),
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithJSON(http.StatusCreated, template),
 					),
 				)
@@ -7230,8 +7647,7 @@ var _ = Describe("HCP Cluster", func() {
 	})
 
 	Context("Import", func() {
-		It("can import a cluster", func() {
-			// Prepare the server:
+		It("leaves replicas null on import with empty config", func() {
 			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, cluster123Route),
@@ -7247,7 +7663,6 @@ var _ = Describe("HCP Cluster", func() {
 								  "role_arn": "",
 								  "support_role_arn": "",
 								  "instance_iam_roles" : {
-									"master_role_arn" : "",
 									"worker_role_arn" : ""
 								  },
 								  "operator_role_prefix" : "test"
@@ -7272,12 +7687,81 @@ var _ = Describe("HCP Cluster", func() {
 				),
 			)
 
-			// Run the apply command:
 			Terraform.Source(`resource "rhcs_cluster_rosa_hcp" "my_cluster" {}`)
 			runOutput := Terraform.Import("rhcs_cluster_rosa_hcp.my_cluster", "123")
 			Expect(runOutput.ExitCode).To(BeZero())
 			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
+			Expect(resource).To(MatchJQ(".attributes.replicas", nil))
+		})
+
+		It("leaves replicas null on import when compute is inflated", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "ec2_metadata_http_tokens": "required",
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+						  "op": "add",
+						  "path": "/nodes",
+						  "value": {
+							"availability_zones": [
+								"us-west-1a",
+								"us-west-1b",
+								"us-west-1c"
+							],
+							"compute": 15,
+							"compute_machine_type": {
+								"id": "r5.xlarge"
+							}
+						  }
+						}]`),
+				),
+			)
+
+			Terraform.Source(`resource "rhcs_cluster_rosa_hcp" "my_cluster" {}`)
+			runOutput := Terraform.Import("rhcs_cluster_rosa_hcp.my_cluster", "123")
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.replicas", nil))
+		})
+
+		It("leaves replicas null on import when compute is high", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "add",
+						  "path": "/nodes",
+						  "value": {
+							"availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							"compute": 15,
+							"compute_machine_type": {"id": "r5.xlarge"}
+						  }
+						}]`),
+				),
+			)
+			Terraform.Source(`resource "rhcs_cluster_rosa_hcp" "my_cluster" {}`)
+			Expect(Terraform.Import("rhcs_cluster_rosa_hcp.my_cluster", "123").ExitCode).To(BeZero())
+			Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", nil))
 		})
 	})
 
@@ -8061,6 +8545,111 @@ var _ = Describe("HCP Cluster", func() {
 				Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
 			})
 
+			It("Keeps replicas when cluster-wide compute includes extra pools", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.nodes.compute`, float64(3)),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "ec2_metadata_http_tokens": "required",
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						}]`),
+					),
+				)
+
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					replicas = 3
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
+
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "ec2_metadata_http_tokens": "required",
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+						  "op": "replace",
+						  "path": "/nodes",
+						  "value": {
+							  "compute": 15,
+							  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							  "compute_machine_type": {
+								  "id": "r5.xlarge"
+							  }
+						  }
+						}]`),
+					),
+				)
+
+				requestsBefore := len(TestServer.ReceivedRequests())
+				runOutput = Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource = Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
+				for _, req := range TestServer.ReceivedRequests()[requestsBefore:] {
+					Expect(req.Method).NotTo(Equal(http.MethodPatch),
+						"extra-pool compute drift must not trigger a cluster PATCH")
+				}
+			})
+
 			It("Reads cluster with fixed replicas via data source", func() {
 				// Prepare the server to return a cluster with fixed replicas:
 				TestServer.AppendHandlers(
@@ -8471,7 +9060,7 @@ var _ = Describe("HCP Cluster", func() {
 				runOutput.VerifyErrorContainsSubstring("cannot be changed")
 			})
 
-			It("Fails when trying to change replicas", func() {
+			It("Syncs replicas change with warning (3 to 5)", func() {
 				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
@@ -8554,6 +9143,21 @@ var _ = Describe("HCP Cluster", func() {
 						  }
 						}]`),
 					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "replace",
+						  "path": "/nodes",
+						  "value": {
+							  "compute": 3,
+							  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							  "compute_machine_type": {
+								  "id": "r5.xlarge"
+							  }
+						  }
+						}]`),
+					),
 				)
 
 				Terraform.Source(`
@@ -8581,10 +9185,410 @@ var _ = Describe("HCP Cluster", func() {
 					replicas = 5
 				}`)
 				runOutput = Terraform.Apply()
-				Expect(runOutput.ExitCode).NotTo(BeZero())
-				runOutput.VerifyErrorContainsSubstring("Attribute replicas, cannot be changed from")
+				Expect(runOutput.ExitCode).To(BeZero())
+				runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", float64(5)))
 			})
 
+		})
+
+		Context("create-only replicas", func() {
+			createCluster := func(source string, postPatch string) {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						RespondWithPatchedJSON(http.StatusCreated, template, postPatch),
+					),
+				)
+				Terraform.Source(source)
+				Expect(Terraform.Apply().ExitCode).To(BeZero())
+			}
+
+			clusterGetHandler := func(compute int) http.HandlerFunc {
+				return CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "replace",
+					  "path": "/nodes",
+					  "value": {
+						  "compute": %d,
+						  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+						  "compute_machine_type": {"id": "r5.xlarge"}
+					  }
+					}]`, compute)),
+				)
+			}
+
+			// replicasReconcileHandlers covers refresh + Update for create-only replicas
+			// changes. When only replicas changes, clusterBuilder stays empty (properties
+			// are Unknown in plan so nothing is patched), so Update refreshes via GET.
+			replicasReconcileHandlers := func(compute int) []http.HandlerFunc {
+				return []http.HandlerFunc{
+					clusterGetHandler(compute), // refresh Read
+					clusterGetHandler(compute), // Update GET (no cluster PATCH)
+				}
+			}
+
+			// replicasOmitHandlers covers omit→null applies. Omitting replicas can either
+			// skip the cluster PATCH (GET-only refresh) or PATCH properties when they become
+			// Unknown; accept either path so the test is not order/method flaky.
+			replicasOmitHandlers := func(compute int) []http.HandlerFunc {
+				clusterBody := CombineHandlers(
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+						{
+						  "op": "replace",
+						  "path": "/nodes",
+						  "value": {
+							  "compute": %d,
+							  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							  "compute_machine_type": {"id": "r5.xlarge"}
+						  }
+						}]`, compute)),
+				)
+				return []http.HandlerFunc{
+					clusterGetHandler(compute), // refresh Read
+					func(w http.ResponseWriter, r *http.Request) {
+						Expect(r.URL.Path).To(Equal(cluster123Route))
+						Expect(r.Method).To(Or(Equal(http.MethodGet), Equal(http.MethodPatch)))
+						clusterBody.ServeHTTP(w, r)
+					},
+					clusterGetHandler(compute), // GET after optional PATCH / second Update GET
+				}
+			}
+
+			const createPatch15 = `[
+				{
+				  "op": "add",
+				  "path": "/aws",
+				  "value": {
+					  "ec2_metadata_http_tokens": "required",
+					  "sts" : {
+						  "oidc_endpoint_url": "https://127.0.0.1",
+						  "thumbprint": "111111",
+						  "role_arn": "",
+						  "support_role_arn": "",
+						  "instance_iam_roles" : {
+							"worker_role_arn" : ""
+						  },
+						  "operator_role_prefix" : "test"
+					  }
+				  }
+				},
+				{
+				  "op": "replace",
+				  "path": "/nodes",
+				  "value": {
+					  "compute": 15,
+					  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+					  "compute_machine_type": {"id": "r5.xlarge"}
+				  }
+				}]`
+
+			const createPatch3 = `[
+				{
+				  "op": "add",
+				  "path": "/aws",
+				  "value": {
+					  "ec2_metadata_http_tokens": "required",
+					  "sts" : {
+						  "oidc_endpoint_url": "https://127.0.0.1",
+						  "thumbprint": "111111",
+						  "role_arn": "",
+						  "support_role_arn": "",
+						  "instance_iam_roles" : {
+							"worker_role_arn" : ""
+						  },
+						  "operator_role_prefix" : "test"
+					  }
+				  }
+				},
+				{
+				  "op": "replace",
+				  "path": "/nodes",
+				  "value": {
+					  "compute": 3,
+					  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+					  "compute_machine_type": {"id": "r5.xlarge"}
+				  }
+				}]`
+
+			const sourceNoReplicas = `
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = ["id1", "id2", "id3"]
+					availability_zones = ["us-west-1a", "us-west-1b", "us-west-1c"]
+				}
+			`
+
+			sourceWithReplicas := func(n int) string {
+				return fmt.Sprintf(`
+					resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+						name           = "my-cluster"
+						cloud_region   = "us-west-1"
+						aws_account_id = "123456789012"
+						aws_billing_account_id = "123456789012"
+						replicas       = %d
+						sts = {
+							operator_role_prefix = "test"
+							role_arn = "",
+							support_role_arn = "",
+							instance_iam_roles = {
+								worker_role_arn = "",
+							}
+						}
+						aws_subnet_ids = ["id1", "id2", "id3"]
+						availability_zones = ["us-west-1a", "us-west-1b", "us-west-1c"]
+					}
+				`, n)
+			}
+
+			It("Omit on create leaves replicas null", func() {
+				createCluster(sourceNoReplicas, createPatch15)
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.replicas", nil))
+			})
+
+			It("Keeps matching replicas when compute grows", func() {
+				createCluster(sourceWithReplicas(3), createPatch3)
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
+
+				TestServer.AppendHandlers(
+					clusterGetHandler(15), // refresh Read
+				)
+				Expect(Terraform.Run("apply", "-refresh-only", "-auto-approve").ExitCode).To(BeZero())
+				resource = Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
+			})
+
+			It("Omitting replicas nulls prior state", func() {
+				createCluster(sourceWithReplicas(15), createPatch15)
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", float64(15)))
+
+				TestServer.AppendHandlers(replicasOmitHandlers(15)...)
+				Terraform.Source(sourceNoReplicas)
+				Expect(Terraform.Apply().ExitCode).To(BeZero())
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", nil))
+			})
+
+			It("Syncs mismatch with warning (inflation-style)", func() {
+				createCluster(sourceWithReplicas(15), createPatch15)
+
+				TestServer.AppendHandlers(replicasReconcileHandlers(15)...)
+				Terraform.Source(sourceWithReplicas(3))
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", float64(3)))
+			})
+
+			It("Syncs with mutable attribute", func() {
+				createCluster(sourceWithReplicas(15), createPatch15)
+
+				clusterGetWithProps := CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "replace",
+					  "path": "/nodes",
+					  "value": {
+						  "compute": 15,
+						  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+						  "compute_machine_type": {"id": "r5.xlarge"}
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/properties",
+					  "value": {
+						"rosa_tf_commit":"%s",
+						"rosa_tf_version":"%s",
+						"test_key":"test_value"
+					  }
+					}]`, build.Commit, build.Version)),
+				)
+				TestServer.AppendHandlers(
+					clusterGetHandler(15), // refresh Read
+					CombineHandlers(
+						VerifyRequest(http.MethodPatch, cluster123Route),
+						VerifyJQ(`.properties.test_key`, "test_value"),
+						RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+						{
+						  "op": "replace",
+						  "path": "/nodes",
+						  "value": {
+							  "compute": 15,
+							  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							  "compute_machine_type": {"id": "r5.xlarge"}
+						  }
+						},
+						{
+						  "op": "add",
+						  "path": "/properties",
+						  "value": {
+							"rosa_tf_commit":"%s",
+							"rosa_tf_version":"%s",
+							"test_key":"test_value"
+						  }
+						}]`, build.Commit, build.Version)),
+					),
+					clusterGetWithProps, // GET after PATCH
+				)
+				Terraform.Source(fmt.Sprintf(`
+					resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+						name           = "my-cluster"
+						cloud_region   = "us-west-1"
+						aws_account_id = "123456789012"
+						aws_billing_account_id = "123456789012"
+						replicas       = 3
+						sts = {
+							operator_role_prefix = "test"
+							role_arn = "",
+							support_role_arn = "",
+							instance_iam_roles = {
+								worker_role_arn = "",
+							}
+						}
+						aws_subnet_ids = ["id1", "id2", "id3"]
+						availability_zones = ["us-west-1a", "us-west-1b", "us-west-1c"]
+						properties = {
+							test_key = "test_value"
+						}
+					}
+				`))
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
+				Expect(resource).To(MatchJQ(`.attributes.properties.test_key`, "test_value"))
+			})
+
+			It("Keeps when config matches inflated state", func() {
+				createCluster(sourceWithReplicas(15), createPatch15)
+
+				TestServer.AppendHandlers(
+					clusterGetHandler(15), // refresh Read
+				)
+				Terraform.Source(sourceWithReplicas(15))
+				Expect(Terraform.Apply().ExitCode).To(BeZero())
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", float64(15)))
+			})
+
+			It("state > compute: config differs syncs with warning", func() {
+				createCluster(sourceWithReplicas(15), createPatch15)
+
+				TestServer.AppendHandlers(replicasReconcileHandlers(6)...)
+				Terraform.Source(sourceWithReplicas(6))
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", float64(6)))
+			})
+
+			It("state < compute: matching config keeps", func() {
+				createCluster(sourceWithReplicas(3), createPatch3)
+
+				TestServer.AppendHandlers(
+					clusterGetHandler(15), // refresh Read (compute grew)
+				)
+				Terraform.Source(sourceWithReplicas(3))
+				Expect(Terraform.Apply().ExitCode).To(BeZero())
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", float64(3)))
+			})
+
+			It("state < compute: config differs syncs with warning", func() {
+				createCluster(sourceWithReplicas(3), createPatch3)
+
+				TestServer.AppendHandlers(replicasReconcileHandlers(15)...)
+				Terraform.Source(sourceWithReplicas(6))
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", float64(6)))
+			})
+
+			It("refresh-only keeps known replicas", func() {
+				createCluster(sourceWithReplicas(15), createPatch15)
+
+				TestServer.AppendHandlers(
+					clusterGetHandler(15), // refresh Read
+				)
+				Expect(Terraform.Run("apply", "-refresh-only", "-auto-approve").ExitCode).To(BeZero())
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", float64(15)))
+			})
+
+			It("refresh-only keeps null", func() {
+				createCluster(sourceNoReplicas, createPatch15)
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", nil))
+
+				TestServer.AppendHandlers(
+					clusterGetHandler(15), // refresh Read
+				)
+				Expect(Terraform.Run("apply", "-refresh-only", "-auto-approve").ExitCode).To(BeZero())
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", nil))
+			})
+
+			It("Fails when GET after state-only sync fails", func() {
+				createCluster(sourceWithReplicas(15), createPatch15)
+
+				TestServer.AppendHandlers(
+					clusterGetHandler(15), // refresh Read
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithJSON(http.StatusBadRequest, `{"kind":"Error","id":"400","href":"/api/clusters_mgmt/v1/errors/400","code":"CLUSTERS-MGMT-400","reason":"refresh failed"}`),
+					),
+				)
+				Terraform.Source(sourceWithReplicas(3))
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Can't refresh cluster")
+			})
+
+			It("Genuine change 3 to 6 with warning succeeds", func() {
+				createCluster(sourceWithReplicas(3), createPatch3)
+
+				TestServer.AppendHandlers(
+					clusterGetHandler(3), // refresh Read
+					clusterGetHandler(3), // Update GET (state-only, no PATCH)
+				)
+				Terraform.Source(sourceWithReplicas(6))
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+				Expect(Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")).
+					To(MatchJQ(".attributes.replicas", float64(6)))
+			})
+		})
+
+		Context("Immutability tests (continued)", func() {
 			It("Fails when trying to change compute_machine_type", func() {
 				TestServer.AppendHandlers(
 					CombineHandlers(
@@ -9045,8 +10049,9 @@ var _ = Describe("HCP Cluster", func() {
 					  }
 					}]`),
 				),
+				// No cluster attribute changes — refresh via GET instead of empty PATCH.
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -9125,8 +10130,9 @@ var _ = Describe("HCP Cluster", func() {
 					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, hcpClusterWithDeleteProtectionPatch),
 				),
+				// No cluster attribute changes — refresh via GET instead of empty PATCH.
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -9372,8 +10378,9 @@ var _ = Describe("HCP Cluster", func() {
 					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, hcpClusterWithDeleteProtectionPatch),
 				),
+				// No cluster attribute changes — refresh via GET instead of empty PATCH.
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, hcpClusterWithDeleteProtectionPatch),
 				),
 				CombineHandlers(
@@ -9464,6 +10471,35 @@ var _ = Describe("HCP Cluster", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "required",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "replace",
+					  "path": "/properties",
+					  "value": {
+						  "test_key": "test_value"
+					  }
+					}]`),
+				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -9764,6 +10800,29 @@ var _ = Describe("HCP Cluster", func() {
 						}
 					}]`),
 				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"ec2_metadata_http_tokens": "required",
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							},
+							"termination_handler_queue_url": "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+						}
+					}]`),
+				),
 			)
 
 			// Update to add spot_termination_queue_url
@@ -9908,6 +10967,29 @@ var _ = Describe("HCP Cluster", func() {
 						}
 					}]`),
 				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"ec2_metadata_http_tokens": "required",
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							},
+							"termination_handler_queue_url": "https://sqs.us-west-1.amazonaws.com/123456789012/my-updated-queue"
+						}
+					}]`),
+				),
 			)
 
 			// Update to change spot_termination_queue_url
@@ -10032,6 +11114,28 @@ var _ = Describe("HCP Cluster", func() {
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, cluster123Route),
 					VerifyJQ(`.aws.termination_handler_queue_url`, ""),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"ec2_metadata_http_tokens": "required",
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					}]`),
+				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 						"op": "add",

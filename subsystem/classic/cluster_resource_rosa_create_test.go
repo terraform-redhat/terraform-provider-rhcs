@@ -930,9 +930,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							"enable_minor_version_upgrades": true
 						}`),
 					),
-					// Patch the cluster (w/ no changes)
+					// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 					CombineHandlers(
-						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithJSON(http.StatusOK, template),
 					),
 				)
@@ -983,6 +983,25 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					CombineHandlers(
 						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
 						VerifyJQ(`.channel`, "fast-4.10"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.10.0",
+								"raw_id": "4.10.0",
+								"channel_group": "fast"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "fast-4.10"
+						}]`),
+					),
+					// GET after cluster PATCH (authoritative state)
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 						{
 							"op": "add",
@@ -1687,6 +1706,37 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					}
 					}]`),
 				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					"op": "add",
+					"path": "/aws",
+					"value": {
+						"ec2_metadata_http_tokens": "optional",
+						"sts" : {
+							"oidc_endpoint_url": "https://127.0.0.1",
+							"thumbprint": "111111",
+							"role_arn": "",
+							"support_role_arn": "",
+							"instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							},
+							"operator_role_prefix" : "test"
+						}
+					}
+					},
+					{
+					"op": "add",
+					"path": "/properties",
+					"value": {
+						"rosa_tf_commit":"`+build.Commit+`",
+						"rosa_tf_version":"`+build.Version+`"
+					}
+					}]`),
+				),
 			)
 
 			// Run the apply command:
@@ -1808,6 +1858,37 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
 					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
 					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+                        "rosa_tf_commit":"`+build.Commit+`",
+                        "rosa_tf_version":"`+build.Version+`"
+                      }
+                    }]`),
+				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2424,6 +2505,39 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
                       }
                     }]`),
 				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+                        "rosa_tf_commit":"`+build.Commit+`",
+                        "rosa_tf_version":"`+build.Version+`",
+                        "`+prop_key+`": "`+prop_val+`_1"
+                      }
+                    }]`),
+				),
 			)
 
 			// Run the apply command:
@@ -2576,6 +2690,38 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
 					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
 					VerifyJQ(`.properties.`+prop_key, nil),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+                        "rosa_tf_commit":"`+build.Commit+`",
+                        "rosa_tf_version":"`+build.Version+`"
+                      }
+                    }]`),
+				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -3060,6 +3206,36 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  }
 					}]`),
 				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "disable_user_workload_monitoring" : "false"
+					  }
+					}]`),
+				),
 			)
 
 			Terraform.Source(`
@@ -3240,6 +3416,44 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  }
 					}]`),
 					),
+					// GET after cluster PATCH (authoritative state)
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+                          "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/proxy",
+					  "value": {
+						  "https_proxy" : "https://proxy2.com",
+						  "no_proxy" : "test"
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "additional_trust_bundle" : "REDUCTED"
+					  }
+					}]`),
+					),
 				)
 
 				// update the attribute "proxy"
@@ -3356,6 +3570,29 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					CombineHandlers(
 						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
 						VerifyJQ(`.additional_trust_bundle`, "123"),
+						RespondWithPatchedJSON(http.StatusCreated, templateWithTrustBundle, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+					),
+					// GET after cluster PATCH (authoritative state)
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusCreated, templateWithTrustBundle, `[
 					{
 					  "op": "add",
@@ -3559,6 +3796,28 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+				{
+				  "op": "add",
+				  "path": "/aws",
+				  "value": {
+					  "ec2_metadata_http_tokens": "required",
+					  "sts" : {
+						  "oidc_endpoint_url": "https://127.0.0.1",
+						  "thumbprint": "111111",
+						  "role_arn": "",
+						  "support_role_arn": "",
+						  "instance_iam_roles" : {
+							"worker_role_arn" : ""
+						  },
+						  "operator_role_prefix" : "test"
+					  }
+				  }
+				}]`),
+				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 				{
 				  "op": "add",
@@ -4664,14 +4923,63 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			runOutput.VerifyErrorContainsSubstring("Attribute autoscaling_enabled, cannot be changed from <null> to true")
 		})
 		It("update default machine-pool's attributes: replicas", func() {
+			// Change replicas from 3→4: succeeds with warning, state=4; no nodes PATCH.
+			clusterGet := CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+				{
+				  "op": "add",
+				  "path": "/aws",
+				  "value": {
+					  "ec2_metadata_http_tokens": "optional",
+					  "sts" : {
+						  "oidc_endpoint_url": "https://127.0.0.1",
+						  "thumbprint": "111111",
+						  "role_arn": "",
+						  "support_role_arn": "",
+						  "instance_iam_roles" : {
+							"master_role_arn" : "",
+							"worker_role_arn" : ""
+						  },
+						  "operator_role_prefix" : "test"
+					  }
+				  }
+				},
+				{
+				  "op": "add",
+				  "path": "/",
+				  "value": {
+					  "disable_user_workload_monitoring" : true
+				  }
+				},
+				{
+				  "op": "add",
+				  "path": "/",
+				  "value": {
+					  "external_id" : "123"
+				  }
+				},
+				{
+				  "op": "add",
+				  "path": "/nodes",
+				  "value": {
+					"compute": 3,
+					"availability_zones": ["us-west-1a"],
+					"compute_machine_type": {
+						"id": "r5.xlarge"
+					}
+				  }
+				}]`),
+			)
+			TestServer.AppendHandlers(
+				clusterGet, // refresh Read
+				clusterGet, // Update GET (no cluster PATCH)
+			)
 			Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-
-					# >>>> change replicas from 3 to 4
 					replicas = "4"
-
 					compute_machine_type = "r5.xlarge"
 					aws_account_id = "123456789012"
 					disable_workload_monitoring = true
@@ -4695,8 +5003,96 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			`)
 
 			runOutput := Terraform.Apply()
-			Expect(runOutput.ExitCode).ToNot(BeZero())
-			runOutput.VerifyErrorContainsSubstring("Attribute replicas, cannot be changed from 3 to 4")
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.replicas", float64(4)))
+		})
+		It("syncs replicas config change with warning without OCM nodes PATCH", func() {
+			// Change replicas 3→6: succeeds with warning, state=6; no nodes PATCH.
+			clusterGet := CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+				{
+				  "op": "add",
+				  "path": "/aws",
+				  "value": {
+					  "ec2_metadata_http_tokens": "optional",
+					  "sts" : {
+						  "oidc_endpoint_url": "https://127.0.0.1",
+						  "thumbprint": "111111",
+						  "role_arn": "",
+						  "support_role_arn": "",
+						  "instance_iam_roles" : {
+							"master_role_arn" : "",
+							"worker_role_arn" : ""
+						  },
+						  "operator_role_prefix" : "test"
+					  }
+				  }
+				},
+				{
+				  "op": "add",
+				  "path": "/",
+				  "value": {
+					  "disable_user_workload_monitoring" : true
+				  }
+				},
+				{
+				  "op": "add",
+				  "path": "/",
+				  "value": {
+					  "external_id" : "123"
+				  }
+				},
+				{
+				  "op": "add",
+				  "path": "/nodes",
+				  "value": {
+					"compute": 3,
+					"availability_zones": ["us-west-1a"],
+					"compute_machine_type": {
+						"id": "r5.xlarge"
+					}
+				  }
+				}]`),
+			)
+			TestServer.AppendHandlers(
+				clusterGet, // refresh Read
+				clusterGet, // Update GET (no cluster PATCH)
+			)
+			Terraform.Source(`
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					replicas = "6"
+					compute_machine_type = "r5.xlarge"
+					aws_account_id = "123456789012"
+					disable_workload_monitoring = true
+					admin_credentials = {
+						username = "cluster_admin"
+						password = "1234AbB2341234"
+					}
+					tags = {
+						"k1" = "v1"
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+						}
+					}
+				  }
+			`)
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.replicas", float64(6)))
 		})
 		It("update default machine-pool's attributes: default_mp_labels", func() {
 			Terraform.Source(`
@@ -4771,6 +5167,380 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).ToNot(BeZero())
 			runOutput.VerifyErrorContainsSubstring("Attribute worker_disk_size, cannot be changed")
+		})
+	})
+
+	Context("rhcs_cluster_rosa_classic - create-only replicas", func() {
+		const cluster123Route = "/api/clusters_mgmt/v1/clusters/123"
+
+		// createCluster creates a cluster with the given source and POST response.
+		// It appends version list + POST handlers and calls Apply.
+		createCluster := func(source string, postPatch string) {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, postPatch),
+				),
+			)
+			Terraform.Source(source)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+		}
+
+		// clusterGetHandler returns a GET handler for cluster 123 with the given
+		// compute count in nodes.
+		clusterGetHandler := func(compute int) http.HandlerFunc {
+			return CombineHandlers(
+				VerifyRequest(http.MethodGet, cluster123Route),
+				RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "replace",
+					  "path": "/nodes",
+					  "value": {
+						  "compute": %d,
+						  "availability_zones": ["us-west-1a"],
+						  "compute_machine_type": {"id": "r5.xlarge"}
+					  }
+					}]`, compute)),
+			)
+		}
+
+		// replicasReconcileHandlers covers refresh + Update for create-only replicas
+		// changes. When only replicas changes, clusterBuilder stays empty (properties
+		// are Unknown in plan so nothing is patched), so Update refreshes via GET.
+		replicasReconcileHandlers := func(compute int) []http.HandlerFunc {
+			return []http.HandlerFunc{
+				clusterGetHandler(compute), // refresh Read
+				clusterGetHandler(compute), // Update GET (no cluster PATCH)
+			}
+		}
+
+		// replicasOmitHandlers covers omit→null applies. Omitting replicas can either
+		// skip the cluster PATCH (GET-only refresh) or PATCH properties when they become
+		// Unknown; accept either path so the test is not order/method flaky.
+		replicasOmitHandlers := func(compute int) []http.HandlerFunc {
+			clusterBody := CombineHandlers(
+				RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "replace",
+					  "path": "/nodes",
+					  "value": {
+						  "compute": %d,
+						  "availability_zones": ["us-west-1a"],
+						  "compute_machine_type": {"id": "r5.xlarge"}
+					  }
+					}]`, compute)),
+			)
+			return []http.HandlerFunc{
+				clusterGetHandler(compute), // refresh Read
+				func(w http.ResponseWriter, r *http.Request) {
+					Expect(r.URL.Path).To(Equal(cluster123Route))
+					Expect(r.Method).To(Or(Equal(http.MethodGet), Equal(http.MethodPatch)))
+					clusterBody.ServeHTTP(w, r)
+				},
+				clusterGetHandler(compute), // GET after optional PATCH / second Update GET
+			}
+		}
+
+		// createPatch15 is a standard POST response patch that returns compute=15.
+		const createPatch15 = `[
+			{
+			  "op": "add",
+			  "path": "/aws",
+			  "value": {
+				  "ec2_metadata_http_tokens": "optional",
+				  "sts" : {
+					  "oidc_endpoint_url": "https://127.0.0.1",
+					  "thumbprint": "111111",
+					  "role_arn": "",
+					  "support_role_arn": "",
+					  "instance_iam_roles" : {
+						"master_role_arn" : "",
+						"worker_role_arn" : ""
+					  },
+					  "operator_role_prefix" : "test"
+				  }
+			  }
+			},
+			{
+			  "op": "replace",
+			  "path": "/nodes",
+			  "value": {
+				  "compute": 15,
+				  "availability_zones": ["us-west-1a"],
+				  "compute_machine_type": {"id": "r5.xlarge"}
+			  }
+			}]`
+
+		// createPatch3 is a standard POST response patch that returns compute=3.
+		const createPatch3 = `[
+			{
+			  "op": "add",
+			  "path": "/aws",
+			  "value": {
+				  "ec2_metadata_http_tokens": "optional",
+				  "sts" : {
+					  "oidc_endpoint_url": "https://127.0.0.1",
+					  "thumbprint": "111111",
+					  "role_arn": "",
+					  "support_role_arn": "",
+					  "instance_iam_roles" : {
+						"master_role_arn" : "",
+						"worker_role_arn" : ""
+					  },
+					  "operator_role_prefix" : "test"
+				  }
+			  }
+			},
+			{
+			  "op": "replace",
+			  "path": "/nodes",
+			  "value": {
+				  "compute": 3,
+				  "availability_zones": ["us-west-1a"],
+				  "compute_machine_type": {"id": "r5.xlarge"}
+			  }
+			}]`
+
+		const sourceNoReplicas = `
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+					}
+				}
+			}
+		`
+
+		sourceWithReplicas := func(n int) string {
+			return fmt.Sprintf(`
+				resource "rhcs_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					replicas       = %d
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+						}
+					}
+				}
+			`, n)
+		}
+
+		It("Omit on create leaves replicas null", func() {
+			createCluster(sourceNoReplicas, createPatch15)
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.replicas", nil))
+		})
+
+		It("Keeps matching replicas when compute grows", func() {
+			createCluster(sourceWithReplicas(3), createPatch3)
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
+
+			TestServer.AppendHandlers(
+				clusterGetHandler(15), // refresh Read
+			)
+			Expect(Terraform.Run("apply", "-refresh-only", "-auto-approve").ExitCode).To(BeZero())
+			resource = Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
+		})
+
+		It("Omitting replicas nulls prior state", func() {
+			createCluster(sourceWithReplicas(15), createPatch15)
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", float64(15)))
+
+			TestServer.AppendHandlers(replicasOmitHandlers(15)...)
+			Terraform.Source(sourceNoReplicas)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", nil))
+		})
+
+		It("Syncs mismatch with warning (inflation-style)", func() {
+			createCluster(sourceWithReplicas(15), createPatch15)
+
+			TestServer.AppendHandlers(replicasReconcileHandlers(15)...)
+			Terraform.Source(sourceWithReplicas(3))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", float64(3)))
+		})
+
+		It("Syncs with mutable attribute", func() {
+			createCluster(sourceWithReplicas(15), createPatch15)
+
+			clusterGetWithMonitoring := CombineHandlers(
+				VerifyRequest(http.MethodGet, cluster123Route),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "replace",
+					  "path": "/nodes",
+					  "value": {
+						  "compute": 15,
+						  "availability_zones": ["us-west-1a"],
+						  "compute_machine_type": {"id": "r5.xlarge"}
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {"disable_user_workload_monitoring": true}
+					}]`),
+			)
+			TestServer.AppendHandlers(
+				clusterGetHandler(15), // refresh Read
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyJQ(`.disable_user_workload_monitoring`, true),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "replace",
+					  "path": "/nodes",
+					  "value": {
+						  "compute": 15,
+						  "availability_zones": ["us-west-1a"],
+						  "compute_machine_type": {"id": "r5.xlarge"}
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {"disable_user_workload_monitoring": true}
+					}]`),
+				),
+				clusterGetWithMonitoring, // GET after PATCH
+			)
+			Terraform.Source(fmt.Sprintf(`
+				resource "rhcs_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					replicas       = 3
+					disable_workload_monitoring = true
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+						}
+					}
+				}
+			`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
+			Expect(resource).To(MatchJQ(".attributes.disable_workload_monitoring", true))
+		})
+
+		It("Keeps when config matches inflated state", func() {
+			createCluster(sourceWithReplicas(15), createPatch15)
+
+			TestServer.AppendHandlers(
+				clusterGetHandler(15), // refresh Read
+			)
+			Terraform.Source(sourceWithReplicas(15))
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", float64(15)))
+		})
+
+		It("state > compute: config differs syncs with warning", func() {
+			createCluster(sourceWithReplicas(15), createPatch15)
+
+			TestServer.AppendHandlers(replicasReconcileHandlers(6)...)
+			Terraform.Source(sourceWithReplicas(6))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", float64(6)))
+		})
+
+		It("state < compute: matching config keeps", func() {
+			createCluster(sourceWithReplicas(3), createPatch3)
+
+			TestServer.AppendHandlers(
+				clusterGetHandler(15), // refresh Read (compute grew)
+			)
+			Terraform.Source(sourceWithReplicas(3))
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", float64(3)))
+		})
+
+		It("state < compute: config differs syncs with warning", func() {
+			createCluster(sourceWithReplicas(3), createPatch3)
+
+			TestServer.AppendHandlers(replicasReconcileHandlers(15)...)
+			Terraform.Source(sourceWithReplicas(6))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("replicas is only used on cluster creation")
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", float64(6)))
+		})
+
+		It("refresh-only keeps known replicas", func() {
+			createCluster(sourceWithReplicas(15), createPatch15)
+
+			TestServer.AppendHandlers(
+				clusterGetHandler(15), // refresh Read
+			)
+			Expect(Terraform.Run("apply", "-refresh-only", "-auto-approve").ExitCode).To(BeZero())
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", float64(15)))
+		})
+
+		It("refresh-only keeps null", func() {
+			createCluster(sourceNoReplicas, createPatch15)
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", nil))
+
+			TestServer.AppendHandlers(
+				clusterGetHandler(15), // refresh Read
+			)
+			Expect(Terraform.Run("apply", "-refresh-only", "-auto-approve").ExitCode).To(BeZero())
+			Expect(Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")).
+				To(MatchJQ(".attributes.replicas", nil))
+		})
+
+		It("Fails when GET after state-only sync fails", func() {
+			createCluster(sourceWithReplicas(15), createPatch15)
+
+			TestServer.AppendHandlers(
+				clusterGetHandler(15), // refresh Read
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithJSON(http.StatusBadRequest, `{"kind":"Error","id":"400","href":"/api/clusters_mgmt/v1/errors/400","code":"CLUSTERS-MGMT-400","reason":"refresh failed"}`),
+				),
+			)
+			Terraform.Source(sourceWithReplicas(3))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Can't refresh cluster")
 		})
 	})
 
@@ -4885,8 +5655,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					VerifyJQ(`.enabled`, true),
 					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
 				),
+				// No cluster attribute changes — refresh via GET instead of empty PATCH.
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, classicCreatePatch),
 				),
 			)
@@ -4964,8 +5735,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					VerifyJQ(`.enabled`, false),
 					RespondWithJSON(http.StatusOK, `{"enabled": false}`),
 				),
+				// No cluster attribute changes — refresh via GET instead of empty PATCH.
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, classicCreatePatch),
 				),
 			)
@@ -5115,6 +5887,36 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								  "master_role_arn" : "",
+								  "worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "replace",
+					  "path": "/properties",
+					  "value": {
+						  "test_key": "test_value"
+					  }
+					}]`),
+				),
+				// GET after cluster PATCH (authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",

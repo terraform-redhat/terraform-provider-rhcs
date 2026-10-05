@@ -316,9 +316,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					"enable_minor_version_upgrades": true
 				}`),
 				),
-				// Patch the cluster (w/ no changes)
+				// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 						{
 						  "op": "add",
@@ -402,9 +402,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					"enable_minor_version_upgrades": true
 				}`),
 				),
-				// Patch the cluster (w/ no changes)
+				// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 						{
 						  "op": "add",
@@ -530,9 +530,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					"enable_minor_version_upgrades": true
 				}`),
 				),
-				// Patch the cluster (w/ no changes)
+				// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -717,9 +717,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					"enable_minor_version_upgrades": true
 				}`),
 				),
-				// Patch the cluster (w/ no changes)
+				// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -794,8 +794,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					"value": "scheduled"
 				}`),
 				),
+				// No cluster attribute changes — refresh via GET instead of empty PATCH.
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, template),
 				),
 			)
@@ -892,9 +893,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					"enable_minor_version_upgrades": true
 				}`),
 				),
+				// No cluster attribute changes — refresh via GET instead of empty PATCH.
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
 					  "path": "/properties",
@@ -1024,9 +1026,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					"enable_minor_version_upgrades": true
 				}`),
 				),
+				// No cluster attribute changes — refresh via GET instead of empty PATCH.
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
 					  "path": "/properties",
@@ -1112,9 +1115,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456"),
 					RespondWithJSON(http.StatusOK, "{}"),
 				),
-				// Patch the cluster (w/ no changes)
+				// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, template),
 				),
 			)
@@ -1196,9 +1199,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 							"value": "4.11.0"
 						}]`),
 				),
-				// Patch the cluster (w/ no changes)
+				// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, template),
 				),
 			)
@@ -1359,9 +1362,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					"enable_minor_version_upgrades": true
 				}`),
 					),
-					// Patch the cluster (w/ no changes)
+					// Refresh the cluster (no attribute PATCH; version upgrade already scheduled)
 					CombineHandlers(
-						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",

@@ -331,15 +331,37 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				args.ComputeMachineType = new(machineType)
 			}, "Attribute compute_machine_type, cannot be changed from")
 
-			By("Try to edit replicas")
-			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Replicas = new(5)
-			}, "Attribute replicas, cannot be changed from")
+			if profileHandler.Profile().IsAutoscaling() {
+				By("Try to set replicas while autoscaling is enabled")
+				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+					args.Replicas = new(5)
+				}, "When autoscaling is enabled, replicas should not be configured")
+			} else {
+				By("Edit replicas (create-only: sync state and warn)")
+				initialCompute := clusterResp.Body().Nodes().Compute()
+				newReplicas := 5
+				validateClusterArg(func(args *exec.ClusterArgs) {
+					args.Replicas = new(newReplicas)
+				}, func(output string, err error) {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(output).To(ContainSubstring("Warning: Cluster replicas is create-only"))
+					Expect(output).To(ContainSubstring("rhcs_hcp_machine_pool"))
+					resource, stateErr := clusterService.GetStateResource(
+						"rhcs_cluster_rosa_hcp", "rosa_hcp_cluster",
+					)
+					Expect(stateErr).ToNot(HaveOccurred())
+					Expect(helper.DigInt(resource, "instances", 0, "attributes", "replicas")).
+						To(Equal(newReplicas))
+					afterResp, afterErr := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+					Expect(afterErr).ToNot(HaveOccurred())
+					Expect(afterResp.Body().Nodes().Compute()).To(Equal(initialCompute))
+				})
 
-			By("Try to edit with replicas < 2")
-			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Replicas = new(1)
-			}, "Attribute replicas value must be at least 2")
+				By("Try to edit with replicas < 2")
+				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+					args.Replicas = new(1)
+				}, "Attribute replicas value must be at least 2")
+			}
 		})
 
 		It("properties - [id:72455]", ci.Medium, ci.FeatureClusterMisc, func() {
@@ -766,12 +788,30 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 					Expect(err).To(HaveOccurred())
 					helper.ExpectTFErrorContains(err, "Attribute autoscaling_enabled, cannot be changed")
 
-					By("Change replicas")
+					By("Change replicas (create-only: sync state and warn)")
 					clusterArgs.Autoscaling = new(false)
-					clusterArgs.Replicas = new(9)
-					_, err = clusterService.Apply(clusterArgs)
-					Expect(err).To(HaveOccurred())
-					helper.ExpectTFErrorContains(err, "Attribute replicas, cannot be changed from")
+					newReplicas := 9
+					clusterArgs.Replicas = new(newReplicas)
+					applyOut, err := clusterService.Apply(clusterArgs)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(applyOut).To(ContainSubstring("Warning: Cluster replicas is create-only"))
+					if profileHandler.Profile().IsHCP() {
+						Expect(applyOut).To(ContainSubstring("rhcs_hcp_machine_pool"))
+						resource, stateErr := clusterService.GetStateResource(
+							"rhcs_cluster_rosa_hcp", "rosa_hcp_cluster",
+						)
+						Expect(stateErr).ToNot(HaveOccurred())
+						Expect(helper.DigInt(resource, "instances", 0, "attributes", "replicas")).
+							To(Equal(newReplicas))
+					} else {
+						Expect(applyOut).To(ContainSubstring("rhcs_machine_pool"))
+						resource, stateErr := clusterService.GetStateResource(
+							"rhcs_cluster_rosa_classic", "rosa_sts_cluster",
+						)
+						Expect(stateErr).ToNot(HaveOccurred())
+						Expect(helper.DigInt(resource, "instances", 0, "attributes", "replicas")).
+							To(Equal(newReplicas))
+					}
 				}
 			})
 	})

@@ -108,7 +108,7 @@ var _ = Describe("Create Classic or HCP MachinePool", ci.Day2, ci.FeatureMachine
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Create another machinepool without disksize set will be created with default value")
-		name = helper.GenerateRandomName("mp-69144", 2)
+		name = helper.GenerateRandomName("mp-69144-d", 2)
 		mpArgs = getDefaultMPArgs(name, profileHandler.Profile().IsHCP())
 
 		_, err = mpService.Apply(mpArgs)

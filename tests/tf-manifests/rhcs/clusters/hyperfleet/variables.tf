@@ -42,6 +42,12 @@ variable "expiration_timestamp" {
   default     = null
 }
 
+variable "tags" {
+  type        = map(string)
+  description = "Optional customer AWS tags applied to the AWS resources created for the cluster"
+  default     = null
+}
+
 variable "oidc_config_id" {
   type        = string
   description = "Optional OIDC config ID (e.g., from OidcConfig resource)"

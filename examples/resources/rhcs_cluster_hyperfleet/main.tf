@@ -19,4 +19,13 @@ resource "rhcs_cluster_hyperfleet" "cluster" {
     availability_zones = [data.aws_subnet.worker.availability_zone]
   }
   version = var.release_image
+
+  # Customer AWS tags applied to the AWS resources created for the cluster.
+  # They are applied at provisioning time only — AWS resources created by
+  # OpenShift cannot be retagged — so changing them replaces the cluster.
+  # A maximum of 23 tags is supported.
+  tags = {
+    "cost-center" = "cc-1234"
+    "environment" = "production"
+  }
 }

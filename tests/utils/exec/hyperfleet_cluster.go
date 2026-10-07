@@ -20,6 +20,10 @@ type HyperfleetClusterArgs struct {
 	ExpirationTimestamp *string `hcl:"expiration_timestamp"`
 	OIDCConfigID        *string `hcl:"oidc_config_id"`
 	SchedulerProfile    *string `hcl:"scheduler_profile"`
+
+	// Tags are customer AWS tags applied to the AWS resources created for the
+	// cluster. Immutable once the cluster exists.
+	Tags *map[string]string `hcl:"tags"`
 }
 
 // HyperfleetClusterOutput holds the Terraform output values from the hyperfleet

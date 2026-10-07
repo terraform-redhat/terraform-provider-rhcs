@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
+	hfplatform "github.com/openshift-online/rosa-hyperfleet-api/clientset/platform"
 	hfrest "github.com/openshift-online/rosa-hyperfleet-api/clientset/rest"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
@@ -245,6 +246,11 @@ var _ = Describe("Hyperfleet sanity", func() {
 		// Cluster references the OidcConfig by ID
 		By("Phase 4: apply cluster")
 		expiresAt := time.Now().UTC().Add(4 * time.Hour).Format(time.RFC3339)
+		// Customer AWS tags are applied when the cluster's AWS resources are
+		// provisioned and cannot be changed afterwards, so they are set on create
+		// and repeated verbatim on every later apply — a changed value would plan
+		// a cluster replacement.
+		clusterTags := map[string]string{"cost-center": "cc-1234", "qe-managed": "true"}
 		_, err = clusterSvc.Apply(&exec.HyperfleetClusterArgs{
 			HyperfleetURL:       &hyperfleetURL,
 			AWSRegion:           &awsRegion,
@@ -255,6 +261,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			AvailabilityZone:    &availabilityZone,
 			ExpirationTimestamp: &expiresAt,
 			OIDCConfigID:        &oidcOut.OidcConfigID, // Reference the OidcConfig
+			Tags:                &clusterTags,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -324,6 +331,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			AvailabilityZone:    &availabilityZone,
 			ExpirationTimestamp: &expiresAt,
 			OIDCConfigID:        &oidcRefreshed.OidcConfigID, // Reference the OidcConfig
+			Tags:                &clusterTags,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -331,6 +339,11 @@ var _ = Describe("Hyperfleet sanity", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(refreshedOut.Phase).To(Equal(string(v1alpha1.ClusterPhaseReady)))
 		Expect(refreshedOut.APIURL).NotTo(BeEmpty())
+
+		By("Verifying the customer AWS tags reached the Platform API")
+		createdCluster, err := clustersCli.Get(ctx, clusterID, hfplatform.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(createdCluster.Spec.Tags).To(Equal(clusterTags))
 
 		// ── Phase 5: node pools ────────────────────────────────────────────
 		By("Phase 5a: apply node pool 1")

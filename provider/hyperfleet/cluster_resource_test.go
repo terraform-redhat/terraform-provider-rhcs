@@ -4,8 +4,13 @@
 package hyperfleet
 
 import (
+	"context"
+	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 )
 
@@ -97,4 +102,98 @@ func TestPrefixAndPartitionFromRolesRef_Empty(t *testing.T) {
 	if prefix != "" || partition != "aws" {
 		t.Errorf("empty rolesRef: got prefix=%q partition=%q", prefix, partition)
 	}
+}
+
+// ── validateClusterTags ───────────────────────────────────────────────────────
+
+// tagsMap builds the types.Map the generated schema produces for the `tags`
+// attribute.
+func tagsMap(t *testing.T, values map[string]string) types.Map {
+	t.Helper()
+	elements := make(map[string]attr.Value, len(values))
+	for key, value := range values {
+		elements[key] = types.StringValue(value)
+	}
+	tags, diags := types.MapValue(types.StringType, elements)
+	if diags.HasError() {
+		t.Fatalf("building tags map: %v", diags)
+	}
+	return tags
+}
+
+func TestValidateClusterTags_Valid(t *testing.T) {
+	cases := []struct {
+		name string
+		tags types.Map
+	}{
+		{"null", types.MapNull(types.StringType)},
+		{"unknown", types.MapUnknown(types.StringType)},
+		{"empty", tagsMap(t, nil)},
+		{"typical", tagsMap(t, map[string]string{"cost-center": "cc-1234", "environment": "production"})},
+		// Keys and values may contain the extra characters AWS allows.
+		{"allowed characters", tagsMap(t, map[string]string{"kubernetes.io/role": "worker+1@eu=west"})},
+		{"maximum", tagsMap(t, generatedTags(maxClusterTags))},
+	}
+	for _, tc := range cases {
+		if diags := validateClusterTags(context.Background(), tc.tags); diags.HasError() {
+			t.Errorf("%s: unexpected error: %v", tc.name, diags.Errors())
+		}
+	}
+}
+
+func TestValidateClusterTags_Invalid(t *testing.T) {
+	cases := []struct {
+		name   string
+		tags   types.Map
+		detail string
+	}{
+		{
+			name:   "too many tags",
+			tags:   tagsMap(t, generatedTags(maxClusterTags+1)),
+			detail: "a maximum of 23 tags is supported, got 24",
+		},
+		{
+			name:   "empty value",
+			tags:   tagsMap(t, map[string]string{"owner": ""}),
+			detail: "tag key or tag value can not be empty",
+		},
+		{
+			name:   "empty key",
+			tags:   tagsMap(t, map[string]string{"": "platform"}),
+			detail: "tag key or tag value can not be empty",
+		},
+		{
+			name:   "reserved aws prefix",
+			tags:   tagsMap(t, map[string]string{"aws:cloudformation:stack-name": "mine"}),
+			detail: "reserved for AWS use",
+		},
+		{
+			name:   "invalid key character",
+			tags:   tagsMap(t, map[string]string{"owner!": "platform"}),
+			detail: "expected a valid user tag key 'owner!'",
+		},
+		{
+			name:   "invalid value character",
+			tags:   tagsMap(t, map[string]string{"owner": "platform!"}),
+			detail: "expected a valid user tag value for key 'owner'",
+		},
+	}
+	for _, tc := range cases {
+		diags := validateClusterTags(context.Background(), tc.tags)
+		if !diags.HasError() {
+			t.Errorf("%s: expected an error, got none", tc.name)
+			continue
+		}
+		if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, tc.detail) {
+			t.Errorf("%s: detail = %q, want it to contain %q", tc.name, detail, tc.detail)
+		}
+	}
+}
+
+func generatedTags(count int) map[string]string {
+	tags := make(map[string]string, count)
+	for i := range count {
+		tags[fmt.Sprintf("tag%d", i)] = "value"
+	}
+	return tags
 }

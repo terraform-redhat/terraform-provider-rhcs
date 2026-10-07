@@ -356,21 +356,28 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 	if schedulerProfile != "" {
 		schedulerProfileValue = &schedulerProfile
 	}
+	clusterArgs := &exec.HyperfleetClusterArgs{
+		HyperfleetURL:       &hyperfleetURL,
+		AWSRegion:           &region,
+		ClusterName:         &clusterName,
+		OperatorRolesPrefix: &operatorRolesPrefix,
+		SubnetID:            &subnetID,
+		VPCID:               &vpcID,
+		AvailabilityZone:    &availabilityZone,
+		OIDCConfigID:        &oidcOutput.OidcConfigID,
+		SchedulerProfile:    schedulerProfileValue,
+	}
+	// Customer AWS tags are applied at provisioning time only, so they can only
+	// be set on create.
+	if profile.Profile().IsTagging() {
+		tags := profilehandler.Tags
+		clusterArgs.Tags = &tags
+	}
 	backend := &hyperFleetBackend{
 		service: service,
 		client:  client,
 		oidcID:  oidcOutput.OidcConfigID,
-		args: &exec.HyperfleetClusterArgs{
-			HyperfleetURL:       &hyperfleetURL,
-			AWSRegion:           &region,
-			ClusterName:         &clusterName,
-			OperatorRolesPrefix: &operatorRolesPrefix,
-			SubnetID:            &subnetID,
-			VPCID:               &vpcID,
-			AvailabilityZone:    &availabilityZone,
-			OIDCConfigID:        &oidcOutput.OidcConfigID,
-			SchedulerProfile:    schedulerProfileValue,
-		},
+		args:    clusterArgs,
 	}
 	return &Backend{Lifecycle: backend}, nil
 }

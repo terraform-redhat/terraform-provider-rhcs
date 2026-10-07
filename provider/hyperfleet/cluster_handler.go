@@ -19,13 +19,34 @@ package hyperfleet
 import (
 	"context"
 	"fmt"
+	"maps"
+	"regexp"
+	"slices"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
+)
+
+// maxClusterTags is the number of customer AWS tags the Platform API accepts on
+// spec.tags. HyperShift caps platform.aws.resourceTags at 25 entries and the
+// operator injects 2 system tags (red-hat-managed and
+// kubernetes.io/cluster/<id>), leaving 23 for the customer.
+const maxClusterTags = 23
+
+// awsReservedTagPrefix marks tag keys AWS reserves for its own use.
+const awsReservedTagPrefix = "aws:"
+
+// Character classes the ROSA CLI enforces on --tags, so a tag accepted by one
+// path is accepted by the other.
+var (
+	clusterTagKeyRE   = regexp.MustCompile(`^[\pL\pZ\pN_.:/=+\-@]{1,128}$`)
+	clusterTagValueRE = regexp.MustCompile(`^[\pL\pZ\pN_.:/=+\-@]{0,256}$`)
 )
 
 // ClusterHandlerImpl is the concrete implementation of ClusterHandler
@@ -73,6 +94,52 @@ func (h *ClusterHandlerImpl) PreExpand(ctx context.Context, input *ClusterState)
 	// Derive cloud_region from first AZ if not set
 	if input.Cloud_region.IsNull() || input.Cloud_region.ValueString() == "" {
 		input.Cloud_region = types.StringValue(regionFromAZ(azs[0]))
+	}
+
+	diags.Append(validateClusterTags(ctx, input.Tags)...)
+
+	return diags
+}
+
+// validateClusterTags checks the customer AWS tags against the limits the
+// Platform API enforces on spec.tags so a bad value fails during apply instead
+// of on the API round trip. Wording follows the ROSA CLI --tags validation.
+func validateClusterTags(ctx context.Context, tags types.Map) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if tags.IsNull() || tags.IsUnknown() {
+		return diags
+	}
+
+	var values map[string]string
+	diags.Append(tags.ElementsAs(ctx, &values, false)...)
+	if diags.HasError() {
+		return diags
+	}
+
+	addError := func(format string, args ...any) {
+		diags.AddAttributeError(path.Root("tags"), "Invalid cluster AWS tags", fmt.Sprintf(format, args...))
+	}
+
+	if len(values) > maxClusterTags {
+		addError("a maximum of %d tags is supported, got %d", maxClusterTags, len(values))
+		return diags
+	}
+
+	// Sorted so repeated plans report the same tag first.
+	for _, key := range slices.Sorted(maps.Keys(values)) {
+		value := values[key]
+		switch {
+		case key == "" || value == "":
+			addError("invalid tag format, tag key or tag value can not be empty")
+		case strings.HasPrefix(strings.ToLower(key), awsReservedTagPrefix):
+			addError("invalid tag key '%s': keys starting with '%s' are reserved for AWS use",
+				key, awsReservedTagPrefix)
+		case !clusterTagKeyRE.MatchString(key):
+			addError("expected a valid user tag key '%s' matching %s", key, clusterTagKeyRE.String())
+		case !clusterTagValueRE.MatchString(value):
+			addError("expected a valid user tag value for key '%s' matching %s", key, clusterTagValueRE.String())
+		}
 	}
 
 	return diags

@@ -19,10 +19,12 @@ package hyperfleet
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
+	. "github.com/openshift-online/ocm-sdk-go/testing"
 
 	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
@@ -176,6 +178,164 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
+		})
+	})
+
+	Context("Customer AWS tags", func() {
+		var hyperfleetServer *Server
+
+		// clusterWithTags is the Platform API representation of a cluster created
+		// with the two tags used throughout this context.
+		clusterWithTags := `{
+			"metadata": {
+				"uid": "test-cluster-id",
+				"name": "my-cluster",
+				"creationTimestamp": "2024-01-01T00:00:00Z"
+			},
+			"spec": {
+				"tags": {
+					"cost-center": "cc-1234",
+					"environment": "production"
+				},
+				"hostedCluster": {
+					"platform": {
+						"type": "AWS",
+						"aws": {
+							"region": "us-east-1",
+							"cloudProviderConfig": {
+								"vpc": "vpc-0def456",
+								"zone": "us-east-1a",
+								"subnet": {
+									"id": "subnet-0abc123"
+								}
+							}
+						}
+					}
+				}
+			},
+			"status": {
+				"phase": "Ready",
+				"controlPlaneEndpoint": {
+					"host": "api.my-cluster.example.com",
+					"port": 6443
+				}
+			}
+		}`
+
+		header := http.Header{"Content-Type": []string{"application/json"}}
+
+		// clusterSource renders the cluster configuration with the given tags
+		// block (HCL, may be empty).
+		clusterSource := func(url, tags string) string {
+			return fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "hf"
+					hyperfleet_url = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_cluster_hyperfleet" "test" {
+					provider              = rhcs.hf
+					name                  = "my-cluster"
+					operator_roles_prefix = "my-cluster"
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
+					%s
+				}
+			`, url, tags)
+		}
+
+		BeforeEach(func() {
+			hyperfleetServer = NewServer()
+		})
+
+		AfterEach(func() {
+			hyperfleetServer.Close()
+		})
+
+		It("sends the tags as spec.tags on create", func() {
+			hyperfleetServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					VerifyJQ(`.spec.tags."cost-center"`, "cc-1234"),
+					VerifyJQ(`.spec.tags.environment`, "production"),
+					RespondWith(http.StatusCreated, clusterWithTags, header),
+				),
+			)
+
+			Terraform.Source(clusterSource(hyperfleetServer.URL(), `
+					tags = {
+						"cost-center" = "cc-1234"
+						"environment" = "production"
+					}`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("replaces the cluster when the tags change", func() {
+			// AWS resources created for the cluster cannot be retagged, so a tag
+			// change must be planned as a replacement rather than an update.
+			hyperfleetServer.RouteToHandler(
+				http.MethodGet, "/api/v0/clusters/test-cluster-id",
+				RespondWith(http.StatusOK, clusterWithTags, header),
+			)
+			hyperfleetServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					RespondWith(http.StatusCreated, clusterWithTags, header),
+				),
+			)
+
+			Terraform.Source(clusterSource(hyperfleetServer.URL(), `
+					tags = {
+						"cost-center" = "cc-1234"
+						"environment" = "production"
+					}`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			Terraform.Source(clusterSource(hyperfleetServer.URL(), `
+					tags = {
+						"cost-center" = "cc-9999"
+						"environment" = "production"
+					}`))
+
+			runOutput = Terraform.Run("plan", "-no-color")
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("must be replaced")
+		})
+
+		It("rejects more tags than the Platform API accepts", func() {
+			tags := make([]string, 0, 24)
+			for i := range 24 {
+				tags = append(tags, fmt.Sprintf("    \"tag%d\" = \"value\"", i))
+			}
+
+			Terraform.Source(clusterSource(hyperfleetServer.URL(), fmt.Sprintf(`
+					tags = {
+%s
+					}`, strings.Join(tags, "\n"))))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("a maximum of 23 tags is supported, got 24")
+		})
+
+		It("rejects a tag key reserved for AWS", func() {
+			Terraform.Source(clusterSource(hyperfleetServer.URL(), `
+					tags = {
+						"aws:cloudformation:stack-name" = "mine"
+					}`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("reserved for AWS use")
 		})
 	})
 

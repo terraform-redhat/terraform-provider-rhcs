@@ -160,6 +160,8 @@ resources:
         type: map
       - path: spec.tags
         type: map
+        immutable: true
+        description: "Customer AWS tags applied to the AWS resources created for this cluster. Applied at provisioning time only — AWS resources created by OpenShift cannot be retagged — so changing them replaces the cluster. A maximum of 23 tags is supported."
 
       # computed fields — read-only from API response
       - path: metadata.uid

@@ -13,6 +13,7 @@ profiles:
     private: false
     oidc_config: managed
     version: latest
+    tagging: true
 
 - as: hf-scheduler
   cluster:

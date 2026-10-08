@@ -343,7 +343,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		defaultingress.New,
 		kubeletconfig.New,
 		hcp.New,
-		hyperfleethcp.New,
+		hyperfleethcp.NewCluster,
 		hyperfleethcp.NewNodePool,
 		hyperfleethcp.NewOidcConfig,
 		nodepool.New,

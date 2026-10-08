@@ -17,6 +17,21 @@ output "cluster_api_url" {
   value = rhcs_cluster_hyperfleet.cluster.api_url
 }
 
-output "oidc_issuer" {
-  value = rhcs_cluster_hyperfleet.cluster.oidc_issuer
+output "scheduler_profile" {
+  value = rhcs_cluster_hyperfleet.cluster.scheduler_profile
+}
+output "autoscaler_max_node_provision_time" {
+  value = rhcs_cluster_hyperfleet.cluster.autoscaler_max_node_provision_time
+}
+output "autoscaler_max_nodes_total" {
+  value = rhcs_cluster_hyperfleet.cluster.autoscaler_max_nodes_total
+}
+output "autoscaler_max_pod_grace_period" {
+  value = rhcs_cluster_hyperfleet.cluster.autoscaler_max_pod_grace_period
+}
+output "autoscaler_pod_priority_threshold" {
+  value = rhcs_cluster_hyperfleet.cluster.autoscaler_pod_priority_threshold
+}
+output "component_routes" {
+  value = rhcs_cluster_hyperfleet.cluster.component_routes
 }

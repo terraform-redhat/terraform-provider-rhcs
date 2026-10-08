@@ -16,3 +16,7 @@ output "cluster_phase" {
 output "cluster_api_url" {
   value = rhcs_cluster_hyperfleet.cluster.api_url
 }
+
+output "scheduler_profile" {
+  value = rhcs_cluster_hyperfleet.cluster.scheduler_profile
+}

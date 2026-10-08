@@ -221,6 +221,10 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "NoProxy.",
 				Optional:            true,
 			},
+			"scheduler_profile": schema.StringAttribute{
+				MarkdownDescription: "SchedulerProfile.",
+				Optional:            true,
+			},
 			"image_content_sources": schema.StringAttribute{
 				MarkdownDescription: "ImageContentSources.",
 				Optional:            true,
@@ -874,6 +878,9 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.NoProxy.IsNull() && !tf.NoProxy.IsUnknown() {
 		native.NoProxy = tf.NoProxy.ValueString()
 	}
+	if !tf.SchedulerProfile.IsNull() && !tf.SchedulerProfile.IsUnknown() {
+		native.SchedulerProfile = tf.SchedulerProfile.ValueString()
+	}
 	if !tf.ImageContentSources.IsNull() && !tf.ImageContentSources.IsUnknown() {
 		native.ImageContentSources = tf.ImageContentSources.ValueString()
 	}
@@ -1029,6 +1036,7 @@ func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.D
 	tf.HttpProxy = toTerraformString(native.HttpProxy)
 	tf.HttpsProxy = toTerraformString(native.HttpsProxy)
 	tf.NoProxy = toTerraformString(native.NoProxy)
+	tf.SchedulerProfile = toTerraformString(native.SchedulerProfile)
 	tf.ImageContentSources = toTerraformString(native.ImageContentSources)
 	tf.AllocateNodeCIDRs = toTerraformString(native.AllocateNodeCIDRs)
 	tf.AdvertiseAddress = toTerraformString(native.AdvertiseAddress)

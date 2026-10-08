@@ -34,6 +34,7 @@ type ClusterStateNative struct {
 	HttpProxy                      string            `hfsdk:"spec.hostedCluster.configuration.proxy.httpProxy"`
 	HttpsProxy                     string            `hfsdk:"spec.hostedCluster.configuration.proxy.httpsProxy"`
 	NoProxy                        string            `hfsdk:"spec.hostedCluster.configuration.proxy.noProxy"`
+	SchedulerProfile               string            `hfsdk:"spec.hostedCluster.configuration.scheduler.profile"`
 	ImageContentSources            string            `hfsdk:"spec.hostedCluster.imageContentSources"`
 	AllocateNodeCIDRs              string            `hfsdk:"spec.hostedCluster.networking.allocateNodeCIDRs"`
 	AdvertiseAddress               string            `hfsdk:"spec.hostedCluster.networking.apiServer.advertiseAddress"`

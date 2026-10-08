@@ -85,6 +85,11 @@ resources:
         type: string
         description: "Optional RFC3339 timestamp after which the Platform API automatically deletes the cluster."
 
+      - path: spec.hostedCluster.configuration.scheduler.profile
+        alias: schedulerProfile
+        type: string
+        description: "Scheduler profile used by the hosted cluster. Valid values are LowNodeUtilization, HighNodeUtilization, and NoScoring."
+
       # Complex SDK values use explicit Terraform representations. Arrays are
       # JSON strings because the draft does not retain their element schemas.
       - path: spec.hostedCluster.configuration.kubelet.kubeReserved

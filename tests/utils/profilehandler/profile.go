@@ -37,6 +37,7 @@ type Profile struct {
 	NetWorkingSet           bool     `ini:"networking_set,omitempty" json:"networking_set,omitempty"`
 	Proxy                   bool     `ini:"proxy,omitempty" json:"proxy,omitempty"`
 	OIDCConfig              string   `ini:"oidc_config,omitempty" json:"oidc_config,omitempty"`
+	SchedulerProfile        string   `ini:"scheduler_profile,omitempty" json:"scheduler_profile,omitempty"`
 	ProvisionShard          string   `ini:"provisionShard,omitempty" json:"provisionShard,omitempty"`
 	Ec2MetadataHttpTokens   string   `ini:"ec2_metadata_http_tokens,omitempty" json:"ec2_metadata_http_tokens,omitempty"`
 	ComputeReplicas         int      `ini:"compute_replicas,omitempty" json:"compute_replicas,omitempty"`

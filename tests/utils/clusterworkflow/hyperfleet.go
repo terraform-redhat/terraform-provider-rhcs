@@ -17,6 +17,7 @@ import (
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
 	hfplatform "github.com/openshift-online/rosa-hyperfleet-api/clientset/platform"
 	hfrest "github.com/openshift-online/rosa-hyperfleet-api/clientset/rest"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
@@ -136,11 +137,70 @@ func (d *hyperFleetDestroyer) Destroy(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("reading HyperFleet VPC outputs before destroy: %w", err)
 		}
-		if err := helper.PurgeHostedZoneRecords(d.region, vpcOutput.HostedZoneID); err != nil {
-			return fmt.Errorf("purging records from HyperFleet private hosted zone %s: %w", vpcOutput.HostedZoneID, err)
+		return DestroyHyperFleetVPC(ctx, d.vpc, vpcOutput, d.region)
+	}
+	return nil
+}
+
+// DestroyHyperFleetVPC removes operator-created dependencies before destroying
+// the Terraform-managed VPC resources, retrying while asynchronous AWS cleanup completes.
+func DestroyHyperFleetVPC(
+	ctx context.Context,
+	service exec.HyperfleetVPCService,
+	output *exec.HyperfleetVPCOutput,
+	region string,
+) error {
+	var lastErr error
+	err := wait.PollUntilContextTimeout(ctx, 2*time.Minute, 30*time.Minute, true, func(context.Context) (bool, error) {
+		// The cluster operator releases VPC resources asynchronously after the
+		// cluster object is deleted, and it leaks resources Terraform does not
+		// track (classic ELBs, VPC endpoints, security groups, hosted-zone
+		// records) that block terraform destroy. Re-prune them on every retry —
+		// not just once — so transient states (e.g. a vpce-private-router
+		// security group still pinned by an endpoint ENI that has not finished
+		// releasing) resolve within the retry window instead of failing the
+		// whole teardown on the first attempt.
+		if output != nil {
+			if cleanupErr := helper.DeleteClassicLoadBalancers(region, output.VPCID); cleanupErr != nil {
+				lastErr = cleanupErr
+				log.Logger.Infof("[teardown] classic ELB cleanup failed (will retry): %v", cleanupErr)
+				return false, nil
+			}
+			// Delete VPC endpoints before security groups: their managed ENIs
+			// pin the <infra-id>-vpce-private-router security group, so the SG
+			// cannot be removed until the endpoints are gone and their ENIs
+			// have drained.
+			if cleanupErr := helper.DeleteVPCEndpoints(region, output.VPCID); cleanupErr != nil {
+				lastErr = cleanupErr
+				log.Logger.Infof("[teardown] VPC endpoint cleanup failed (will retry): %v", cleanupErr)
+				return false, nil
+			}
+			if cleanupErr := helper.DeleteNonDefaultSecurityGroups(region, output.VPCID); cleanupErr != nil {
+				lastErr = cleanupErr
+				log.Logger.Infof("[teardown] security group cleanup failed (will retry): %v", cleanupErr)
+				return false, nil
+			}
+			// The cluster operator writes CNAME records (api.*, *.apps.*) into
+			// the private <name>.hypershift.local hosted zone. terraform destroy
+			// of aws_route53_zone.hyperfleet fails with HostedZoneNotEmpty while
+			// those records remain, so purge them before destroying the VPC.
+			if cleanupErr := helper.PurgeHostedZoneRecords(region, output.HostedZoneID); cleanupErr != nil {
+				lastErr = cleanupErr
+				log.Logger.Infof("[teardown] hosted zone purge failed (will retry): %v", cleanupErr)
+				return false, nil
+			}
 		}
-		// Terraform remains responsible for deleting the hosted zone and VPC.
-		_, err = d.vpc.Destroy()
+		_, lastErr = service.Destroy()
+		if lastErr != nil {
+			log.Logger.Infof("[teardown] VPC destroy attempt failed (will retry): %v", lastErr)
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		if lastErr != nil {
+			return lastErr
+		}
 		return err
 	}
 	return nil
@@ -291,6 +351,11 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 	}); err != nil {
 		return nil, err
 	}
+	schedulerProfile := profile.Profile().GetSchedulerProfile()
+	var schedulerProfileValue *string
+	if schedulerProfile != "" {
+		schedulerProfileValue = &schedulerProfile
+	}
 	backend := &hyperFleetBackend{
 		service: service,
 		client:  client,
@@ -304,6 +369,7 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 			VPCID:               &vpcID,
 			AvailabilityZone:    &availabilityZone,
 			OIDCConfigID:        &oidcOutput.OidcConfigID,
+			SchedulerProfile:    schedulerProfileValue,
 		},
 	}
 	return &Backend{Lifecycle: backend}, nil

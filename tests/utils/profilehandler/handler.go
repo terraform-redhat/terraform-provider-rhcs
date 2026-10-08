@@ -86,6 +86,7 @@ type ProfileSpec interface {
 	GetEc2MetadataHttpTokens() string
 	GetUnifiedAccRolesPath() string
 	GetOIDCConfig() string
+	GetSchedulerProfile() string
 	GetAdditionalSGNumber() int
 	GetComputeReplicas() int
 	GetWorkerDiskSize() int
@@ -209,6 +210,10 @@ func (ctx *profileContext) GetUnifiedAccRolesPath() string {
 
 func (ctx *profileContext) GetOIDCConfig() string {
 	return ctx.profile.OIDCConfig
+}
+
+func (ctx *profileContext) GetSchedulerProfile() string {
+	return ctx.profile.SchedulerProfile
 }
 
 func (ctx *profileContext) GetAdditionalSGNumber() int {

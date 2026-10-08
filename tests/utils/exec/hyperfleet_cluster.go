@@ -19,15 +19,17 @@ type HyperfleetClusterArgs struct {
 	AvailabilityZone    *string `hcl:"availability_zone"`
 	ExpirationTimestamp *string `hcl:"expiration_timestamp"`
 	OIDCConfigID        *string `hcl:"oidc_config_id"`
+	SchedulerProfile    *string `hcl:"scheduler_profile"`
 }
 
 // HyperfleetClusterOutput holds the Terraform output values from the hyperfleet
 // cluster manifest.
 type HyperfleetClusterOutput struct {
-	ClusterID   string `json:"cluster_id,omitempty"`
-	ClusterName string `json:"cluster_name,omitempty"`
-	Phase       string `json:"cluster_phase,omitempty"`
-	APIURL      string `json:"cluster_api_url,omitempty"`
+	ClusterID        string `json:"cluster_id,omitempty"`
+	ClusterName      string `json:"cluster_name,omitempty"`
+	Phase            string `json:"cluster_phase,omitempty"`
+	APIURL           string `json:"cluster_api_url,omitempty"`
+	SchedulerProfile string `json:"scheduler_profile,omitempty"`
 }
 
 // HyperfleetClusterService manages the lifecycle of an rhcs_cluster_hyperfleet

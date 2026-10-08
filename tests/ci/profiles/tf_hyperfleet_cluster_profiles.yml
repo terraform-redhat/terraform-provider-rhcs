@@ -13,3 +13,16 @@ profiles:
     private: false
     oidc_config: managed
     version: latest
+
+- as: hf-scheduler
+  cluster:
+    cluster_type: hyperfleet
+    product_id: rosa
+    cloud_provider: aws
+    region: us-east-1
+    multi_az: false
+    byovpc: true
+    private: false
+    oidc_config: managed
+    scheduler_profile: HighNodeUtilization
+    version: latest

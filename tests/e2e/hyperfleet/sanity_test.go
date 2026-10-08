@@ -18,8 +18,8 @@ import (
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
 	hfrest "github.com/openshift-online/rosa-hyperfleet-api/clientset/rest"
 
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
@@ -29,7 +29,6 @@ const (
 	nodepoolReadyTimeout   = 45 * time.Minute
 	oidcConfigReadyTimeout = 15 * time.Minute
 	pollInterval           = 30 * time.Second
-	vpcDestroyTimeout      = 30 * time.Minute
 
 	// teardownGracePeriod bounds how long Ginkgo lets a cleanup node keep running
 	// after an interrupt (Ctrl-C) before force-aborting it. Without an override,
@@ -97,47 +96,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 		var vpcOut *exec.HyperfleetVPCOutput
 		DeferCleanup(func(ctx SpecContext) {
 			By("Teardown: destroy VPC")
-			// The cluster operator releases VPC resources asynchronously after the
-			// cluster object is deleted, and it leaks resources Terraform does not
-			// track (classic ELBs, VPC endpoints, security groups, hosted-zone
-			// records) that block terraform destroy. Re-prune them on every retry —
-			// not just once — so transient states (e.g. a vpce-private-router
-			// security group still pinned by an endpoint ENI that has not finished
-			// releasing) resolve within the retry window instead of failing the
-			// whole teardown on the first attempt.
-			Eventually(func() error {
-				if vpcOut != nil {
-					if err := helper.DeleteClassicLoadBalancers(awsRegion, vpcOut.VPCID); err != nil {
-						Logger.Infof("[teardown] classic ELB cleanup failed (will retry): %v", err)
-						return err
-					}
-					// Delete VPC endpoints before security groups: their managed ENIs
-					// pin the <infra-id>-vpce-private-router security group, so the SG
-					// cannot be removed until the endpoints are gone and their ENIs
-					// have drained.
-					if err := helper.DeleteVPCEndpoints(awsRegion, vpcOut.VPCID); err != nil {
-						Logger.Infof("[teardown] VPC endpoint cleanup failed (will retry): %v", err)
-						return err
-					}
-					if err := helper.DeleteNonDefaultSecurityGroups(awsRegion, vpcOut.VPCID); err != nil {
-						Logger.Infof("[teardown] security group cleanup failed (will retry): %v", err)
-						return err
-					}
-					// The cluster operator writes CNAME records (api.*, *.apps.*) into
-					// the private <name>.hypershift.local hosted zone. terraform destroy
-					// of aws_route53_zone.hyperfleet fails with HostedZoneNotEmpty while
-					// those records remain, so purge them before destroying the VPC.
-					if err := helper.PurgeHostedZoneRecords(awsRegion, vpcOut.HostedZoneID); err != nil {
-						Logger.Infof("[teardown] hosted zone purge failed (will retry): %v", err)
-						return err
-					}
-				}
-				_, err := vpcSvc.Destroy()
-				if err != nil {
-					Logger.Infof("[teardown] VPC destroy attempt failed (will retry): %v", err)
-				}
-				return err
-			}).WithContext(ctx).WithTimeout(vpcDestroyTimeout).WithPolling(2 * time.Minute).Should(Succeed())
+			Expect(clusterworkflow.DestroyHyperFleetVPC(ctx, vpcSvc, vpcOut, awsRegion)).To(Succeed())
 		}, GracePeriod(teardownGracePeriod))
 
 		// OidcConfig destroy — registered 2nd, runs 4th.

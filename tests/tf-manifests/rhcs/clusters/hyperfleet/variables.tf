@@ -47,3 +47,9 @@ variable "oidc_config_id" {
   description = "Optional OIDC config ID (e.g., from OidcConfig resource)"
   default     = ""
 }
+
+variable "scheduler_profile" {
+  type        = string
+  description = "Optional scheduler profile for the hosted cluster"
+  default     = null
+}

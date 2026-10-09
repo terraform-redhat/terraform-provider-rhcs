@@ -34,6 +34,7 @@ var openidSchema = map[string]schema.Attribute{
 	"ca": schema.StringAttribute{
 		Description: "Optional trusted certificate authority bundle.",
 		Optional:    true,
+		Sensitive:   true,
 	},
 	"claims": schema.SingleNestedAttribute{
 		Description: "OpenID Claims config.",

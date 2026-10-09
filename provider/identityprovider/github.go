@@ -44,6 +44,7 @@ var githubSchema = map[string]schema.Attribute{
 	"ca": schema.StringAttribute{
 		Description: "Path to PEM-encoded certificate file to use when making requests to the server.",
 		Optional:    true,
+		Sensitive:   true,
 	},
 	"hostname": schema.StringAttribute{
 		Description: "Optional domain to use with a hosted instance of GitHub Enterprise.",

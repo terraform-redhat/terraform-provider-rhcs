@@ -2196,3 +2196,39 @@ var _ = Describe("Identity provider import", func() {
 		runOutput.VerifyErrorContainsSubstring("Cluster 123 not found, error: status is 404 and identifier is '123'")
 	})
 })
+
+var _ = Describe("Identity provider sensitive attributes", func() {
+	const openidSource = `
+		resource "rhcs_identity_provider" "my_ip" {
+			cluster = "123"
+			name    = "my-ip"
+			openid = {
+				ca            = "test-ca"
+				client_id     = "test_client"
+				client_secret = "test_secret"
+				issuer        = "https://test.okta.com"
+				claims = {
+					email = ["email"]
+				}
+			}
+		}
+	`
+
+	It("redacts the openid ca in the plan", func() {
+		Terraform.Source(openidSource)
+		runOutput := Terraform.Run("plan")
+		Expect(runOutput.ExitCode).To(BeZero())
+		runOutput.VerifyOutputContainsSubstring("ca            = (sensitive value)")
+	})
+
+	It("fails when an output exposes the openid ca without sensitive = true", func() {
+		Terraform.Source(openidSource + `
+		output "ca" {
+			value = rhcs_identity_provider.my_ip.openid.ca
+		}
+		`)
+		runOutput := Terraform.Run("plan")
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("Output refers to sensitive values")
+	})
+})

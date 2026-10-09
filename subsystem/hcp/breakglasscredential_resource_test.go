@@ -412,4 +412,72 @@ var _ = Describe("Break Glass Credential", func() {
 			Expect(attributes["username"]).To(Equal("imported-user"))
 		})
 	})
+
+	Context("sensitive attributes", func() {
+		It("fails when an output exposes kubeconfig without sensitive = true", func() {
+			Terraform.Source(`
+				resource "rhcs_break_glass_credential" "break_glass" {
+					cluster = "123"
+				}
+
+				output "kubeconfig" {
+					value = rhcs_break_glass_credential.break_glass.kubeconfig
+				}
+			`)
+			runOutput := Terraform.Run("plan")
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Output refers to sensitive values")
+		})
+
+		It("redacts kubeconfig in an output marked sensitive", func() {
+			cluster, err := cmv1.NewCluster().
+				ID("123").
+				Name("cluster").
+				Hypershift(cmv1.NewHypershift().Enabled(true)).
+				ExternalAuthConfig(cmv1.NewExternalAuthConfig().Enabled(true)).
+				Build()
+			Expect(err).ToNot(HaveOccurred())
+
+			breakGlass, err := cmv1.NewBreakGlassCredential().
+				ID("bgc-123").
+				Username("break-glass-user").
+				Status(cmv1.BreakGlassCredentialStatusIssued).
+				ExpirationTimestamp(time.Now().Add(1 * time.Hour)).
+				Kubeconfig("apiVersion: v1\nkind: Config\nclusters:\n- cluster:\n    server: https://api.example.com\n  name: break-glass").
+				Build()
+			Expect(err).ToNot(HaveOccurred())
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithOcmObjectMarshal(http.StatusOK, cluster, cmv1.MarshalCluster),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/break_glass_credentials"),
+					RespondWithOcmObjectMarshal(http.StatusCreated, breakGlass, cmv1.MarshalBreakGlassCredential),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/break_glass_credentials/bgc-123"),
+					RespondWithOcmObjectMarshal(http.StatusOK, breakGlass, cmv1.MarshalBreakGlassCredential),
+				),
+			)
+
+			Terraform.Source(`
+				resource "rhcs_break_glass_credential" "break_glass" {
+					cluster = "123"
+				}
+
+				output "kubeconfig" {
+					value     = rhcs_break_glass_credential.break_glass.kubeconfig
+					sensitive = true
+				}
+			`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			runOutput = Terraform.Output()
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("kubeconfig = <sensitive>")
+		})
+	})
 })

@@ -11401,4 +11401,36 @@ var _ = Describe("HCP Cluster", func() {
 			runOutput.VerifyErrorContainsSubstring("spot termination queue URL region 'eu-west-1' does not match cluster region 'us-west-1'")
 		})
 	})
+
+	Context("Sensitive proxy attributes", func() {
+		It("fails when an output exposes the data source http_proxy without sensitive = true", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/proxy",
+					  "value": {
+						  "http_proxy": "http://proxy.example.com:3128",
+						  "https_proxy": "https://proxy.example.com:3128"
+					  }
+					}]`),
+				),
+			)
+
+			Terraform.Source(`
+				data "rhcs_cluster_rosa_hcp" "my_cluster" {
+					id = "123"
+				}
+
+				output "http_proxy" {
+					value = data.rhcs_cluster_rosa_hcp.my_cluster.proxy.http_proxy
+				}
+			`)
+			runOutput := Terraform.Run("plan")
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Output refers to sensitive values")
+		})
+	})
 })

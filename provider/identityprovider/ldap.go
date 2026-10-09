@@ -56,6 +56,7 @@ var ldapSchema = map[string]schema.Attribute{
 	"ca": schema.StringAttribute{
 		Description: "Optional trusted certificate authority bundle.",
 		Optional:    true,
+		Sensitive:   true,
 	},
 	"insecure": schema.BoolAttribute{
 		Description: "Do not make TLS connections to the server.",

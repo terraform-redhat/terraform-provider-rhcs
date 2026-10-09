@@ -120,6 +120,7 @@ func (b *BreakGlassCredentialResource) Schema(ctx context.Context, req resource.
 			"kubeconfig": schema.StringAttribute{
 				Description: "Kubeconfig of the break glass credential.",
 				Computed:    true,
+				Sensitive:   true,
 			},
 		},
 	}

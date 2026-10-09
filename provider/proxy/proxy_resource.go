@@ -17,10 +17,12 @@ func ProxyResource() map[string]schema.Attribute {
 		"http_proxy": schema.StringAttribute{
 			Description: "HTTP proxy. " + resetMessage,
 			Optional:    true,
+			Sensitive:   true,
 		},
 		"https_proxy": schema.StringAttribute{
 			Description: "HTTPS proxy. " + resetMessage,
 			Optional:    true,
+			Sensitive:   true,
 		},
 		"no_proxy": schema.StringAttribute{
 			Description: "No proxy. " + resetMessage,
@@ -29,6 +31,7 @@ func ProxyResource() map[string]schema.Attribute {
 		"additional_trust_bundle": schema.StringAttribute{
 			Description: "A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store. " + resetMessage,
 			Optional:    true,
+			Sensitive:   true,
 		},
 	}
 }
@@ -38,10 +41,12 @@ func ProxyDatasource() map[string]dsschemadsschema.Attribute {
 		"http_proxy": schema.StringAttribute{
 			Description: "HTTP proxy.",
 			Computed:    true,
+			Sensitive:   true,
 		},
 		"https_proxy": schema.StringAttribute{
 			Description: "HTTPS proxy.",
 			Computed:    true,
+			Sensitive:   true,
 		},
 		"no_proxy": schema.StringAttribute{
 			Description: "No proxy.",
@@ -50,6 +55,7 @@ func ProxyDatasource() map[string]dsschemadsschema.Attribute {
 		"additional_trust_bundle": schema.StringAttribute{
 			Description: "A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.",
 			Computed:    true,
+			Sensitive:   true,
 		},
 	}
 }

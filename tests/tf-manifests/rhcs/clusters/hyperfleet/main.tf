@@ -37,4 +37,5 @@ resource "rhcs_cluster_hyperfleet" "cluster" {
   expiration_timestamp = var.expiration_timestamp
   oidc_config_id       = var.oidc_config_id != "" ? var.oidc_config_id : null
   scheduler_profile    = var.scheduler_profile
+  tags                 = var.tags
 }

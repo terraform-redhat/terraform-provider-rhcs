@@ -45,7 +45,7 @@ profiles:
     fips: true
     autoscaler_enabled: true
     byok: true
-    compute_machine_type: "m5.2xlarge"
+    compute_machine_type: "m5.xlarge"
     compute_replicas: 3
     proxy: true
     labeling: true
@@ -76,7 +76,7 @@ profiles:
     fips: false
     autoscaler_enabled: true
     byok: false
-    compute_machine_type: "m5.2xlarge"
+    compute_machine_type: "m7i.xlarge"
     compute_replicas: 3
     proxy: false
     labeling: true

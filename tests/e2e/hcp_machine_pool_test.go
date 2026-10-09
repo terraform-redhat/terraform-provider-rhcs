@@ -58,7 +58,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 	getDefaultMPArgs := func(name string) *exec.MachinePoolArgs {
 		replicas := 2
-		machineType := "m5.2xlarge"
+		machineType := profileHandler.Profile().GetComputeMachineType()
 		subnetId := vpcOutput.PrivateSubnets[0]
 		return &exec.MachinePoolArgs{
 			Cluster:            new(clusterID),
@@ -89,7 +89,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 			By("Create machinepool")
 			replicas := 3
-			machineType := "m5.2xlarge"
+			machineType := profileHandler.Profile().GetComputeMachineType()
 			name := helper.GenerateRandomName("np-72504", 2)
 			subnetId := vpcOutput.PrivateSubnets[0]
 			mpArgs := &exec.MachinePoolArgs{
@@ -360,7 +360,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 			By("Create another machinepool without additional sg")
 			name = "add-73068"
-			machineType = "m5.2xlarge"
+			machineType = profileHandler.Profile().GetComputeMachineType()
 			mpArgs.Name = new(name)
 			mpArgs.MachineType = new(machineType)
 			mpArgs.AdditionalSecurityGroups = nil
@@ -371,7 +371,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.AWSNodePool().AdditionalSecurityGroupIds()).To(BeNil())
-			Expect(mpResponseBody.AWSNodePool().InstanceType()).To(Equal("m5.2xlarge"))
+			Expect(mpResponseBody.AWSNodePool().InstanceType()).To(Equal(machineType))
 		})
 
 	It("can validate nodepool creation with security groups - [id:73069]", ci.Low,
@@ -488,7 +488,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 	It("can be created with specific version - [id:72509]",
 		ci.High, func() {
 			replicas := 3
-			machineType := "m5.2xlarge"
+			machineType := profileHandler.Profile().GetComputeMachineType()
 			subnetId := vpcOutput.PrivateSubnets[0]
 			mpArgs := &exec.MachinePoolArgs{
 				Cluster:            new(clusterID),
@@ -568,7 +568,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		ci.Critical, func() {
 			By("Create machinepool")
 			replicas := 3
-			machineType := "m5.2xlarge"
+			machineType := profileHandler.Profile().GetComputeMachineType()
 			name := helper.GenerateRandomName("np-72510", 2)
 			subnetId := vpcOutput.PrivateSubnets[0]
 			tags := map[string]string{
@@ -646,7 +646,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 			By("Create machinepool")
 			replicas := 3
-			machineType := "m5.2xlarge"
+			machineType := profileHandler.Profile().GetComputeMachineType()
 			name := helper.GenerateRandomName("np-72508", 2)
 			subnetId := vpcOutput.PrivateSubnets[0]
 			tuningconfigs = append(tuningconfigs, createdTuningConfigs...)
@@ -711,7 +711,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 			By("Create machinepool with kubeletconfig")
 			replicas := 1
-			machineType := "m5.2xlarge"
+			machineType := profileHandler.Profile().GetComputeMachineType()
 			name := helper.GenerateRandomName("np-72504", 2)
 			subnetId := vpcOutput.PrivateSubnets[0]
 			mpArgs := &exec.MachinePoolArgs{
@@ -807,7 +807,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			By("Create machinepool")
 			mpCount := 2
 			replicas := 3
-			machineType := "m5.2xlarge"
+			machineType := profileHandler.Profile().GetComputeMachineType()
 			name := helper.GenerateRandomName("np-72954", 2)
 			subnetId := vpcOutput.PrivateSubnets[0]
 			mpArgs := &exec.MachinePoolArgs{
@@ -1189,7 +1189,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 			By("Try to edit compute machine type")
 			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
-				args.MachineType = new("m5.xlarge")
+				args.MachineType = new("m7i.xlarge")
 			}, "Attribute aws_node_pool.instance_type, cannot be changed from")
 
 			By("Try to update taint with no key, eg `=v1:NoSchedule`")
@@ -1265,7 +1265,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 			By("Create additional machinepool for import")
 			replicas := 2
-			machineType := "m5.2xlarge"
+			machineType := profileHandler.Profile().GetComputeMachineType()
 			name := helper.GenerateRandomName("ocp-72960", 2)
 			subnetId := vpcOutput.PrivateSubnets[0]
 			tags := map[string]string{"foo1": "bar1"}

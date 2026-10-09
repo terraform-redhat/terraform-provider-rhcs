@@ -1178,9 +1178,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Dia
 
 	// cluster admin attributes
 	common.ValidateStateAndPlanEquals(state.CreateAdminUser, plan.CreateAdminUser, "create_admin_user", &diags)
-	if !rosaTypes.AdminCredentialsEqual(state.AdminCredentials, plan.AdminCredentials) {
-		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "admin_credentials", state.AdminCredentials, plan.AdminCredentials))
-	}
+	rosaTypes.ValidateAdminCredentialsUnchanged(state.AdminCredentials, plan.AdminCredentials, &diags)
 
 	return diags
 }

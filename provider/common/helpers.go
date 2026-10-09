@@ -35,6 +35,7 @@ const (
 	versionPrefix                         = "openshift-v"
 	AssertionErrorSummaryMessage          = "Attribute value cannot be changed"
 	AssertionErrorDetailsMessage          = "Attribute %s, cannot be changed from %v to %v"
+	AssertionErrorSensitiveDetailsMessage = "Attribute %s, cannot be changed"
 	ValueCannotBeChangedStringDescription = "After the creation of the resource, it is not possible to update the attribute value."
 )
 

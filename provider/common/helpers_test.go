@@ -238,6 +238,16 @@ var _ = Describe("Helper function tests", func() {
 		Entry("equal attributes -> ok", types.StringValue("same"), types.StringValue("same"), false),
 		Entry("different attributes -> error", types.StringValue("old"), types.StringValue("new"), true),
 	)
+
+	Context("AddSensitiveAttrImmutableError", func() {
+		It("adds an error naming the attribute without its values", func() {
+			diags := diag.Diagnostics{}
+			AddSensitiveAttrImmutableError("admin_credentials", &diags)
+			Expect(diags.ErrorsCount()).To(Equal(1))
+			Expect(diags.Errors()[0].Summary()).To(Equal(AssertionErrorSummaryMessage))
+			Expect(diags.Errors()[0].Detail()).To(Equal("Attribute admin_credentials, cannot be changed"))
+		})
+	})
 })
 
 //go:fix inline

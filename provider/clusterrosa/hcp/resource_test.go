@@ -723,6 +723,37 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 		})
 	})
 
+	Context("admin_credentials immutability", func() {
+		It("Does not expose admin_credentials values when they are changed", func() {
+			statePassword := "state-password123456789$"
+			planPassword := "plan-password123456789$"
+			state := generateBasicRosaHcpClusterState()
+			state.AdminCredentials = rosaTypes.FlattenAdminCredentials("test-username", statePassword)
+			plan := *state
+			plan.AdminCredentials = rosaTypes.FlattenAdminCredentials("test-username", planPassword)
+			diags := validateNoImmutableAttChange(state, &plan)
+			details := []string{}
+			for _, d := range diags.Errors() {
+				details = append(details, d.Detail())
+			}
+			Expect(details).To(ContainElement("Attribute admin_credentials, cannot be changed"))
+			for _, detail := range details {
+				Expect(detail).NotTo(ContainSubstring(statePassword))
+				Expect(detail).NotTo(ContainSubstring(planPassword))
+			}
+		})
+
+		It("Does not report admin_credentials when they are unchanged", func() {
+			state := generateBasicRosaHcpClusterState()
+			state.AdminCredentials = rosaTypes.FlattenAdminCredentials("test-username", "test-password123456789$")
+			plan := *state
+			diags := validateNoImmutableAttChange(state, &plan)
+			for _, d := range diags.Errors() {
+				Expect(d.Detail()).NotTo(ContainSubstring("admin_credentials"))
+			}
+		})
+	})
+
 	Context("Day 1 Log Forwarding", func() {
 		It("Creates cluster object with log forwarders", func() {
 			clusterState := generateBasicRosaHcpClusterState()

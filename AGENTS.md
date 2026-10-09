@@ -51,7 +51,8 @@ Thin entrypoints `CLAUDE.md` and `GEMINI.md` should only point here to avoid dri
 5. Security — [`developer-docs/security.md`](developer-docs/security.md).
 6. Breaking or high-risk? — [`developer-docs/breaking-changes.md`](developer-docs/breaking-changes.md).
 7. Commits / DCO / changelog — [`CONTRIBUTING.md`](CONTRIBUTING.md).
-8. Before PR — [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`.github/pull_request_template.md`](.github/pull_request_template.md).
+8. For any PR that changes Terraform provider or E2E/harness code, post a completed [`developer-docs/verification_template.md`](developer-docs/verification_template.md) as a PR comment and use the appropriate [`/verified` command](https://docs.ci.openshift.org/architecture/jira/#verified-command-examples). Every test case and required output is mandatory; skips require a specific technical justification, and sensitive values must be `REDACTED`.
+9. Before PR — [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`.github/pull_request_template.md`](.github/pull_request_template.md).
 
 ## Guardrails
 
@@ -149,6 +150,7 @@ Apply these checks when the change fits:
 - **Validation and errors** — If rules or error messages change, update matching subsystem and e2e assertions; do not assume stale substring checks still pass.
 - **Profile gating** — If profile fields or skip conditions change (for example `IsAdminEnabled()`), confirm newly enabled e2e cases have correct fixtures and expectations.
 - **Subsystem is not enough** — Adding subsystem coverage does not replace reviewing e2e harness wiring when the change touches `tests/utils/exec` or tf-manifests.
+- **E2E coverage and contracts** — For provider or harness behavior changes, follow [`developer-docs/testing.md`](developer-docs/testing.md#e2e-coverage-and-contracts): add/update E2E coverage or record a technical justification, then distinguish stale E2E coverage from an intentional breaking contract change.
 
 ## Subsystem registry check
 

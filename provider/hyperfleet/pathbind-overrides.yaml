@@ -239,7 +239,17 @@ resources:
       - path: spec.nodePool.platform.aws.resourceTags
         type: string
       - path: spec.nodePool.platform.aws.securityGroups
-        type: string
+        alias: additional_security_group_ids
+        description: "Additional AWS security groups to attach to node pool instances. Cannot be changed after creation."
+        type: list(object)
+        immutable: true
+        operations: [create]
+        element:
+          attributes:
+            id:
+              type: string
+              required: true
+              description: "AWS security group ID (for example `sg-0a1b2c3d`)."
       - path: spec.nodePool.platform.aws.subnet.filters
         type: string
 

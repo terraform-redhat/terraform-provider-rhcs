@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
+	. "github.com/openshift-online/ocm-sdk-go/testing"
 
 	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
@@ -145,6 +146,274 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("creates a nodepool with additional security groups", func() {
+			clusterResponse := `{
+				"id": "test-cluster-id",
+				"name": "test-cluster",
+				"created_at": "2024-01-01T00:00:00Z",
+				"updated_at": "2024-01-01T00:00:00Z",
+				"spec": {
+					"hostedCluster": {
+						"platform": {
+							"type": "AWS",
+							"aws": {
+								"region": "us-east-1",
+								"rolesRef": {
+									"nodePoolManagementARN": "arn:aws:iam::123456789012:role/test-cluster-NodePool"
+								}
+							}
+						}
+					}
+				},
+				"status": {
+					"phase": "Ready",
+					"controlPlaneEndpoint": {
+						"host": "api.test-cluster.example.com",
+						"port": 6443
+					}
+				}
+			}`
+
+			nodepoolResponse := `{
+				"metadata": {
+					"uid": "test-nodepool-id",
+					"name": "worker",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
+				"spec": {
+					"autoRepair": true,
+					"nodePool": {
+						"clusterName": "test-cluster-id",
+						"release": {
+							"image": ""
+						},
+						"platform": {
+							"type": "AWS",
+							"aws": {
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
+								"instanceType": "m5.xlarge",
+								"rootVolume": {
+									"size": 100
+								},
+								"securityGroups": [
+									{"id": "sg-1"},
+									{"id": "sg-2"}
+								]
+							}
+						},
+						"replicas": 3
+					}
+				},
+				"status": {
+					"phase": "Provisioning"
+				}
+			}`
+
+			header := http.Header{"Content-Type": []string{"application/json"}}
+
+			hyperfleetServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, clusterResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+					VerifyJQ(`.spec.nodePool.platform.aws.securityGroups`, []interface{}{
+						map[string]interface{}{"id": "sg-1"},
+						map[string]interface{}{"id": "sg-2"},
+					}),
+					RespondWith(http.StatusCreated, nodepoolResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					RespondWith(http.StatusOK, nodepoolResponse, header),
+				),
+			)
+
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "hf"
+					hyperfleet_url = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_nodepool_hyperfleet" "test" {
+					provider                      = rhcs.hf
+					cluster_id                     = "test-cluster-id"
+					name                           = "worker"
+					replicas                       = 3
+					subnet_id                      = "subnet-0abc123"
+					auto_repair                    = true
+					instance_type                  = "m5.xlarge"
+					size                           = 100
+					additional_security_group_ids  = [
+						{ id = "sg-1" },
+						{ id = "sg-2" },
+					]
+				}
+			`, hyperfleetServer.URL()))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_nodepool_hyperfleet", "test")
+			Expect(resource).To(MatchJQ(
+				".attributes.additional_security_group_ids | map(.id)",
+				[]interface{}{"sg-1", "sg-2"},
+			))
+		})
+	})
+
+	Context("Create operation with additional security group changes", func() {
+		var hyperfleetServer *Server
+
+		BeforeEach(func() {
+			hyperfleetServer = NewServer()
+		})
+
+		AfterEach(func() {
+			hyperfleetServer.Close()
+		})
+
+		It("plans a replacement when additional security groups change", func() {
+			clusterResponse := `{
+				"id": "test-cluster-id",
+				"name": "test-cluster",
+				"created_at": "2024-01-01T00:00:00Z",
+				"updated_at": "2024-01-01T00:00:00Z",
+				"spec": {
+					"hostedCluster": {
+						"platform": {
+							"type": "AWS",
+							"aws": {
+								"region": "us-east-1",
+								"rolesRef": {
+									"nodePoolManagementARN": "arn:aws:iam::123456789012:role/test-cluster-NodePool"
+								}
+							}
+						}
+					}
+				},
+				"status": {
+					"phase": "Ready",
+					"controlPlaneEndpoint": {
+						"host": "api.test-cluster.example.com",
+						"port": 6443
+					}
+				}
+			}`
+
+			createResponse := `{
+				"metadata": {
+					"uid": "test-nodepool-id",
+					"name": "worker",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
+				"spec": {
+					"autoRepair": true,
+					"nodePool": {
+						"clusterName": "test-cluster-id",
+						"release": {
+							"image": ""
+						},
+						"platform": {
+							"type": "AWS",
+							"aws": {
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
+								"instanceType": "m5.xlarge",
+								"rootVolume": {
+									"size": 100
+								},
+								"securityGroups": [
+									{"id": "sg-1"}
+								]
+							}
+						},
+						"replicas": 3
+					}
+				},
+				"status": {
+					"phase": "Ready"
+				}
+			}`
+
+			header := http.Header{"Content-Type": []string{"application/json"}}
+
+			hyperfleetServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, clusterResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+					RespondWith(http.StatusCreated, createResponse, header),
+				),
+				// `terraform plan` refreshes state before computing the diff.
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					RespondWith(http.StatusOK, createResponse, header),
+				),
+			)
+
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "hf"
+					hyperfleet_url = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_nodepool_hyperfleet" "test" {
+					provider                      = rhcs.hf
+					cluster_id                     = "test-cluster-id"
+					name                           = "worker"
+					replicas                       = 3
+					subnet_id                      = "subnet-0abc123"
+					auto_repair                    = true
+					instance_type                  = "m5.xlarge"
+					size                           = 100
+					additional_security_group_ids  = [
+						{ id = "sg-1" },
+					]
+				}
+			`, hyperfleetServer.URL()))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "hf"
+					hyperfleet_url = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_nodepool_hyperfleet" "test" {
+					provider                      = rhcs.hf
+					cluster_id                     = "test-cluster-id"
+					name                           = "worker"
+					replicas                       = 3
+					subnet_id                      = "subnet-0abc123"
+					auto_repair                    = true
+					instance_type                  = "m5.xlarge"
+					size                           = 100
+					additional_security_group_ids  = [
+						{ id = "sg-2" },
+					]
+				}
+			`, hyperfleetServer.URL()))
+
+			runOutput = Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(Equal(2))
+			runOutput.VerifyOutputContainsSubstring("forces replacement")
 		})
 	})
 

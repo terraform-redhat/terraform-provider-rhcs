@@ -21,6 +21,7 @@ Manages NodePool resources.
 
 ### Optional
 
+- `additional_security_group_ids` (Attributes List) Additional AWS security groups to attach to node pool instances. Cannot be changed after creation. (see [below for nested schema](#nestedatt--additional_security_group_ids))
 - `ami` (String) Ami.
 - `auto_repair` (Boolean) AutoRepair.
 - `capacity_reservation_id` (String) CapacityReservationId.
@@ -47,7 +48,6 @@ Manages NodePool resources.
 - `replicas` (Number) Replicas.
 - `resource_tags` (String) ResourceTags.
 - `root_volume_type` (String) RootVolumeType.
-- `security_groups` (String) SecurityGroups.
 - `size` (Number) Size.
 - `subnet_id` (String) SubnetId.
 - `taints` (Attributes List) Node taints applied to nodes in this pool. (see [below for nested schema](#nestedatt--taints))
@@ -59,6 +59,14 @@ Manages NodePool resources.
 - `id` (String) Id.
 - `phase` (String) Phase.
 - `platform_type` (String) Platform_type.
+
+<a id="nestedatt--additional_security_group_ids"></a>
+### Nested Schema for `additional_security_group_ids`
+
+Required:
+
+- `id` (String) AWS security group ID (for example `sg-0a1b2c3d`).
+
 
 <a id="nestedatt--config"></a>
 ### Nested Schema for `config`

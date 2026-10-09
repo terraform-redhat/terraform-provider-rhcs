@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -231,9 +232,18 @@ func (r *NodePoolResource) Schema(
 				MarkdownDescription: "RootVolumeType.",
 				Optional:            true,
 			},
-			"security_groups": schema.StringAttribute{
-				MarkdownDescription: "SecurityGroups.",
-				Optional:            true,
+			"additional_security_group_ids": schema.ListNestedAttribute{
+				MarkdownDescription: "Additional AWS security groups to attach to node pool instances. Cannot be changed after creation.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							MarkdownDescription: "AWS security group ID (for example `sg-0a1b2c3d`).",
+							Required:            true,
+						},
+					},
+				},
+				Optional:      true,
+				PlanModifiers: []planmodifier.List{listplanmodifier.RequiresReplace()},
 			},
 			"filters": schema.StringAttribute{
 				MarkdownDescription: "Filters.",
@@ -744,8 +754,10 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 	if !tf.RootVolumeType.IsNull() && !tf.RootVolumeType.IsUnknown() {
 		native.RootVolumeType = tf.RootVolumeType.ValueString()
 	}
-	if !tf.SecurityGroups.IsNull() && !tf.SecurityGroups.IsUnknown() {
-		native.SecurityGroups = tf.SecurityGroups.ValueString()
+	if !tf.Additional_security_group_ids.IsNull() && !tf.Additional_security_group_ids.IsUnknown() {
+		encoded, collectionDiags := terraformObjectListToJSON(tf.Additional_security_group_ids)
+		diags = append(diags, collectionDiags...)
+		native.Additional_security_group_ids = encoded
 	}
 	if !tf.Filters.IsNull() && !tf.Filters.IsUnknown() {
 		native.Filters = tf.Filters.ValueString()
@@ -827,7 +839,13 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 	tf.Iops = toTerraformInt64Ptr(normalizeOptionalInt64(native.Iops))
 	tf.Size = toTerraformInt64Ptr(normalizeOptionalInt64(native.Size))
 	tf.RootVolumeType = toTerraformString(native.RootVolumeType)
-	tf.SecurityGroups = toTerraformString(native.SecurityGroups)
+	{
+		var collectionDiags diag.Diagnostics
+		tf.Additional_security_group_ids, collectionDiags = terraformJSONToObjectList(native.Additional_security_group_ids, map[string]attr.Type{
+			"id": types.StringType,
+		})
+		diags = append(diags, collectionDiags...)
+	}
 	tf.Filters = toTerraformString(native.Filters)
 	tf.SubnetId = toTerraformString(native.SubnetId)
 	tf.Platform_type = toTerraformString(native.Platform_type)

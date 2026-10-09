@@ -72,6 +72,7 @@ type ProfileServices interface {
 	GetTrustedIPsService() (exec.TrustedIPsService, error)
 	GetTuningConfigService() (exec.TuningConfigService, error)
 	GetImageMirrorService() (exec.ImageMirrorService, error)
+	GetExternalAuthProviderService() (exec.ExternalAuthProviderService, error)
 }
 
 type ProfileSpec interface {
@@ -1290,4 +1291,8 @@ func (ctx *profileContext) GetImageMirrorService() (exec.ImageMirrorService, err
 
 func (ctx *profileContext) GetBreakGlassCredentialService() (exec.BreakGlassCredentialService, error) {
 	return exec.NewBreakGlassCredentialService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetExternalAuthProviderService() (exec.ExternalAuthProviderService, error) {
+	return exec.NewExternalAuthProviderService(ctx.GetTFWorkspace(), ctx.GetClusterType())
 }

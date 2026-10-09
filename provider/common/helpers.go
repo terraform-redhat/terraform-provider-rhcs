@@ -35,6 +35,7 @@ const (
 	versionPrefix                         = "openshift-v"
 	AssertionErrorSummaryMessage          = "Attribute value cannot be changed"
 	AssertionErrorDetailsMessage          = "Attribute %s, cannot be changed from %v to %v"
+	AssertionErrorSensitiveDetailsMessage = "Attribute %s, cannot be changed"
 	ValueCannotBeChangedStringDescription = "After the creation of the resource, it is not possible to update the attribute value."
 )
 
@@ -156,6 +157,12 @@ func ValidateStateAndPlanEquals(stateAttr attr.Value, planAttr attr.Value, attrN
 	if !stateAttr.Equal(planAttr) {
 		diags.AddError(AssertionErrorSummaryMessage, fmt.Sprintf(AssertionErrorDetailsMessage, attrName, stateAttr, planAttr))
 	}
+}
+
+// AddSensitiveAttrImmutableError adds an immutable attribute error to diagnostic without including the attribute
+// values, as formatting them would bypass the redaction of sensitive attributes
+func AddSensitiveAttrImmutableError(attrName string, diags *diag.Diagnostics) {
+	diags.AddError(AssertionErrorSummaryMessage, fmt.Sprintf(AssertionErrorSensitiveDetailsMessage, attrName))
 }
 
 func GetJsonStringOrNullString[T any](value *T) string {

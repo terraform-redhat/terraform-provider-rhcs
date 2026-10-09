@@ -38,7 +38,7 @@ type NodePoolState struct {
 	Iops                          types.Int64  `tfsdk:"iops"`
 	Size                          types.Int64  `tfsdk:"size"`
 	RootVolumeType                types.String `tfsdk:"root_volume_type"`
-	SecurityGroups                types.String `tfsdk:"security_groups"`
+	Additional_security_group_ids types.List   `tfsdk:"additional_security_group_ids"`
 	Filters                       types.String `tfsdk:"filters"`
 	SubnetId                      types.String `tfsdk:"subnet_id"`
 	Platform_type                 types.String `tfsdk:"platform_type"`

@@ -26,7 +26,7 @@ Edit a cluster break glass credential
 
 - `expiration_timestamp` (String) Expiration timestamp of the break glass credential.
 - `id` (String) Identifier of the break glass credential.
-- `kubeconfig` (String) Kubeconfig of the break glass credential.
+- `kubeconfig` (String, Sensitive) Kubeconfig of the break glass credential.
 - `revocation_timestamp` (String) Revocation timestamp of the break glass credential.
 - `status` (String) Status of the break glass credential.
 

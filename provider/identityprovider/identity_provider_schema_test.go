@@ -115,3 +115,21 @@ var _ = Describe("Identity provider schema RequiresReplace", func() {
 		})
 	})
 })
+
+var _ = Describe("Identity provider schema Sensitive", func() {
+	DescribeTable("marks ca as sensitive",
+		func(idpType string) {
+			attr, ok := getSchema().Attributes[idpType]
+			Expect(ok).To(BeTrue(), "attribute %q must exist", idpType)
+
+			objAttr, ok := attr.(schema.SingleNestedAttribute)
+			Expect(ok).To(BeTrue(), "attribute %q must be a SingleNestedAttribute", idpType)
+			Expect(objAttr.Attributes).To(HaveKey("ca"))
+			Expect(objAttr.Attributes["ca"].IsSensitive()).To(BeTrue())
+		},
+		Entry("openid", "openid"),
+		Entry("ldap", "ldap"),
+		Entry("gitlab", "gitlab"),
+		Entry("github", "github"),
+	)
+})

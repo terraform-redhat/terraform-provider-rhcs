@@ -20,6 +20,7 @@ import (
 	hfrest "github.com/openshift-online/rosa-hyperfleet-api/clientset/rest"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
@@ -49,6 +50,7 @@ var awsRegionRE = regexp.MustCompile(`[a-z]+-(?:[a-z]+-)+\d+`)
 var _ = Describe("Hyperfleet sanity", func() {
 	It("creates and destroys a hyperfleet cluster end-to-end", func() {
 		hyperfleetURL := requireEnv("HYPERFLEET_URL")
+		releaseImage := requireEnv(config.EnvHyperfleetReleaseImage)
 		clusterName := requireEnvWithDefault("HYPERFLEET_CLUSTER_NAME", fmt.Sprintf("hf-e2e-%d", time.Now().Unix()))
 		operatorRolesPrefix := requireEnvWithDefault("HYPERFLEET_OPERATOR_ROLES_PREFIX", clusterName)
 		vpcCIDR := requireEnvWithDefault("HYPERFLEET_VPC_CIDR", "10.0.0.0/16")
@@ -216,6 +218,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(vpcOut.VPCID).NotTo(BeEmpty())
 		Expect(vpcOut.PrivateSubnetID).NotTo(BeEmpty())
+		Expect(vpcOut.PublicSubnetID).NotTo(BeEmpty())
 
 		// ── Phase 2: OidcConfig ─────────────────────────────────────────────
 		// OidcConfig (managed mode) computes its own issuer URL.
@@ -259,6 +262,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 		clusterTags := map[string]string{"cost-center": "cc-1234", "qe-managed": "true"}
 		_, err = clusterSvc.Apply(&exec.HyperfleetClusterArgs{
 			HyperfleetURL:       &hyperfleetURL,
+			ReleaseImage:        &releaseImage,
 			AWSRegion:           &awsRegion,
 			ClusterName:         &clusterName,
 			OperatorRolesPrefix: &operatorRolesPrefix,
@@ -276,6 +280,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 		Expect(clusterTFOut.ClusterID).NotTo(BeEmpty())
 
 		clusterID = clusterTFOut.ClusterID
+		clustersCli := hfClient.HyperfleetV1alpha1().Clusters()
 
 		// ── Wait for OidcConfig Ready (after cluster association) ─────────
 		// OidcConfig only reaches Ready once associated with the cluster
@@ -310,7 +315,6 @@ var _ = Describe("Hyperfleet sanity", func() {
 
 		// ── Wait for cluster Ready ─────────────────────────────────────────
 		By("Waiting for cluster to reach Ready phase")
-		clustersCli := hfClient.HyperfleetV1alpha1().Clusters()
 		err = clustersCli.WaitUntil(
 			ctx, clusterID,
 			func(c *v1alpha1.Cluster) bool {
@@ -329,6 +333,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 		By("Verifying cluster Ready phase via Terraform state refresh")
 		_, err = clusterSvc.Apply(&exec.HyperfleetClusterArgs{
 			HyperfleetURL:       &hyperfleetURL,
+			ReleaseImage:        &releaseImage,
 			AWSRegion:           &awsRegion,
 			ClusterName:         &clusterName,
 			OperatorRolesPrefix: &operatorRolesPrefix,

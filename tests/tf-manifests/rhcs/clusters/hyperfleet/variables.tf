@@ -16,6 +16,11 @@ variable "cluster_name" {
   description = "Human-readable cluster name"
 }
 
+variable "release_image" {
+  type        = string
+  description = "HostedCluster release image pullspec (not an OpenShift version label)"
+}
+
 variable "operator_roles_prefix" {
   type        = string
   description = "Prefix for the seven operator IAM roles"
@@ -57,5 +62,23 @@ variable "oidc_config_id" {
 variable "scheduler_profile" {
   type        = string
   description = "Optional scheduler profile for the hosted cluster"
+  default     = null
+}
+
+variable "http_proxy" {
+  type        = string
+  description = "Optional HTTP proxy URL"
+  default     = null
+}
+
+variable "https_proxy" {
+  type        = string
+  description = "Optional HTTPS proxy URL"
+  default     = null
+}
+
+variable "no_proxy" {
+  type        = string
+  description = "Optional comma-separated list of hosts excluded from proxying"
   default     = null
 }

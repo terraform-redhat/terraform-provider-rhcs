@@ -29,6 +29,7 @@ provider "rhcs" {
 resource "rhcs_cluster_hyperfleet" "cluster" {
   name                  = var.cluster_name
   operator_roles_prefix = var.operator_roles_prefix
+  version               = var.release_image
   aws = {
     aws_subnet_ids     = [var.subnet_id]
     vpc_id             = var.vpc_id
@@ -38,4 +39,7 @@ resource "rhcs_cluster_hyperfleet" "cluster" {
   oidc_config_id       = var.oidc_config_id != "" ? var.oidc_config_id : null
   scheduler_profile    = var.scheduler_profile
   tags                 = var.tags
+  http_proxy           = var.http_proxy
+  https_proxy          = var.https_proxy
+  no_proxy             = var.no_proxy
 }

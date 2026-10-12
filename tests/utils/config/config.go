@@ -44,8 +44,9 @@ const (
 	EnvNoClusterDestroy        = "NO_CLUSTER_DESTROY"
 	EnvWaitForNodePoolDeletion = "WAIT_FOR_NODEPOOL_DELETION"
 
-	EnvSubnetIDs         = "SUBNET_IDS"
-	EnvAvailabilityZones = "AVAILABILITY_ZONES"
+	EnvSubnetIDs              = "SUBNET_IDS"
+	EnvAvailabilityZones      = "AVAILABILITY_ZONES"
+	EnvHyperfleetReleaseImage = "HYPERFLEET_RELEASE_IMAGE"
 )
 
 func GetRootDir() string {
@@ -132,6 +133,10 @@ func GetSubnetIDs() string {
 
 func GetAvailabilityZones() string {
 	return GetEnvWithDefault(EnvAvailabilityZones, "")
+}
+
+func GetHyperfleetReleaseImage() string {
+	return GetEnvWithDefault(EnvHyperfleetReleaseImage, "")
 }
 
 // GetSubnetIDList returns SUBNET_IDS as trimmed, non-empty values.

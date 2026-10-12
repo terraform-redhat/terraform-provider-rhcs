@@ -145,7 +145,8 @@ func validateClusterTags(ctx context.Context, tags types.Map) diag.Diagnostics {
 	return diags
 }
 
-// PostExpand builds the Platform spec with RolesRef and AWS configuration
+// PostExpand synchronizes proxy settings and builds the Platform spec with
+// RolesRef and AWS configuration.
 func (h *ClusterHandlerImpl) PostExpand(
 	ctx context.Context,
 	input *ClusterState,
@@ -153,6 +154,33 @@ func (h *ClusterHandlerImpl) PostExpand(
 ) diag.Diagnostics {
 	var diags diag.Diagnostics
 
+	proxy := &v1alpha1.ProxyConfiguration{}
+	hasProxyInput := false
+	if !input.HttpProxy.IsNull() && !input.HttpProxy.IsUnknown() {
+		proxy.HTTPProxy = input.HttpProxy.ValueString()
+		hasProxyInput = true
+	}
+	if !input.HttpsProxy.IsNull() && !input.HttpsProxy.IsUnknown() {
+		proxy.HTTPSProxy = input.HttpsProxy.ValueString()
+		hasProxyInput = true
+	}
+	if !input.NoProxy.IsNull() && !input.NoProxy.IsUnknown() {
+		proxy.NoProxy = input.NoProxy.ValueString()
+		hasProxyInput = true
+	}
+	if hasProxyInput && obj.Spec.HostedCluster.Configuration == nil {
+		obj.Spec.HostedCluster.Configuration = &v1alpha1.ClusterConfiguration{}
+	}
+	// pathbind skips zero values, so it cannot clear proxy fields on update.
+	// Reconcile the full proxy block from the plan, including when all fields
+	// have been removed from the Terraform configuration.
+	if obj.Spec.HostedCluster.Configuration != nil {
+		if hasProxyInput {
+			obj.Spec.HostedCluster.Configuration.Proxy = proxy
+		} else {
+			obj.Spec.HostedCluster.Configuration.Proxy = nil
+		}
+	}
 	prefix := input.Operator_roles_prefix.ValueString()
 	partition := awsBundleStringValue(input.Aws, "aws_partition")
 	if partition == "" {

@@ -32,7 +32,7 @@ data "aws_vpc" "selected" {
   id = var.vpc_id
 }
 resource "aws_security_group" "proxy_access" {
-  name        = "proxy-access-sg"
+  name_prefix = "proxy-access-sg-"
   description = "Security group for proxy access"
   vpc_id      = var.vpc_id
 

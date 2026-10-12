@@ -7,17 +7,22 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
 	hfplatform "github.com/openshift-online/rosa-hyperfleet-api/clientset/platform"
 	hfrest "github.com/openshift-online/rosa-hyperfleet-api/clientset/rest"
-	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
@@ -30,6 +35,7 @@ var hyperFleetAWSRegionRE = regexp.MustCompile(`[a-z]+-(?:[a-z]+-)+\d+`)
 
 type hyperFleetBackend struct {
 	service exec.HyperfleetClusterService
+	proxy   exec.ProxyService
 	client  *hyperfleet.Clientset
 	args    *exec.HyperfleetClusterArgs
 	oidcID  string
@@ -44,6 +50,7 @@ type hyperFleetDestroyer struct {
 	cluster   exec.HyperfleetClusterService
 	iam       exec.HyperfleetIAMService
 	oidc      exec.HyperfleetOidcConfigService
+	proxy     exec.ProxyService
 	vpc       exec.HyperfleetVPCService
 	client    *hyperfleet.Clientset
 	clusterID string
@@ -85,6 +92,13 @@ func newHyperFleetDestroyer(profile profilehandler.ProfileHandler, workspace str
 	if err != nil {
 		return nil, err
 	}
+	var proxyService exec.ProxyService
+	if profile.Profile().IsProxy() {
+		proxyService, err = exec.NewProxyService(workspace+"-proxy", profile.Profile().GetClusterType())
+		if err != nil {
+			return nil, err
+		}
+	}
 	vpcService, err := exec.NewHyperfleetVPCService(workspace + "-vpc")
 	if err != nil {
 		return nil, err
@@ -108,6 +122,7 @@ func newHyperFleetDestroyer(profile profilehandler.ProfileHandler, workspace str
 		cluster:   clusterService,
 		iam:       iamService,
 		oidc:      oidcService,
+		proxy:     proxyService,
 		vpc:       vpcService,
 		client:    client,
 		clusterID: clusterID,
@@ -131,6 +146,13 @@ func (d *hyperFleetDestroyer) Destroy(ctx context.Context) error {
 	}
 	if _, err := d.oidc.Destroy(); err != nil {
 		return err
+	}
+	if d.proxy != nil {
+		if _, err := d.proxy.ReadTFVars(); err == nil {
+			if _, err := d.proxy.Destroy(); err != nil {
+				return err
+			}
+		}
 	}
 	if d.ownsVPC {
 		vpcOutput, err := d.vpc.Output()
@@ -253,6 +275,10 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 	if !profile.Profile().IsBYOVPC() {
 		return nil, fmt.Errorf("HyperFleet cluster profiles must set byovpc: true")
 	}
+	releaseImage, err := requiredEnv(config.EnvHyperfleetReleaseImage)
+	if err != nil {
+		return nil, err
+	}
 	hyperfleetURL, err := requiredEnv("HYPERFLEET_URL")
 	if err != nil {
 		return nil, err
@@ -276,7 +302,7 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 		)
 	}
 
-	var vpcID, subnetID, availabilityZone string
+	var vpcID, subnetID, publicSubnetID, availabilityZone string
 	var vpcService exec.HyperfleetVPCService
 	subnetIDs := config.GetSubnetIDList()
 	availabilityZones := config.GetAvailabilityZoneList()
@@ -289,6 +315,12 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 		vpcID, err = vpcIDFromSubnet(subnetID, region)
 		if err != nil {
 			return nil, err
+		}
+		if profile.Profile().IsProxy() {
+			publicSubnetID, err = publicSubnetIDFromVPC(vpcID, region)
+			if err != nil {
+				return nil, err
+			}
 		}
 	} else {
 		vpcService, err = exec.NewHyperfleetVPCService(workspace + "-vpc")
@@ -310,6 +342,7 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 		}
 		vpcID = output.VPCID
 		subnetID = output.PrivateSubnetID
+		publicSubnetID = output.PublicSubnetID
 		availabilityZone = output.AvailabilityZone
 	}
 
@@ -351,6 +384,42 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 	}); err != nil {
 		return nil, err
 	}
+	var proxyService exec.ProxyService
+	var proxyOutput *exec.ProxyOutput
+	if profile.Profile().IsProxy() {
+		if publicSubnetID == "" {
+			return nil, fmt.Errorf("HyperFleet proxy profile requires a public subnet in VPC %s", vpcID)
+		}
+		proxyService, err = exec.NewProxyService(workspace+"-proxy", profile.Profile().GetClusterType())
+		if err != nil {
+			return nil, err
+		}
+		proxyCount := 1
+		trustBundlePath := filepath.Join(config.GetRHCSOutputDir(), clusterName+"-ca.cert")
+		_, err = proxyService.Apply(&exec.ProxyArgs{
+			ProxyCount:          &proxyCount,
+			Region:              &region,
+			VPCID:               &vpcID,
+			PublicSubnetID:      &publicSubnetID,
+			TrustBundleFilePath: &trustBundlePath,
+			KeyPairID:           &clusterName,
+		})
+		if err != nil {
+			return nil, cleanupHyperFleetProxyOnError(proxyService, fmt.Errorf("creating HyperFleet proxy endpoint: %w", err))
+		}
+		proxies, outputErr := proxyService.Output()
+		if outputErr != nil {
+			return nil, cleanupHyperFleetProxyOnError(
+				proxyService, fmt.Errorf("reading HyperFleet proxy endpoint: %w", outputErr),
+			)
+		}
+		if proxies == nil || len(proxies.Proxies) == 0 {
+			return nil, cleanupHyperFleetProxyOnError(
+				proxyService, fmt.Errorf("HyperFleet proxy Terraform output has no endpoints"),
+			)
+		}
+		proxyOutput = proxies.Proxies[0]
+	}
 	schedulerProfile := profile.Profile().GetSchedulerProfile()
 	var schedulerProfileValue *string
 	if schedulerProfile != "" {
@@ -358,6 +427,7 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 	}
 	clusterArgs := &exec.HyperfleetClusterArgs{
 		HyperfleetURL:       &hyperfleetURL,
+		ReleaseImage:        &releaseImage,
 		AWSRegion:           &region,
 		ClusterName:         &clusterName,
 		OperatorRolesPrefix: &operatorRolesPrefix,
@@ -373,8 +443,14 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 		tags := profilehandler.Tags
 		clusterArgs.Tags = &tags
 	}
+	if proxyOutput != nil {
+		clusterArgs.HTTPProxy = &proxyOutput.HttpProxy
+		clusterArgs.HTTPSProxy = &proxyOutput.HttpsProxy
+		clusterArgs.NoProxy = &proxyOutput.NoProxy
+	}
 	backend := &hyperFleetBackend{
 		service: service,
+		proxy:   proxyService,
 		client:  client,
 		oidcID:  oidcOutput.OidcConfigID,
 		args:    clusterArgs,
@@ -395,6 +471,15 @@ func (b *hyperFleetBackend) FetchClusterID(ctx context.Context) (string, error) 
 
 func (b *hyperFleetBackend) Create() (string, error) {
 	if _, err := b.service.Apply(b.args); err != nil {
+		if output, outputErr := b.service.Output(); outputErr != nil || output == nil || output.ClusterID == "" {
+			if b.proxy != nil {
+				if _, varsErr := b.proxy.ReadTFVars(); varsErr == nil {
+					if _, cleanupErr := b.proxy.Destroy(); cleanupErr != nil {
+						return "", fmt.Errorf("%w (also failed to destroy HyperFleet proxy endpoint: %v)", err, cleanupErr)
+					}
+				}
+			}
+		}
 		return "", err
 	}
 	output, err := b.service.Output()
@@ -402,6 +487,16 @@ func (b *hyperFleetBackend) Create() (string, error) {
 		return "", err
 	}
 	return output.ClusterID, nil
+}
+
+func cleanupHyperFleetProxyOnError(proxy exec.ProxyService, cause error) error {
+	if _, varsErr := proxy.ReadTFVars(); varsErr != nil {
+		return cause
+	}
+	if _, cleanupErr := proxy.Destroy(); cleanupErr != nil {
+		return fmt.Errorf("%w (also failed to destroy HyperFleet proxy endpoint: %v)", cause, cleanupErr)
+	}
+	return cause
 }
 
 func (b *hyperFleetBackend) WaitReady(ctx context.Context, clusterID string) error {
@@ -469,6 +564,59 @@ func vpcIDFromSubnet(subnetID, region string) (string, error) {
 		return "", fmt.Errorf("subnet %q did not return a VPC ID", subnetID)
 	}
 	return *output.Subnets[0].VpcId, nil
+}
+
+func publicSubnetIDFromVPC(vpcID, region string) (string, error) {
+	ctx := context.Background()
+	awsConfig, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	if err != nil {
+		return "", fmt.Errorf("loading AWS config to find a public subnet in VPC %s: %w", vpcID, err)
+	}
+	ec2Client := ec2.NewFromConfig(awsConfig)
+	subnets, err := ec2Client.DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{
+		Filters: []ec2types.Filter{{Name: aws.String("vpc-id"), Values: []string{vpcID}}},
+	})
+	if err != nil {
+		return "", fmt.Errorf("listing subnets in VPC %s: %w", vpcID, err)
+	}
+	routeTables, err := ec2Client.DescribeRouteTables(ctx, &ec2.DescribeRouteTablesInput{
+		Filters: []ec2types.Filter{{Name: aws.String("vpc-id"), Values: []string{vpcID}}},
+	})
+	if err != nil {
+		return "", fmt.Errorf("listing route tables in VPC %s: %w", vpcID, err)
+	}
+
+	routeTableBySubnet := make(map[string]*ec2types.RouteTable)
+	var mainRouteTable *ec2types.RouteTable
+	for i := range routeTables.RouteTables {
+		routeTable := &routeTables.RouteTables[i]
+		for _, association := range routeTable.Associations {
+			if association.Main != nil && *association.Main {
+				mainRouteTable = routeTable
+			}
+			if association.SubnetId != nil {
+				routeTableBySubnet[*association.SubnetId] = routeTable
+			}
+		}
+	}
+	for _, subnet := range subnets.Subnets {
+		if subnet.SubnetId == nil {
+			continue
+		}
+		routeTable := routeTableBySubnet[*subnet.SubnetId]
+		if routeTable == nil {
+			routeTable = mainRouteTable
+		}
+		if routeTable == nil {
+			continue
+		}
+		for _, route := range routeTable.Routes {
+			if route.GatewayId != nil && strings.HasPrefix(*route.GatewayId, "igw-") {
+				return *subnet.SubnetId, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("VPC %s has no subnet with a route to an internet gateway", vpcID)
 }
 
 func buildHyperFleetClient(hyperfleetURL, region string) (*hyperfleet.Clientset, error) {

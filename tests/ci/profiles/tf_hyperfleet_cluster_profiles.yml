@@ -11,6 +11,7 @@ profiles:
     multi_az: false
     byovpc: true
     private: false
+    proxy: true
     oidc_config: managed
     version: latest
     tagging: true
@@ -27,3 +28,37 @@ profiles:
     oidc_config: managed
     scheduler_profile: HighNodeUtilization
     version: latest
+
+- as: hyperfleet-hcp-ad
+  cluster:
+    cluster_type: hyperfleet
+    multi_az: true
+    product_id: "rosa"
+    cloud_provider: "aws"
+    region: "us-west-2"
+    sts: true
+    byovpc: true
+    private: false
+    etcd_encryption: true # id:72483 # id:72807
+    kms_key_arn: true # id:72483 # id:72484 # id:72807
+    fips: true
+    autoscaler_enabled: true # id:72523
+    autoscaling_enabled: true
+    byok: true
+    min_replicas: 0
+    max_replicas: 6
+    compute_machine_type: "m5.2xlarge" # id:72448
+    proxy: true # id:72488
+    labeling: false # not yet supported
+    tagging: true # id:72624
+    zones: "a,b,c"  # id:72457
+    ec2_metadata_http_tokens: "required" # id:75372
+    oidc_config: "managed" # id:72492
+    admin_enabled: false # Not yet supported
+    unified_acc_role_path: "/advanced/" # id:72495
+    use_registry_config: true
+    allowed_registries: #id:76499
+      - "10.0.0.0:8088"
+      - "*.registry.com"
+    worker_disk_size: 75
+    additional_sg_number: 3

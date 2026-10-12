@@ -11,6 +11,7 @@ import (
 // rhcs_cluster_hyperfleet manifest.
 type HyperfleetClusterArgs struct {
 	HyperfleetURL       *string `hcl:"hyperfleet_url"`
+	ReleaseImage        *string `hcl:"release_image"`
 	AWSRegion           *string `hcl:"aws_region"`
 	ClusterName         *string `hcl:"cluster_name"`
 	OperatorRolesPrefix *string `hcl:"operator_roles_prefix"`
@@ -23,7 +24,10 @@ type HyperfleetClusterArgs struct {
 
 	// Tags are customer AWS tags applied to the AWS resources created for the
 	// cluster. Immutable once the cluster exists.
-	Tags *map[string]string `hcl:"tags"`
+	Tags       *map[string]string `hcl:"tags"`
+	HTTPProxy  *string            `hcl:"http_proxy"`
+	HTTPSProxy *string            `hcl:"https_proxy"`
+	NoProxy    *string            `hcl:"no_proxy"`
 }
 
 // HyperfleetClusterOutput holds the Terraform output values from the hyperfleet
@@ -44,6 +48,7 @@ type HyperfleetClusterService interface {
 	Output() (*HyperfleetClusterOutput, error)
 	Destroy() (string, error)
 	WriteTFVars(args *HyperfleetClusterArgs) error
+	ReadTFVars() (*HyperfleetClusterArgs, error)
 	DeleteTFVars() error
 }
 
@@ -85,6 +90,12 @@ func (svc *hyperfleetClusterService) Destroy() (string, error) {
 
 func (svc *hyperfleetClusterService) WriteTFVars(args *HyperfleetClusterArgs) error {
 	return svc.tfExecutor.WriteTerraformVars(args)
+}
+
+func (svc *hyperfleetClusterService) ReadTFVars() (*HyperfleetClusterArgs, error) {
+	args := &HyperfleetClusterArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
 }
 
 func (svc *hyperfleetClusterService) DeleteTFVars() error {

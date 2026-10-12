@@ -17,7 +17,9 @@ limitations under the License.
 package hyperfleet
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -28,6 +30,128 @@ import (
 
 	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
+
+func verifyHyperfleetProxyRequest(httpProxy, httpsProxy, noProxy string) http.HandlerFunc {
+	return func(_ http.ResponseWriter, req *http.Request) {
+		var body struct {
+			Proxy map[string]string `json:"proxy"`
+			Spec  struct {
+				HostedCluster struct {
+					Configuration struct {
+						Proxy map[string]string `json:"proxy"`
+					} `json:"configuration"`
+				} `json:"hostedCluster"`
+			} `json:"spec"`
+		}
+		Expect(json.NewDecoder(req.Body).Decode(&body)).To(Succeed())
+		Expect(body.Proxy).To(BeNil(), "response-only proxy projection must not be sent back")
+		want := map[string]string{}
+		if httpProxy != "" {
+			want["httpProxy"] = httpProxy
+		}
+		if httpsProxy != "" {
+			want["httpsProxy"] = httpsProxy
+		}
+		if noProxy != "" {
+			want["noProxy"] = noProxy
+		}
+		proxy := body.Spec.HostedCluster.Configuration.Proxy
+		if proxy == nil {
+			proxy = map[string]string{}
+		}
+		Expect(proxy).To(Equal(want))
+	}
+}
+
+func verifyHyperfleetClusterUpdate(expected string) http.HandlerFunc {
+	return func(_ http.ResponseWriter, request *http.Request) {
+		body, err := io.ReadAll(request.Body)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(body)).To(MatchJSON(expected))
+	}
+}
+
+func hyperfleetClusterProxyResponse(httpProxy, httpsProxy, noProxy string) string {
+	proxyConfig := map[string]string{}
+	if httpProxy != "" {
+		proxyConfig["httpProxy"] = httpProxy
+	}
+	if httpsProxy != "" {
+		proxyConfig["httpsProxy"] = httpsProxy
+	}
+	if noProxy != "" {
+		proxyConfig["noProxy"] = noProxy
+	}
+	configuration := ""
+	if len(proxyConfig) > 0 {
+		configJSON, err := json.Marshal(proxyConfig)
+		Expect(err).NotTo(HaveOccurred())
+		configuration = fmt.Sprintf(`"configuration":{"proxy":%s},`, configJSON)
+	}
+
+	return fmt.Sprintf(`{
+		"metadata": {
+			"uid": "test-cluster-id",
+			"name": "my-cluster",
+			"creationTimestamp": "2024-01-01T00:00:00Z"
+		},
+		"spec": {
+			"hostedCluster": {
+				%s
+				"platform": {
+					"type": "AWS",
+					"aws": {
+						"region": "us-east-1",
+						"cloudProviderConfig": {
+							"vpc": "vpc-0def456",
+							"zone": "us-east-1a",
+							"subnet": {
+								"id": "subnet-0abc123"
+							}
+						}
+					}
+				}
+			}
+		},
+		"status": {
+			"phase": "Ready",
+			"controlPlaneEndpoint": {
+				"host": "api.my-cluster.example.com",
+				"port": 6443
+			}
+		}
+	}`, configuration)
+}
+
+func hyperfleetClusterTerraformConfig(serverURL, httpProxy, httpsProxy, noProxy string, includeProxy bool) string {
+	proxyAttributes := ""
+	if includeProxy {
+		proxyAttributes = fmt.Sprintf(`
+				http_proxy  = %q
+				https_proxy = %q
+				no_proxy    = %q`, httpProxy, httpsProxy, noProxy)
+	}
+	return fmt.Sprintf(`
+		provider "rhcs" {
+			alias          = "hf"
+			hyperfleet_url = %q
+			aws_account_id = "123456789012"
+			aws_region     = "us-east-1"
+		}
+
+		resource "rhcs_cluster_hyperfleet" "test" {
+			provider              = rhcs.hf
+			name                  = "my-cluster"
+			operator_roles_prefix = "my-cluster"
+			%s
+			aws = {
+				aws_subnet_ids     = ["subnet-0abc123"]
+				vpc_id             = "vpc-0def456"
+				availability_zones = ["us-east-1a"]
+			}
+		}
+	`, serverURL, proxyAttributes)
+}
 
 var _ = Describe("rhcs_cluster_hyperfleet", func() {
 	Context("Provider configuration validation", func() {
@@ -178,6 +302,54 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("creates a cluster with proxy settings", func() {
+			httpProxy := "http://proxy.example.com:8080"
+			httpsProxy := "https://proxy.example.com:8443"
+			noProxy := "localhost,127.0.0.1,.example.com"
+			clusterResponse := hyperfleetClusterProxyResponse(httpProxy, httpsProxy, noProxy)
+			header := http.Header{"Content-Type": []string{"application/json"}}
+
+			hyperfleetServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					verifyHyperfleetProxyRequest(httpProxy, httpsProxy, noProxy),
+					RespondWith(http.StatusCreated, clusterResponse, header),
+				),
+			)
+
+			Terraform.Source(hyperfleetClusterTerraformConfig(hyperfleetServer.URL(), httpProxy, httpsProxy, noProxy, true))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_cluster_hyperfleet", "test")
+			Expect(resource).To(MatchJQ(".attributes.http_proxy", httpProxy))
+			Expect(resource).To(MatchJQ(".attributes.https_proxy", httpsProxy))
+			Expect(resource).To(MatchJQ(".attributes.no_proxy", noProxy))
+		})
+
+		It("reports a Hyperfleet proxy validation failure on create", func() {
+			// Hyperfleet limits ProxyConfiguration.httpProxy to 2048 characters.
+			// Verify a Platform API rejection reaches Terraform on create.
+			invalidHTTPProxy := "http://proxy.example.com/" + strings.Repeat("x", 2049)
+			hyperfleetServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					verifyHyperfleetProxyRequest(invalidHTTPProxy, "", ""),
+					RespondWith(http.StatusUnprocessableEntity,
+						`{"message":"spec.hostedCluster.configuration.proxy.httpProxy exceeds 2048 characters"}`,
+						http.Header{"Content-Type": []string{"application/json"}}),
+				),
+			)
+
+			Terraform.Source(hyperfleetClusterTerraformConfig(
+				hyperfleetServer.URL(), invalidHTTPProxy, "", "", true,
+			))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
 		})
 	})
 
@@ -424,17 +596,14 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
 					RespondWith(http.StatusCreated, clusterWithoutExpiration, header),
 				),
-				// Second apply: refresh (Read) then update to add expiration
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
-					RespondWith(http.StatusOK, clusterWithoutExpiration, header),
-				),
+				// Second apply: refresh (Read), then send only the changed field.
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
 					RespondWith(http.StatusOK, clusterWithoutExpiration, header),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPut, "/api/v0/clusters/test-cluster-id"),
+					verifyHyperfleetClusterUpdate(`{"spec":{"expirationTimestamp":"2025-01-01T00:00:00Z"}}`),
 					RespondWith(http.StatusOK, clusterWithExpiration, header),
 				),
 			)
@@ -487,6 +656,128 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 
 			runOutput = Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("updates cluster proxy settings", func() {
+			initialHTTPProxy := "http://proxy.example.com:8080"
+			initialHTTPSProxy := "https://proxy.example.com:8443"
+			initialNoProxy := "localhost,127.0.0.1"
+			updatedHTTPProxy := "http://proxy2.example.com:8080"
+			updatedHTTPSProxy := "https://proxy2.example.com:8443"
+			updatedNoProxy := "localhost,127.0.0.1,.example.com"
+			invalidHTTPProxy := "http://proxy.example.com/" + strings.Repeat("x", 2049)
+			initialResponse := hyperfleetClusterProxyResponse(initialHTTPProxy, initialHTTPSProxy, initialNoProxy)
+			updatedResponse := hyperfleetClusterProxyResponse(updatedHTTPProxy, updatedHTTPSProxy, updatedNoProxy)
+			clearedResponse := hyperfleetClusterProxyResponse("", "", "")
+			header := http.Header{"Content-Type": []string{"application/json"}}
+
+			hyperfleetServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					verifyHyperfleetProxyRequest(initialHTTPProxy, initialHTTPSProxy, initialNoProxy),
+					RespondWith(http.StatusCreated, initialResponse, header),
+				),
+				// The second apply attempts an invalid edit. Terraform refreshes the
+				// existing state before the rejected partial PUT.
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, initialResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/clusters/test-cluster-id"),
+					verifyHyperfleetClusterUpdate(fmt.Sprintf(`{
+						"spec": {
+							"hostedCluster": {
+								"configuration": {
+									"proxy": {
+										"httpProxy": %q
+									}
+								}
+							}
+						}
+					}`, invalidHTTPProxy)),
+					RespondWith(http.StatusUnprocessableEntity,
+						`{"message":"spec.hostedCluster.configuration.proxy.httpProxy exceeds 2048 characters"}`,
+						header),
+				),
+				// The valid update below follows the rejected update. The GET
+				// confirms that the previous configuration is still present.
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, initialResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/clusters/test-cluster-id"),
+					verifyHyperfleetClusterUpdate(fmt.Sprintf(`{
+						"spec": {
+							"hostedCluster": {
+								"configuration": {
+									"proxy": {
+										"httpProxy": %q,
+										"httpsProxy": %q,
+										"noProxy": %q
+									}
+								}
+							}
+						}
+					}`, updatedHTTPProxy, updatedHTTPSProxy, updatedNoProxy)),
+					RespondWith(http.StatusOK, updatedResponse, header),
+				),
+				// The third apply removes the proxy attributes from Terraform.
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, updatedResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/clusters/test-cluster-id"),
+					verifyHyperfleetClusterUpdate(`{
+						"spec": {
+							"hostedCluster": {
+								"configuration": {
+									"proxy": null
+								}
+							}
+						}
+					}`),
+					RespondWith(http.StatusOK, clearedResponse, header),
+				),
+			)
+
+			Terraform.Source(hyperfleetClusterTerraformConfig(
+				hyperfleetServer.URL(), initialHTTPProxy, initialHTTPSProxy, initialNoProxy, true,
+			))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			Terraform.Source(hyperfleetClusterTerraformConfig(
+				hyperfleetServer.URL(), invalidHTTPProxy, initialHTTPSProxy, initialNoProxy, true,
+			))
+
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+
+			Terraform.Source(hyperfleetClusterTerraformConfig(
+				hyperfleetServer.URL(), updatedHTTPProxy, updatedHTTPSProxy, updatedNoProxy, true,
+			))
+
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_cluster_hyperfleet", "test")
+			Expect(resource).To(MatchJQ(".attributes.http_proxy", updatedHTTPProxy))
+			Expect(resource).To(MatchJQ(".attributes.https_proxy", updatedHTTPSProxy))
+			Expect(resource).To(MatchJQ(".attributes.no_proxy", updatedNoProxy))
+
+			Terraform.Source(hyperfleetClusterTerraformConfig(hyperfleetServer.URL(), "", "", "", false))
+
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource = Terraform.Resource("rhcs_cluster_hyperfleet", "test")
+			Expect(resource).To(MatchJQ(".attributes.http_proxy", nil))
+			Expect(resource).To(MatchJQ(".attributes.https_proxy", nil))
+			Expect(resource).To(MatchJQ(".attributes.no_proxy", nil))
 		})
 	})
 
@@ -577,5 +868,27 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 			runOutput = Terraform.Destroy()
 			Expect(runOutput.ExitCode).To(BeZero())
 		})
+	})
+})
+
+var _ = Describe("rhcs_oidcconfig_hyperfleet", func() {
+	It("requires installer role ARN for unmanaged OIDC configurations", func() {
+		Terraform.Source(`
+			provider "rhcs" {
+				alias          = "hf"
+				hyperfleet_url = "https://abc123.execute-api.us-east-1.amazonaws.com/prod"
+				aws_account_id = "123456789012"
+				aws_region     = "us-east-1"
+				aws_caller_arn = "arn:aws:iam::123456789012:user/test"
+			}
+
+			resource "rhcs_oidcconfig_hyperfleet" "test" {
+				provider = rhcs.hf
+				type     = "unmanaged"
+			}
+		`)
+
+		runOutput := Terraform.Apply()
+		runOutput.VerifyErrorContainsSubstring("Installer role ARN must be specified for unmanaged type")
 	})
 })

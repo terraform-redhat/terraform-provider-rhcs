@@ -5,12 +5,14 @@ package hyperfleet
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	"github.com/openshift-online/rosa-hyperfleet-api/clientset/pathbind"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
@@ -131,5 +133,97 @@ func TestNodePoolResourceSchema_EC2InstanceMetadataHttpTokens(t *testing.T) {
 	}
 	if len(attribute.PlanModifiers) == 0 {
 		t.Error("ec2_instance_metadata_http_tokens should require replacement when changed")
+	}
+}
+
+// ── validateMaxUnavailable ────────────────────────────────────────────────────
+
+// maxUnavailableState builds the state the generated schema produces for a node
+// pool with the given max_unavailable and replicas.
+func maxUnavailableState(maxUnavailable types.String, replicas types.Int64) *NodePoolState {
+	return &NodePoolState{MaxUnavailable: maxUnavailable, Replicas: replicas}
+}
+
+func TestValidateMaxUnavailable_Valid(t *testing.T) {
+	cases := []struct {
+		name  string
+		state *NodePoolState
+	}{
+		{"null", maxUnavailableState(types.StringNull(), types.Int64Value(3))},
+		{"unknown", maxUnavailableState(types.StringUnknown(), types.Int64Value(3))},
+		{"zero", maxUnavailableState(types.StringValue("0"), types.Int64Value(3))},
+		{"count below replicas", maxUnavailableState(types.StringValue("2"), types.Int64Value(3))},
+		{"count equal to replicas", maxUnavailableState(types.StringValue("3"), types.Int64Value(3))},
+		// The replica count is not always known at plan time; the API has the
+		// final say in that case.
+		{"unknown replicas", maxUnavailableState(types.StringValue("9"), types.Int64Unknown())},
+		{"null replicas", maxUnavailableState(types.StringValue("9"), types.Int64Null())},
+	}
+	for _, tc := range cases {
+		if diags := validateMaxUnavailable(tc.state); diags.HasError() {
+			t.Errorf("%s: unexpected error: %v", tc.name, diags.Errors())
+		}
+	}
+}
+
+func TestValidateMaxUnavailable_Invalid(t *testing.T) {
+	cases := []struct {
+		name   string
+		state  *NodePoolState
+		detail string
+	}{
+		{
+			name:   "exceeds replicas",
+			state:  maxUnavailableState(types.StringValue("4"), types.Int64Value(3)),
+			detail: "max_unavailable 4 cannot exceed replicas 3",
+		},
+		{
+			name:   "negative",
+			state:  maxUnavailableState(types.StringValue("-1"), types.Int64Value(3)),
+			detail: "must be a non-negative whole number of nodes",
+		},
+		{
+			name:   "not a number",
+			state:  maxUnavailableState(types.StringValue("two"), types.Int64Value(3)),
+			detail: `got "two"`,
+		},
+		// The Platform API accepts percentages; the provider cannot send one
+		// until pathbind can round-trip an intstr value. Every percentage-shaped
+		// value gets that explanation rather than the generic format error.
+		{
+			name:   "percentage",
+			state:  maxUnavailableState(types.StringValue("30%"), types.Int64Value(3)),
+			detail: `percentages are not supported yet, got "30%"`,
+		},
+		{
+			name:   "percentage above 100",
+			state:  maxUnavailableState(types.StringValue("150%"), types.Int64Value(3)),
+			detail: "percentages are not supported yet",
+		},
+		{
+			name:   "fractional percentage",
+			state:  maxUnavailableState(types.StringValue("2.5%"), types.Int64Value(3)),
+			detail: "percentages are not supported yet",
+		},
+		{
+			name:   "leading zero",
+			state:  maxUnavailableState(types.StringValue("01"), types.Int64Value(3)),
+			detail: `got "01"`,
+		},
+		{
+			name:   "too large to be a node count",
+			state:  maxUnavailableState(types.StringValue("99999999999999999999"), types.Int64Value(3)),
+			detail: "too large to be a number of nodes",
+		},
+	}
+	for _, tc := range cases {
+		diags := validateMaxUnavailable(tc.state)
+		if !diags.HasError() {
+			t.Errorf("%s: expected an error, got none", tc.name)
+			continue
+		}
+		if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, tc.detail) {
+			t.Errorf("%s: detail = %q, want it to contain %q", tc.name, detail, tc.detail)
+		}
 	}
 }

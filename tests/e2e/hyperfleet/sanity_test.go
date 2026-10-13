@@ -357,15 +357,19 @@ var _ = Describe("Hyperfleet sanity", func() {
 		By("Phase 5a: apply node pool 1")
 		np1Replicas := 2
 		np2Replicas := 1
+		// Upgrade disruption budget. It is mutable, but it is repeated on every
+		// later apply of this pool so a dropped value would show up as a diff.
+		np1MaxUnavailable := "1"
 		_, err = np1Svc.Apply(&exec.HyperfleetNodePoolArgs{
-			HyperfleetURL: &hyperfleetURL,
-			AWSRegion:     &awsRegion,
-			ClusterID:     &clusterID,
-			ClusterName:   &clusterName,
-			Name:          &np1Name,
-			SubnetID:      &vpcOut.PrivateSubnetID,
-			InstanceType:  &instanceType,
-			Replicas:      &np1Replicas,
+			HyperfleetURL:  &hyperfleetURL,
+			AWSRegion:      &awsRegion,
+			ClusterID:      &clusterID,
+			ClusterName:    &clusterName,
+			Name:           &np1Name,
+			SubnetID:       &vpcOut.PrivateSubnetID,
+			InstanceType:   &instanceType,
+			Replicas:       &np1Replicas,
+			MaxUnavailable: &np1MaxUnavailable,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -407,6 +411,12 @@ var _ = Describe("Hyperfleet sanity", func() {
 		)
 		Expect(err).NotTo(HaveOccurred())
 
+		By("Verifying the upgrade disruption budget reached the Platform API")
+		createdNP1, err := nodepools.Get(ctx, np1Name, hfplatform.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(createdNP1.Spec.MaxUnavailable).NotTo(BeNil())
+		Expect(createdNP1.Spec.MaxUnavailable.String()).To(Equal(np1MaxUnavailable))
+
 		By("Waiting for node pool 2 to reach Ready phase")
 		err = nodepools.WaitUntil(
 			ctx, np2Name,
@@ -425,14 +435,15 @@ var _ = Describe("Hyperfleet sanity", func() {
 		// ── Verify node pools via Terraform refresh ────────────────────────
 		By("Verifying node pool 1 Ready phase via Terraform state refresh")
 		_, err = np1Svc.Apply(&exec.HyperfleetNodePoolArgs{
-			HyperfleetURL: &hyperfleetURL,
-			AWSRegion:     &awsRegion,
-			ClusterID:     &clusterID,
-			ClusterName:   &clusterName,
-			Name:          &np1Name,
-			SubnetID:      &vpcOut.PrivateSubnetID,
-			InstanceType:  &instanceType,
-			Replicas:      &np1Replicas,
+			HyperfleetURL:  &hyperfleetURL,
+			AWSRegion:      &awsRegion,
+			ClusterID:      &clusterID,
+			ClusterName:    &clusterName,
+			Name:           &np1Name,
+			SubnetID:       &vpcOut.PrivateSubnetID,
+			InstanceType:   &instanceType,
+			Replicas:       &np1Replicas,
+			MaxUnavailable: &np1MaxUnavailable,
 		})
 		Expect(err).NotTo(HaveOccurred())
 

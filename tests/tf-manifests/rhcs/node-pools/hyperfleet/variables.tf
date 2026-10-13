@@ -81,3 +81,9 @@ variable "labels" {
   description = "Node labels"
   default     = null
 }
+
+variable "max_unavailable" {
+  type        = string
+  description = "Optional upgrade disruption budget, as an absolute node count (\"2\")"
+  default     = null
+}

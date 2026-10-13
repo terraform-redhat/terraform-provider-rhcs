@@ -19,10 +19,13 @@ package hyperfleet
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
@@ -34,6 +37,11 @@ import (
 // the worker IAM instance profile name. It mirrors the naming convention in the
 // IAM manifests (`${operator_roles_prefix}-ROSA-Worker-Role`).
 const workerInstanceProfileSuffix = "-ROSA-Worker-Role"
+
+// maxUnavailableCountRE is the absolute node count accepted on
+// spec.maxUnavailable. The Platform API also accepts a percentage, but the
+// provider cannot send one yet — see validateMaxUnavailable.
+var maxUnavailableCountRE = regexp.MustCompile(`^(0|[1-9][0-9]*)$`)
 
 // NodePoolHandlerImpl is the concrete implementation of NodePoolHandler
 type NodePoolHandlerImpl struct {
@@ -103,6 +111,60 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 				diags.AddError("invalid autoscaling configuration", "max_replicas must be greater than or equal to min_replicas")
 			}
 		}
+	}
+
+	diags.Append(validateMaxUnavailable(input)...)
+
+	return diags
+}
+
+// validateMaxUnavailable checks the upgrade disruption budget against the
+// limits the Platform API enforces on spec.maxUnavailable so a bad value fails
+// during plan/apply instead of on the API round trip. Wording follows the CEL
+// validation messages on the NodePool spec, except for percentages, which the
+// provider rejects outright for now.
+func validateMaxUnavailable(input *NodePoolState) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if input.MaxUnavailable.IsNull() || input.MaxUnavailable.IsUnknown() {
+		return diags
+	}
+	value := input.MaxUnavailable.ValueString()
+
+	addError := func(format string, args ...any) {
+		diags.AddAttributeError(
+			path.Root("max_unavailable"), "Invalid node pool max_unavailable", fmt.Sprintf(format, args...),
+		)
+	}
+
+	// The Platform API accepts a percentage here, but the provider cannot send
+	// one yet: pathbind JSON-decodes the attribute into the SDK's
+	// intstr.IntOrString, which rejects "30%", and a percentage read back is
+	// re-quoted into state. Drop this branch once the clientset pathbind
+	// handles intstr.
+	if strings.HasSuffix(value, "%") {
+		addError("max_unavailable percentages are not supported yet, got %q; "+
+			"use an absolute number of nodes (for example \"2\")", value)
+		return diags
+	}
+	if !maxUnavailableCountRE.MatchString(value) {
+		addError("max_unavailable must be a non-negative whole number of nodes (for example \"2\"), got %q", value)
+		return diags
+	}
+
+	count, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		addError("max_unavailable %q is too large to be a number of nodes", value)
+		return diags
+	}
+
+	// An absolute count may not exceed the nodes the pool is meant to have.
+	// A count planned against an unknown replica count is left to the API.
+	if input.Replicas.IsNull() || input.Replicas.IsUnknown() {
+		return diags
+	}
+	if replicas := input.Replicas.ValueInt64(); count > replicas {
+		addError("max_unavailable %d cannot exceed replicas %d", count, replicas)
 	}
 
 	return diags

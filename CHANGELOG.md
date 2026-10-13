@@ -1,3 +1,27 @@
+## 1.7.10 (13 Oct, 2026)
+
+FEATURES:
+   * Surface OCM API deprecation warnings on ROSA Classic create and upgrade
+   * Add standalone notification contacts resource
+
+ENHANCEMENTS:
+ * Bug fixes
+   * Treat cluster replicas as create-only state
+   * Omit ec2_metadata_http_tokens so API default applies
+   * HCP and Classic now retain a configured known-empty security-group list when OCM omits the field
+   * Use GET after PATCH to populate state on update
+ * Chores
+   * Add reviewers to OWNERS file
+   * Bump Go to 1.26.7
+ * Documentation
+   * Add explanation about test ids
+ * Common
+   * Enforce cluster waiter deadlines (#1366)
+ * Examples
+   * Migrate from legacy rosa-sts to rosa-classic module
+ * Test
+   * Align cluster_edit_test with create-only replicas behavior
+
 ## 1.7.9 (22 Sep, 2026)
 
 FEATURES:

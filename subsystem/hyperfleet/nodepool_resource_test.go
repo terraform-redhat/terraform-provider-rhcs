@@ -17,7 +17,9 @@ limitations under the License.
 package hyperfleet
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"
@@ -80,6 +82,10 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					},
 					"nodePool": {
 						"clusterName": "test-cluster-id",
+						"management": {
+							"upgradeType": "Replace",
+							"autoRepair": true
+						},
 						"release": {
 							"image": ""
 						},
@@ -189,7 +195,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 			createResponse := `{
 				"metadata": {
-					"uid": "test-nodepool-id",
+					"uid": "test-nodepool-uid",
 					"name": "worker",
 					"creationTimestamp": "2024-01-01T00:00:00Z"
 				},
@@ -200,6 +206,10 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					},
 					"nodePool": {
 						"clusterName": "test-cluster-id",
+						"management": {
+							"upgradeType": "Replace",
+							"autoRepair": false
+						},
 						"release": {
 							"image": ""
 						},
@@ -225,7 +235,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 			updateResponse := `{
 				"metadata": {
-					"uid": "test-nodepool-id",
+					"uid": "test-nodepool-uid",
 					"name": "worker",
 					"creationTimestamp": "2024-01-01T00:00:00Z"
 				},
@@ -260,7 +270,48 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				}
 			}`
 
+			clearResponse := `{
+				"metadata": {
+					"uid": "test-nodepool-uid",
+					"name": "worker",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
+				"spec": {
+					"autoRepair": true,
+					"nodePool": {
+						"clusterName": "test-cluster-id",
+						"management": {
+							"upgradeType": "Replace",
+							"autoRepair": true
+						},
+						"release": {
+							"image": ""
+						},
+						"platform": {
+							"type": "AWS",
+							"aws": {
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
+								"instanceType": "m5.xlarge",
+								"rootVolume": {
+									"size": 100
+								}
+							}
+						},
+						"replicas": 3
+					}
+				},
+				"status": {
+					"phase": "Ready"
+				}
+			}`
+
 			header := http.Header{"Content-Type": []string{"application/json"}}
+			updateBody := make([]byte, 0)
+			var updateBodyErr error
+			clearBody := make([]byte, 0)
+			var clearBodyErr error
 
 			hyperfleetServer.AppendHandlers(
 				// First apply: create without extra labels
@@ -273,22 +324,54 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					RespondWith(http.StatusCreated, createResponse, header),
 				),
 				// Second apply: refresh (Read), then update to add labels.
-				// PostExpand fetches the parent cluster again before Update.
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-uid"),
 					RespondWith(http.StatusOK, createResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-uid"),
 					RespondWith(http.StatusOK, createResponse, header),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
 					RespondWith(http.StatusOK, clusterResponse, header),
 				),
+				func(writer http.ResponseWriter, request *http.Request) {
+					updateBody, updateBodyErr = io.ReadAll(request.Body)
+					writer.Header().Set("Content-Type", "application/json")
+					writer.WriteHeader(http.StatusOK)
+					_, _ = writer.Write([]byte(updateResponse))
+				},
 				CombineHandlers(
-					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-uid"),
 					RespondWith(http.StatusOK, updateResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-uid"),
+					RespondWith(http.StatusOK, updateResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, clusterResponse, header),
+				),
+				func(writer http.ResponseWriter, request *http.Request) {
+					updateBody, updateBodyErr = io.ReadAll(request.Body)
+					writer.Header().Set("Content-Type", "application/json")
+					writer.WriteHeader(http.StatusOK)
+					_, _ = writer.Write([]byte(clearResponse))
+				},
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-uid"),
+					RespondWith(http.StatusOK, updateResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-nodepool-uid"),
+					func(writer http.ResponseWriter, request *http.Request) {
+						clearBody, clearBodyErr = io.ReadAll(request.Body)
+						writer.Header().Set("Content-Type", "application/json")
+						writer.WriteHeader(http.StatusOK)
+						_, _ = writer.Write([]byte(clearResponse))
+					},
 				),
 			)
 
@@ -346,6 +429,83 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 			runOutput = Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
+
+			Expect(updateBodyErr).NotTo(HaveOccurred())
+			Expect(string(updateBody)).To(MatchJSON(`{
+				"kind": "NodePool",
+				"apiVersion": "hyperfleet.io/v1alpha1",
+				"metadata": {
+					"name": "test-nodepool-uid",
+					"namespace": "cluster-test-cluster-id",
+					"uid": "test-nodepool-uid",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
+				"spec": {
+					"autoRepair": true,
+					"labels": {
+						"workload-type": "general",
+						"environment": "production"
+					},
+					"nodePool": {
+						"clusterName": "test-cluster-id",
+						"release": {
+							"image": ""
+						},
+						"platform": {
+							"type": "AWS",
+							"aws": {
+								"instanceType": "m5.xlarge",
+								"instanceProfile": "test-cluster-NodePool-ROSA-Worker-Role",
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
+								"rootVolume": {
+									"size": 100,
+									"type": ""
+								}
+							}
+						},
+						"replicas": 3,
+						"management": {
+							"upgradeType": "Replace",
+							"autoRepair": false
+						}
+					}
+				},
+				"status": {
+					"phase": "Ready"
+				}
+			}`))
+
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "hf"
+					hyperfleet_url = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_nodepool_hyperfleet" "test" {
+					provider         = rhcs.hf
+					cluster_id       = "test-cluster-id"
+					name             = "worker"
+					replicas         = 3
+					subnet_id        = "subnet-0abc123"
+					auto_repair      = true
+					instance_type    = "m5.xlarge"
+					size = 100
+				}
+			`, hyperfleetServer.URL()))
+
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			Expect(clearBodyErr).NotTo(HaveOccurred())
+			var clearDocument map[string]any
+			Expect(json.Unmarshal(clearBody, &clearDocument)).To(Succeed())
+			spec, ok := clearDocument["spec"].(map[string]any)
+			Expect(ok).To(BeTrue())
+			Expect(spec["autoRepair"]).To(BeTrue())
+			Expect(spec["labels"]).To(HaveLen(0))
 		})
 
 		It("updates nodepool auto_repair", func() {
@@ -419,6 +579,10 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					"autoRepair": false,
 					"nodePool": {
 						"clusterName": "test-cluster-id",
+						"management": {
+							"upgradeType": "Replace",
+							"autoRepair": false
+						},
 						"release": {
 							"image": ""
 						},
@@ -443,6 +607,8 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			}`
 
 			header := http.Header{"Content-Type": []string{"application/json"}}
+			updateBody := make([]byte, 0)
+			var updateBodyErr error
 
 			hyperfleetServer.AppendHandlers(
 				// First apply: create with auto_repair=true
@@ -455,7 +621,6 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					RespondWith(http.StatusCreated, createResponse, header),
 				),
 				// Second apply: refresh (Read), then update to disable auto_repair.
-				// PostExpand fetches the parent cluster again before Update.
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
 					RespondWith(http.StatusOK, createResponse, header),
@@ -468,10 +633,12 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
 					RespondWith(http.StatusOK, clusterResponse, header),
 				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-nodepool-id"),
-					RespondWith(http.StatusOK, updateResponse, header),
-				),
+				func(writer http.ResponseWriter, request *http.Request) {
+					updateBody, updateBodyErr = io.ReadAll(request.Body)
+					writer.Header().Set("Content-Type", "application/json")
+					writer.WriteHeader(http.StatusOK)
+					_, _ = writer.Write([]byte(updateResponse))
+				},
 			)
 
 			// First apply: create with auto_repair=true (default)
@@ -521,6 +688,336 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 			runOutput = Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
+			Expect(updateBodyErr).NotTo(HaveOccurred())
+
+			Expect(string(updateBody)).To(MatchJSON(`{
+				"kind": "NodePool",
+				"apiVersion": "hyperfleet.io/v1alpha1",
+				"metadata": {
+					"name": "test-nodepool-id",
+					"namespace": "cluster-test-cluster-id",
+					"uid": "test-nodepool-id",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
+				"spec": {
+					"autoRepair": false,
+					"nodePool": {
+						"clusterName": "test-cluster-id",
+						"release": {
+							"image": ""
+						},
+						"platform": {
+							"type": "AWS",
+							"aws": {
+								"instanceType": "m5.xlarge",
+								"instanceProfile": "test-cluster-NodePool-ROSA-Worker-Role",
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
+								"rootVolume": {
+									"size": 100,
+									"type": ""
+								}
+							}
+						},
+						"replicas": 3,
+						"management": {
+							"upgradeType": "",
+							"autoRepair": false
+						}
+					}
+				},
+				"status": {
+					"phase": "Ready"
+				}
+			}`))
+		})
+
+		It("updates and clears nodepool taints", func() {
+			clusterResponse := `{
+				"id": "test-cluster-id",
+				"name": "test-cluster",
+				"spec": {
+					"hostedCluster": {
+						"platform": {
+							"type": "AWS",
+							"aws": {
+								"region": "us-east-1",
+								"rolesRef": {
+									"nodePoolManagementARN": "arn:aws:iam::123456789012:role/test-cluster-NodePool"
+								}
+							}
+						}
+					}
+				}
+			}`
+
+			createResponse := `{
+				"metadata": {
+					"uid": "test-nodepool-uid",
+					"name": "worker"
+				},
+				"spec": {
+					"nodePool": {
+						"clusterName": "test-cluster-id",
+						"management": {
+							"upgradeType": "Replace",
+							"autoRepair": true
+						},
+						"taints": [{
+							"key": "e2e-taint-one",
+							"value": "value-one",
+							"effect": "NoSchedule"
+						}],
+						"platform": {
+							"type": "AWS"
+						},
+						"replicas": 3
+					}
+				},
+				"status": {
+					"phase": "Ready"
+				}
+			}`
+
+			updateResponse := `{
+				"metadata": {
+					"uid": "test-nodepool-uid",
+					"name": "worker"
+				},
+				"spec": {
+					"nodePool": {
+						"clusterName": "test-cluster-id",
+						"platform": {
+							"type": "AWS"
+						},
+						"taints": [{
+							"key": "e2e-taint-one",
+							"value": "value-one",
+							"effect": "NoSchedule"
+						}, {
+							"key": "e2e-taint-two",
+							"value": "",
+							"effect": "NoExecute"
+						}],
+						"replicas": 3
+					}
+				},
+				"status": {
+					"phase": "Ready"
+				}
+			}`
+
+			clearResponse := `{
+				"metadata": {
+					"uid": "test-nodepool-uid",
+					"name": "worker"
+				},
+				"spec": {
+					"nodePool": {
+						"clusterName": "test-cluster-id",
+						"platform": {
+							"type": "AWS"
+						},
+						"replicas": 3
+					}
+				},
+				"status": {
+					"phase": "Ready"
+				}
+			}`
+
+			header := http.Header{"Content-Type": []string{"application/json"}}
+			updateBody := make([]byte, 0)
+			var updateBodyErr error
+			clearBody := make([]byte, 0)
+			var clearBodyErr error
+
+			hyperfleetServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, clusterResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+					RespondWith(http.StatusCreated, createResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-uid"),
+					RespondWith(http.StatusOK, createResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-uid"),
+					RespondWith(http.StatusOK, createResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, clusterResponse, header),
+				),
+				func(writer http.ResponseWriter, request *http.Request) {
+					updateBody, updateBodyErr = io.ReadAll(request.Body)
+					writer.Header().Set("Content-Type", "application/json")
+					writer.WriteHeader(http.StatusOK)
+					_, _ = writer.Write([]byte(updateResponse))
+				},
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-uid"),
+					RespondWith(http.StatusOK, updateResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-uid"),
+					RespondWith(http.StatusOK, updateResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, clusterResponse, header),
+				),
+				func(writer http.ResponseWriter, request *http.Request) {
+					updateBody, updateBodyErr = io.ReadAll(request.Body)
+					writer.Header().Set("Content-Type", "application/json")
+					writer.WriteHeader(http.StatusOK)
+					_, _ = writer.Write([]byte(clearResponse))
+				},
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-uid"),
+					RespondWith(http.StatusOK, updateResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-nodepool-uid"),
+					func(writer http.ResponseWriter, request *http.Request) {
+						clearBody, clearBodyErr = io.ReadAll(request.Body)
+						writer.Header().Set("Content-Type", "application/json")
+						writer.WriteHeader(http.StatusOK)
+						_, _ = writer.Write([]byte(clearResponse))
+					},
+				),
+			)
+
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "hf"
+					hyperfleet_url = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_nodepool_hyperfleet" "test" {
+					provider       = rhcs.hf
+					cluster_id    = "test-cluster-id"
+					name          = "worker"
+					replicas      = 3
+					auto_repair   = true
+					taints = [{
+						key    = "e2e-taint-one"
+						value  = "value-one"
+						effect = "NoSchedule"
+					}]
+				}
+			`, hyperfleetServer.URL()))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "hf"
+					hyperfleet_url = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_nodepool_hyperfleet" "test" {
+					provider       = rhcs.hf
+					cluster_id    = "test-cluster-id"
+					name          = "worker"
+					replicas      = 3
+					auto_repair   = true
+					taints = [{
+						key    = "e2e-taint-one"
+						value  = "value-one"
+						effect = "NoSchedule"
+					}, {
+						key    = "e2e-taint-two"
+						value  = ""
+						effect = "NoExecute"
+					}]
+				}
+			`, hyperfleetServer.URL()))
+
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			Expect(updateBodyErr).NotTo(HaveOccurred())
+			Expect(string(updateBody)).To(MatchJSON(`{
+				"kind": "NodePool",
+				"apiVersion": "hyperfleet.io/v1alpha1",
+				"metadata": {
+					"name": "test-nodepool-uid",
+					"namespace": "cluster-test-cluster-id",
+					"uid": "test-nodepool-uid"
+				},
+				"spec": {
+					"autoRepair": true,
+					"nodePool": {
+						"clusterName": "test-cluster-id",
+						"release": {
+							"image": ""
+						},
+						"platform": {
+							"type": "AWS",
+							"aws": {
+								"instanceType": "",
+								"instanceProfile": "test-cluster-NodePool-ROSA-Worker-Role",
+								"subnet": {}
+							}
+						},
+						"replicas": 3,
+						"management": {
+							"upgradeType": "Replace",
+							"autoRepair": true
+						},
+						"taints": [{
+							"key": "e2e-taint-one",
+							"value": "value-one",
+							"effect": "NoSchedule"
+						}, {
+							"key": "e2e-taint-two",
+							"effect": "NoExecute"
+						}]
+					}
+				},
+				"status": {
+					"phase": "Ready"
+				}
+			}`))
+
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "hf"
+					hyperfleet_url = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_nodepool_hyperfleet" "test" {
+					provider       = rhcs.hf
+					cluster_id  = "test-cluster-id"
+					name        = "worker"
+					replicas    = 3
+					auto_repair = true
+				}
+			`, hyperfleetServer.URL()))
+
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			Expect(clearBodyErr).NotTo(HaveOccurred())
+			var clearDocument map[string]any
+			Expect(json.Unmarshal(clearBody, &clearDocument)).To(Succeed())
+			spec, ok := clearDocument["spec"].(map[string]any)
+			Expect(ok).To(BeTrue())
+			nodePoolSpec, ok := spec["nodePool"].(map[string]any)
+			Expect(ok).To(BeTrue())
+			Expect(nodePoolSpec["replicas"]).To(Equal(float64(3)))
+			Expect(nodePoolSpec["taints"]).To(HaveLen(0))
 		})
 	})
 

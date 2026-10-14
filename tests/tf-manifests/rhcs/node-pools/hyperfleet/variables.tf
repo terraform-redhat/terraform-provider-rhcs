@@ -64,3 +64,13 @@ variable "labels" {
   description = "Node labels"
   default     = null
 }
+
+variable "taints" {
+  type = list(object({
+    key    = string
+    value  = optional(string)
+    effect = string
+  }))
+  description = "Node taints"
+  default     = null
+}

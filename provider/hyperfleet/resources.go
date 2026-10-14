@@ -14,7 +14,7 @@ func NewCluster() resource.Resource {
 }
 
 func NewNodePool() resource.Resource {
-	return generated.NewNodePool(NewNodePoolHandlerImpl)
+	return newNodePoolResource(generated.NewNodePool(NewNodePoolHandlerImpl).(*generated.NodePoolResource))
 }
 
 func NewOidcConfig() resource.Resource {

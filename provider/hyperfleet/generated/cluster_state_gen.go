@@ -24,10 +24,10 @@ type ClusterState struct {
 	BalancingIgnoredLabels         types.String `tfsdk:"balancing_ignored_labels"`
 	Expanders                      types.String `tfsdk:"expanders"`
 	MaxFreeDifferenceRatioPercent  types.Int64  `tfsdk:"max_free_difference_ratio_percent"`
-	MaxNodeProvisionTime           types.String `tfsdk:"max_node_provision_time"`
-	MaxNodesTotal                  types.Int64  `tfsdk:"max_nodes_total"`
-	MaxPodGracePeriod              types.Int64  `tfsdk:"max_pod_grace_period"`
-	PodPriorityThreshold           types.Int64  `tfsdk:"pod_priority_threshold"`
+	AutoscalerMaxNodeProvisionTime types.String `tfsdk:"autoscaler_max_node_provision_time"`
+	AutoscalerMaxNodesTotal        types.Int64  `tfsdk:"autoscaler_max_nodes_total"`
+	AutoscalerMaxPodGracePeriod    types.Int64  `tfsdk:"autoscaler_max_pod_grace_period"`
+	AutoscalerPodPriorityThreshold types.Int64  `tfsdk:"autoscaler_pod_priority_threshold"`
 	DelayAfterAddSeconds           types.Int64  `tfsdk:"delay_after_add_seconds"`
 	DelayAfterDeleteSeconds        types.Int64  `tfsdk:"delay_after_delete_seconds"`
 	DelayAfterFailureSeconds       types.Int64  `tfsdk:"delay_after_failure_seconds"`

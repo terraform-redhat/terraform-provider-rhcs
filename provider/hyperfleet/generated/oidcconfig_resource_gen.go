@@ -107,9 +107,9 @@ func (r *OidcConfigResource) Schema(
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name.",
-				Computed:            true,
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"id": schema.StringAttribute{
@@ -142,7 +142,7 @@ func (r *OidcConfigResource) Schema(
 			},
 			"type": schema.StringAttribute{
 				MarkdownDescription: "Type.",
-				Optional:            true,
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -212,10 +212,7 @@ func (r *OidcConfigResource) Create(
 		return
 	}
 
-	// Create via API
-	// For namespaced resources, obj.GetNamespace() reflects the value the handler's
-	// PostExpand set on the SDK object; passing it here keeps the client-scoped
-	// namespace and the object's namespace in sync.
+	// Create via API. The Platform API derives the account namespace internally.
 	created, err := r.Client.HyperfleetV1alpha1().OidcConfigs().Create(ctx, obj, hfwrappers.CreateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create OidcConfig", err.Error())
@@ -272,8 +269,8 @@ func (r *OidcConfigResource) Read(
 		return
 	}
 
-	// Get current resource from API
-	obj, err := r.Client.HyperfleetV1alpha1().OidcConfigs().Get(ctx, state.Id.ValueString(), hfwrappers.GetOptions{})
+	// Platform API routes by account-scoped metadata.name; metadata.uid remains the Terraform identity.
+	obj, err := r.Client.HyperfleetV1alpha1().OidcConfigs().Get(ctx, state.Name.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -348,8 +345,8 @@ func (r *OidcConfigResource) Update(
 		return
 	}
 
-	// Fetch the current object so fields not represented in Terraform are preserved.
-	obj, err := r.Client.HyperfleetV1alpha1().OidcConfigs().Get(ctx, plan.Id.ValueString(), hfwrappers.GetOptions{})
+	// Fetch by account-scoped metadata.name so fields not represented in Terraform are preserved.
+	obj, err := r.Client.HyperfleetV1alpha1().OidcConfigs().Get(ctx, plan.Name.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read OidcConfig for update", err.Error())
 		return
@@ -368,7 +365,7 @@ func (r *OidcConfigResource) Update(
 		return
 	}
 
-	// Update via API
+	// Update via API. The Platform API derives the account namespace internally.
 	updated, err := r.Client.HyperfleetV1alpha1().OidcConfigs().Update(ctx, obj, hfwrappers.UpdateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update OidcConfig", err.Error())
@@ -425,7 +422,7 @@ func (r *OidcConfigResource) Delete(
 		return
 	}
 
-	err := r.Client.HyperfleetV1alpha1().OidcConfigs().Delete(ctx, state.Id.ValueString(), hfwrappers.DeleteOptions{})
+	err := r.Client.HyperfleetV1alpha1().OidcConfigs().Delete(ctx, state.Name.ValueString(), hfwrappers.DeleteOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to delete OidcConfig", err.Error())
 		return
@@ -450,7 +447,8 @@ func (r *OidcConfigResource) ImportState(
 		return
 	}
 
-	// Use the ID passed in as the OidcConfig identifier
+	// Import IDs are account-scoped metadata.name values because the Platform API
+	// routes by name; Flatten populates the server UID into the Terraform state ID.
 	obj, err := r.Client.HyperfleetV1alpha1().OidcConfigs().Get(ctx, req.ID, hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to import OidcConfig", err.Error())

@@ -52,6 +52,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 		hyperfleetURL := requireEnv("HYPERFLEET_URL")
 		releaseImage := requireEnv(config.EnvHyperfleetReleaseImage)
 		clusterName := requireEnvWithDefault("HYPERFLEET_CLUSTER_NAME", fmt.Sprintf("hf-e2e-%d", time.Now().Unix()))
+		oidcConfigName := clusterName + ".oidc"
 		operatorRolesPrefix := requireEnvWithDefault("HYPERFLEET_OPERATOR_ROLES_PREFIX", clusterName)
 		vpcCIDR := requireEnvWithDefault("HYPERFLEET_VPC_CIDR", "10.0.0.0/16")
 		instanceType := requireEnvWithDefault("HYPERFLEET_NODEPOOL_INSTANCE_TYPE", "m5.xlarge")
@@ -65,8 +66,8 @@ var _ = Describe("Hyperfleet sanity", func() {
 		// but the underlying nodepool stays in Deleting until the cluster itself
 		// is deleted — at which point the operator cascades the cleanup.
 		// np2: no PDB constraint; deletion completes and is confirmed via SDK.
-		np1Name := clusterName + "-np1"
-		np2Name := clusterName + "-np2"
+		np1Name := clusterName + ".np1"
+		np2Name := clusterName + ".np2"
 
 		workspace := clusterName
 
@@ -132,13 +133,13 @@ var _ = Describe("Hyperfleet sanity", func() {
 			Expect(destroyErr).NotTo(HaveOccurred())
 
 			waitErr := clusters.WaitUntil(
-				ctx, clusterID,
+				ctx, clusterName,
 				func(c *v1alpha1.Cluster) bool {
 					if c == nil {
-						Logger.Infof("[wait] cluster %s: deleted", clusterID)
+						Logger.Infof("[wait] cluster %s: deleted", clusterName)
 						return true
 					}
-					Logger.Infof("[wait] cluster %s phase: %s (waiting for deletion)", clusterID, c.Status.Phase)
+					Logger.Infof("[wait] cluster %s phase: %s (waiting for deletion)", clusterName, c.Status.Phase)
 					return false
 				},
 				pollInterval, clusterDeletedTimeout,
@@ -160,7 +161,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Log the observed phase for diagnostics without blocking on completion.
-			nodepools := hfClient.HyperfleetV1alpha1().NodePools(clusterID)
+			nodepools := hfClient.HyperfleetV1alpha1().NodePools()
 			_ = nodepools.WaitUntil(
 				ctx, np1Name,
 				func(np *v1alpha1.NodePool) bool {
@@ -183,7 +184,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			}
 			_, err := np2Svc.Destroy()
 			Expect(err).NotTo(HaveOccurred())
-			waitErr := hfClient.HyperfleetV1alpha1().NodePools(clusterID).WaitUntil(
+			waitErr := hfClient.HyperfleetV1alpha1().NodePools().WaitUntil(
 				ctx, np2Name,
 				func(np *v1alpha1.NodePool) bool {
 					if np == nil {
@@ -219,6 +220,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 		By("Phase 2: apply OidcConfig (managed mode)")
 		_, err = oidcSvc.Apply(&exec.HyperfleetOidcConfigArgs{
 			HyperfleetURL: &hyperfleetURL,
+			Name:          &oidcConfigName,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -282,13 +284,13 @@ var _ = Describe("Hyperfleet sanity", func() {
 		oidcConfigs := hfClient.HyperfleetV1alpha1().OidcConfigs()
 		ctx := context.Background()
 		err = oidcConfigs.WaitUntil(
-			ctx, oidcOut.OidcConfigID,
+			ctx, oidcOut.Name,
 			func(oc *v1alpha1.OidcConfig) bool {
 				if oc == nil {
-					Logger.Infof("[wait] oidcconfig %s: not found", oidcOut.OidcConfigID)
+					Logger.Infof("[wait] oidcconfig %s: not found", oidcOut.Name)
 					return false
 				}
-				Logger.Infof("[wait] oidcconfig %s phase: %s", oidcOut.OidcConfigID, oc.Status.Phase)
+				Logger.Infof("[wait] oidcconfig %s phase: %s", oidcOut.Name, oc.Status.Phase)
 				return oc.Status.Phase == v1alpha1.OidcConfigPhaseReady
 			},
 			pollInterval, oidcConfigReadyTimeout,
@@ -298,6 +300,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 		// Refresh OidcConfig state to get computed thumbprint
 		_, err = oidcSvc.Apply(&exec.HyperfleetOidcConfigArgs{
 			HyperfleetURL: &hyperfleetURL,
+			Name:          &oidcConfigName,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -310,13 +313,13 @@ var _ = Describe("Hyperfleet sanity", func() {
 		// ── Wait for cluster Ready ─────────────────────────────────────────
 		By("Waiting for cluster to reach Ready phase")
 		err = clustersCli.WaitUntil(
-			ctx, clusterID,
+			ctx, clusterName,
 			func(c *v1alpha1.Cluster) bool {
 				if c == nil {
-					Logger.Infof("[wait] cluster %s: not found", clusterID)
+					Logger.Infof("[wait] cluster %s: not found", clusterName)
 					return false
 				}
-				Logger.Infof("[wait] cluster %s phase: %s", clusterID, c.Status.Phase)
+				Logger.Infof("[wait] cluster %s phase: %s", clusterName, c.Status.Phase)
 				return c.Status.Phase == v1alpha1.ClusterPhaseReady
 			},
 			pollInterval, clusterReadyTimeout,
@@ -346,7 +349,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 		Expect(refreshedOut.APIURL).NotTo(BeEmpty())
 
 		By("Verifying the customer AWS tags reached the Platform API")
-		createdCluster, err := clustersCli.Get(ctx, clusterID, hfplatform.GetOptions{})
+		createdCluster, err := clustersCli.Get(ctx, clusterName, hfplatform.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(createdCluster.Spec.Tags).To(Equal(clusterTags))
 
@@ -389,7 +392,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 
 		// ── Wait for both node pools to reach Ready ────────────────────────
 		By("Waiting for node pool 1 to reach Ready phase")
-		nodepools := hfClient.HyperfleetV1alpha1().NodePools(clusterID)
+		nodepools := hfClient.HyperfleetV1alpha1().NodePools()
 		err = nodepools.WaitUntil(
 			ctx, np1Name,
 			func(np *v1alpha1.NodePool) bool {

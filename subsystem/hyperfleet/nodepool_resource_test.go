@@ -41,10 +41,11 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 		It("creates a nodepool successfully", func() {
 			clusterResponse := `{
-				"id": "test-cluster-id",
-				"name": "test-cluster",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"metadata": {
+					"uid": "test-cluster-id",
+					"name": "test-cluster",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"hostedCluster": {
 						"platform": {
@@ -70,7 +71,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			nodepoolResponse := `{
 				"metadata": {
 					"uid": "test-nodepool-id",
-					"name": "worker",
+					"name": "test-cluster.worker",
 					"creationTimestamp": "2024-01-01T00:00:00Z"
 				},
 				"spec": {
@@ -79,7 +80,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 						"workload-type": "general"
 					},
 					"nodePool": {
-						"clusterName": "test-cluster-id",
+						"clusterName": "test-cluster",
 						"release": {
 							"image": ""
 						},
@@ -107,7 +108,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 			hyperfleetServer.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
 					RespondWith(http.StatusOK, clusterResponse, header),
 				),
 				CombineHandlers(
@@ -115,7 +116,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					RespondWith(http.StatusCreated, nodepoolResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-cluster.worker"),
 					RespondWith(http.StatusOK, nodepoolResponse, header),
 				),
 			)
@@ -131,7 +132,8 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
 					cluster_id       = "test-cluster-id"
-					name             = "worker"
+					cluster_name     = "test-cluster"
+					name             = "test-cluster.worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = true
@@ -161,10 +163,11 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 		It("updates nodepool labels", func() {
 			clusterResponse := `{
-				"id": "test-cluster-id",
-				"name": "test-cluster",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"metadata": {
+					"uid": "test-cluster-id",
+					"name": "test-cluster",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"hostedCluster": {
 						"platform": {
@@ -190,7 +193,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			createResponse := `{
 				"metadata": {
 					"uid": "test-nodepool-id",
-					"name": "worker",
+					"name": "test-cluster.worker",
 					"creationTimestamp": "2024-01-01T00:00:00Z"
 				},
 				"spec": {
@@ -199,7 +202,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 						"workload-type": "general"
 					},
 					"nodePool": {
-						"clusterName": "test-cluster-id",
+						"clusterName": "test-cluster",
 						"release": {
 							"image": ""
 						},
@@ -226,7 +229,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			updateResponse := `{
 				"metadata": {
 					"uid": "test-nodepool-id",
-					"name": "worker",
+					"name": "test-cluster.worker",
 					"creationTimestamp": "2024-01-01T00:00:00Z"
 				},
 				"spec": {
@@ -236,7 +239,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 						"environment": "production"
 					},
 					"nodePool": {
-						"clusterName": "test-cluster-id",
+						"clusterName": "test-cluster",
 						"release": {
 							"image": ""
 						},
@@ -265,7 +268,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			hyperfleetServer.AppendHandlers(
 				// First apply: create without extra labels
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
 					RespondWith(http.StatusOK, clusterResponse, header),
 				),
 				CombineHandlers(
@@ -275,19 +278,19 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				// Second apply: refresh (Read), then update to add labels.
 				// PostExpand fetches the parent cluster again before Update.
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-cluster.worker"),
 					RespondWith(http.StatusOK, createResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-cluster.worker"),
 					RespondWith(http.StatusOK, createResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
 					RespondWith(http.StatusOK, clusterResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-cluster.worker"),
 					RespondWith(http.StatusOK, updateResponse, header),
 				),
 			)
@@ -304,7 +307,8 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
 					cluster_id       = "test-cluster-id"
-					name             = "worker"
+					cluster_name     = "test-cluster"
+					name             = "test-cluster.worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = true
@@ -331,7 +335,8 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
 					cluster_id       = "test-cluster-id"
-					name             = "worker"
+					cluster_name     = "test-cluster"
+					name             = "test-cluster.worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = true
@@ -350,10 +355,11 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 		It("updates nodepool auto_repair", func() {
 			clusterResponse := `{
-				"id": "test-cluster-id",
-				"name": "test-cluster",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"metadata": {
+					"uid": "test-cluster-id",
+					"name": "test-cluster",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"hostedCluster": {
 						"platform": {
@@ -379,13 +385,13 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			createResponse := `{
 				"metadata": {
 					"uid": "test-nodepool-id",
-					"name": "worker",
+					"name": "test-cluster.worker",
 					"creationTimestamp": "2024-01-01T00:00:00Z"
 				},
 				"spec": {
 					"autoRepair": true,
 					"nodePool": {
-						"clusterName": "test-cluster-id",
+						"clusterName": "test-cluster",
 						"release": {
 							"image": ""
 						},
@@ -412,13 +418,13 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			updateResponse := `{
 				"metadata": {
 					"uid": "test-nodepool-id",
-					"name": "worker",
+					"name": "test-cluster.worker",
 					"creationTimestamp": "2024-01-01T00:00:00Z"
 				},
 				"spec": {
 					"autoRepair": false,
 					"nodePool": {
-						"clusterName": "test-cluster-id",
+						"clusterName": "test-cluster",
 						"release": {
 							"image": ""
 						},
@@ -447,7 +453,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			hyperfleetServer.AppendHandlers(
 				// First apply: create with auto_repair=true
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
 					RespondWith(http.StatusOK, clusterResponse, header),
 				),
 				CombineHandlers(
@@ -457,19 +463,19 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				// Second apply: refresh (Read), then update to disable auto_repair.
 				// PostExpand fetches the parent cluster again before Update.
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-cluster.worker"),
 					RespondWith(http.StatusOK, createResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-cluster.worker"),
 					RespondWith(http.StatusOK, createResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
 					RespondWith(http.StatusOK, clusterResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-cluster.worker"),
 					RespondWith(http.StatusOK, updateResponse, header),
 				),
 			)
@@ -486,7 +492,8 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
 					cluster_id       = "test-cluster-id"
-					name             = "worker"
+					cluster_name     = "test-cluster"
+					name             = "test-cluster.worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = true
@@ -510,7 +517,8 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
 					cluster_id       = "test-cluster-id"
-					name             = "worker"
+					cluster_name     = "test-cluster"
+					name             = "test-cluster.worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = false
@@ -537,10 +545,11 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 		It("deletes a nodepool successfully", func() {
 			clusterResponse := `{
-				"id": "test-cluster-id",
-				"name": "test-cluster",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"metadata": {
+					"uid": "test-cluster-id",
+					"name": "test-cluster",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"hostedCluster": {
 						"platform": {
@@ -566,13 +575,13 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			createResponse := `{
 				"metadata": {
 					"uid": "test-nodepool-id",
-					"name": "worker",
+					"name": "test-cluster.worker",
 					"creationTimestamp": "2024-01-01T00:00:00Z"
 				},
 				"spec": {
 					"autoRepair": true,
 					"nodePool": {
-						"clusterName": "test-cluster-id",
+						"clusterName": "test-cluster",
 						"release": {
 							"image": ""
 						},
@@ -600,7 +609,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 			hyperfleetServer.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
 					RespondWith(http.StatusOK, clusterResponse, header),
 				),
 				CombineHandlers(
@@ -608,11 +617,11 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					RespondWith(http.StatusCreated, createResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-cluster.worker"),
 					RespondWith(http.StatusOK, createResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-nodepool-id"),
+					VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.worker"),
 					RespondWith(http.StatusNoContent, ""),
 				),
 			)
@@ -628,7 +637,8 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
 					cluster_id       = "test-cluster-id"
-					name             = "worker"
+					cluster_name     = "test-cluster"
+					name             = "test-cluster.worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = true

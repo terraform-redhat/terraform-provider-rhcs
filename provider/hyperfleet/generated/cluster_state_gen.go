@@ -14,13 +14,30 @@ import (
 type ClusterState struct {
 	Name                           types.String `tfsdk:"name"`
 	Id                             types.String `tfsdk:"id"`
+	AdditionalTrustBundle          types.String `tfsdk:"additional_trust_bundle"`
 	Delete_protection              types.Bool   `tfsdk:"delete_protection"`
-	Display_name                   types.String `tfsdk:"display_name"`
+	DnsReservationId               types.String `tfsdk:"dns_reservation_id"`
 	Expiration_timestamp           types.String `tfsdk:"expiration_timestamp"`
 	RoleARN                        types.String `tfsdk:"role_arn"`
 	Platform                       types.String `tfsdk:"platform"`
 	ProvisionerConfigName          types.String `tfsdk:"provisioner_config_name"`
+	BalancingIgnoredLabels         types.List   `tfsdk:"balancing_ignored_labels"`
+	Expanders                      types.List   `tfsdk:"expanders"`
+	MaxFreeDifferenceRatioPercent  types.Int64  `tfsdk:"max_free_difference_ratio_percent"`
+	MaxNodeProvisionTime           types.String `tfsdk:"max_node_provision_time"`
+	MaxNodesTotal                  types.Int64  `tfsdk:"max_nodes_total"`
+	MaxPodGracePeriod              types.Int64  `tfsdk:"max_pod_grace_period"`
+	PodPriorityThreshold           types.Int64  `tfsdk:"pod_priority_threshold"`
+	DelayAfterAddSeconds           types.Int64  `tfsdk:"delay_after_add_seconds"`
+	DelayAfterDeleteSeconds        types.Int64  `tfsdk:"delay_after_delete_seconds"`
+	DelayAfterFailureSeconds       types.Int64  `tfsdk:"delay_after_failure_seconds"`
+	UnneededDurationSeconds        types.Int64  `tfsdk:"unneeded_duration_seconds"`
+	UtilizationThresholdPercent    types.Int64  `tfsdk:"utilization_threshold_percent"`
+	Scaling                        types.String `tfsdk:"scaling"`
 	Channel                        types.String `tfsdk:"channel"`
+	OidcProviders                  types.String `tfsdk:"oidc_providers"`
+	AuthenticationType             types.String `tfsdk:"authentication_type"`
+	ComponentRoutes                types.String `tfsdk:"component_routes"`
 	ContainerLogMaxFiles           types.Int64  `tfsdk:"container_log_max_files"`
 	ContainerLogMaxSize            types.String `tfsdk:"container_log_max_size"`
 	ImageGCHighThresholdPercent    types.Int64  `tfsdk:"image_gc_high_threshold_percent"`
@@ -58,7 +75,7 @@ type ClusterState struct {
 	ControlPlaneARN                types.String `tfsdk:"control_plane_arn"`
 	SharedVPCRolesRefIngressARN    types.String `tfsdk:"shared_vpc_roles_ref_ingress_arn"`
 	TerminationHandlerQueueURL     types.String `tfsdk:"termination_handler_queue_url"`
-	Type                           types.String `tfsdk:"type"`
+	PlatformType                   types.String `tfsdk:"platform_type"`
 	Version                        types.String `tfsdk:"version"`
 	OidcConfigId                   types.String `tfsdk:"oidc_config_id"`
 	Properties                     types.Map    `tfsdk:"properties"`

@@ -15,13 +15,15 @@ type NodePoolState struct {
 	Name                          types.String `tfsdk:"name"`
 	Id                            types.String `tfsdk:"id"`
 	AutoRepair                    types.Bool   `tfsdk:"auto_repair"`
-	DisplayName                   types.String `tfsdk:"display_name"`
 	Labels                        types.Map    `tfsdk:"labels"`
+	MaxSurge                      types.String `tfsdk:"max_surge"`
+	MaxUnavailable                types.String `tfsdk:"max_unavailable"`
 	Max                           types.Int64  `tfsdk:"max"`
 	Min                           types.Int64  `tfsdk:"min"`
 	ClusterName                   types.String `tfsdk:"cluster_name"`
 	Config                        types.List   `tfsdk:"config"`
 	NodeDrainTimeout              types.String `tfsdk:"node_drain_timeout"`
+	NodeLabels                    types.Map    `tfsdk:"node_labels"`
 	Ami                           types.String `tfsdk:"ami"`
 	ImageType                     types.String `tfsdk:"image_type"`
 	InstanceProfile               types.String `tfsdk:"instance_profile"`
@@ -33,11 +35,7 @@ type NodePoolState struct {
 	MaxPrice                      types.String `tfsdk:"max_price"`
 	Tenancy                       types.String `tfsdk:"tenancy"`
 	ResourceTags                  types.String `tfsdk:"resource_tags"`
-	Encrypted                     types.Bool   `tfsdk:"encrypted"`
-	EncryptionKey                 types.String `tfsdk:"encryption_key"`
-	Iops                          types.Int64  `tfsdk:"iops"`
 	Size                          types.Int64  `tfsdk:"size"`
-	RootVolumeType                types.String `tfsdk:"root_volume_type"`
 	SecurityGroups                types.String `tfsdk:"security_groups"`
 	Filters                       types.String `tfsdk:"filters"`
 	SubnetId                      types.String `tfsdk:"subnet_id"`
@@ -61,8 +59,14 @@ func mergeResponseNodePool(plan, response *NodePoolState) {
 	}
 	// Only copy computed and required fields from response, skip optional fields
 	// to avoid overwriting user inputs with API-generated default values
+	if !response.Name.IsNull() {
+		plan.Name = response.Name
+	}
 	if !response.Id.IsNull() {
 		plan.Id = response.Id
+	}
+	if !response.ClusterName.IsNull() {
+		plan.ClusterName = response.ClusterName
 	}
 	if !response.Platform_type.IsNull() {
 		plan.Platform_type = response.Platform_type

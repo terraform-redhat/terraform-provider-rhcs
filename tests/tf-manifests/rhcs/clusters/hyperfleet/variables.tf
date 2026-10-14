@@ -82,3 +82,28 @@ variable "no_proxy" {
   description = "Optional comma-separated list of hosts excluded from proxying"
   default     = null
 }
+
+variable "autoscaler_max_node_provision_time" {
+  type    = string
+  default = null
+}
+
+variable "autoscaler_max_nodes_total" {
+  type    = number
+  default = null
+}
+
+variable "autoscaler_max_pod_grace_period" {
+  type    = number
+  default = null
+}
+
+variable "autoscaler_pod_priority_threshold" {
+  type    = number
+  default = null
+}
+
+variable "component_routes" {
+  type    = string
+  default = null
+}

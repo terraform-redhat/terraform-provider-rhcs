@@ -124,12 +124,16 @@ func (r *ClusterResource) Schema(
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"additional_trust_bundle": schema.StringAttribute{
+				MarkdownDescription: "AdditionalTrustBundle.",
+				Optional:            true,
+			},
 			"delete_protection": schema.BoolAttribute{
 				MarkdownDescription: "Delete_protection.",
 				Optional:            true,
 			},
-			"display_name": schema.StringAttribute{
-				MarkdownDescription: "Display_name.",
+			"dns_reservation_id": schema.StringAttribute{
+				MarkdownDescription: "DnsReservationId.",
 				Optional:            true,
 			},
 			"expiration_timestamp": schema.StringAttribute{
@@ -148,8 +152,74 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "ProvisionerConfigName.",
 				Optional:            true,
 			},
+			"balancing_ignored_labels": schema.ListAttribute{
+				MarkdownDescription: "BalancingIgnoredLabels.",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
+			"expanders": schema.ListAttribute{
+				MarkdownDescription: "Expanders.",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
+			"max_free_difference_ratio_percent": schema.Int64Attribute{
+				MarkdownDescription: "MaxFreeDifferenceRatioPercent.",
+				Optional:            true,
+			},
+			"max_node_provision_time": schema.StringAttribute{
+				MarkdownDescription: "MaxNodeProvisionTime.",
+				Optional:            true,
+			},
+			"max_nodes_total": schema.Int64Attribute{
+				MarkdownDescription: "MaxNodesTotal.",
+				Optional:            true,
+			},
+			"max_pod_grace_period": schema.Int64Attribute{
+				MarkdownDescription: "MaxPodGracePeriod.",
+				Optional:            true,
+			},
+			"pod_priority_threshold": schema.Int64Attribute{
+				MarkdownDescription: "PodPriorityThreshold.",
+				Optional:            true,
+			},
+			"delay_after_add_seconds": schema.Int64Attribute{
+				MarkdownDescription: "DelayAfterAddSeconds.",
+				Optional:            true,
+			},
+			"delay_after_delete_seconds": schema.Int64Attribute{
+				MarkdownDescription: "DelayAfterDeleteSeconds.",
+				Optional:            true,
+			},
+			"delay_after_failure_seconds": schema.Int64Attribute{
+				MarkdownDescription: "DelayAfterFailureSeconds.",
+				Optional:            true,
+			},
+			"unneeded_duration_seconds": schema.Int64Attribute{
+				MarkdownDescription: "UnneededDurationSeconds.",
+				Optional:            true,
+			},
+			"utilization_threshold_percent": schema.Int64Attribute{
+				MarkdownDescription: "UtilizationThresholdPercent.",
+				Optional:            true,
+			},
+			"scaling": schema.StringAttribute{
+				MarkdownDescription: "Scaling.",
+				Optional:            true,
+			},
 			"channel": schema.StringAttribute{
 				MarkdownDescription: "Channel.",
+				Optional:            true,
+			},
+			"oidc_providers": schema.StringAttribute{
+				MarkdownDescription: "OidcProviders.",
+				Optional:            true,
+			},
+			"authentication_type": schema.StringAttribute{
+				MarkdownDescription: "AuthenticationType.",
+				Optional:            true,
+			},
+			"component_routes": schema.StringAttribute{
+				MarkdownDescription: "ComponentRoutes.",
 				Optional:            true,
 			},
 			"container_log_max_files": schema.Int64Attribute{
@@ -305,8 +375,8 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "TerminationHandlerQueueURL.",
 				Optional:            true,
 			},
-			"type": schema.StringAttribute{
-				MarkdownDescription: "Type.",
+			"platform_type": schema.StringAttribute{
+				MarkdownDescription: "PlatformType.",
 				Optional:            true,
 			},
 			"version": schema.StringAttribute{
@@ -480,10 +550,7 @@ func (r *ClusterResource) Create(
 		return
 	}
 
-	// Create via API
-	// For namespaced resources, obj.GetNamespace() reflects the value the handler's
-	// PostExpand set on the SDK object; passing it here keeps the client-scoped
-	// namespace and the object's namespace in sync.
+	// Create via API. The Platform API derives the account namespace internally.
 	created, err := r.Client.HyperfleetV1alpha1().Clusters().Create(ctx, obj, hfwrappers.CreateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create Cluster", err.Error())
@@ -540,8 +607,8 @@ func (r *ClusterResource) Read(
 		return
 	}
 
-	// Get current resource from API
-	obj, err := r.Client.HyperfleetV1alpha1().Clusters().Get(ctx, state.Id.ValueString(), hfwrappers.GetOptions{})
+	// Platform API routes by account-scoped metadata.name; metadata.uid remains the Terraform identity.
+	obj, err := r.Client.HyperfleetV1alpha1().Clusters().Get(ctx, state.Name.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -616,8 +683,8 @@ func (r *ClusterResource) Update(
 		return
 	}
 
-	// Fetch the current object so fields not represented in Terraform are preserved.
-	obj, err := r.Client.HyperfleetV1alpha1().Clusters().Get(ctx, plan.Id.ValueString(), hfwrappers.GetOptions{})
+	// Fetch by account-scoped metadata.name so fields not represented in Terraform are preserved.
+	obj, err := r.Client.HyperfleetV1alpha1().Clusters().Get(ctx, plan.Name.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read Cluster for update", err.Error())
 		return
@@ -636,7 +703,7 @@ func (r *ClusterResource) Update(
 		return
 	}
 
-	// Update via API
+	// Update via API. The Platform API derives the account namespace internally.
 	updated, err := r.Client.HyperfleetV1alpha1().Clusters().Update(ctx, obj, hfwrappers.UpdateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update Cluster", err.Error())
@@ -693,7 +760,7 @@ func (r *ClusterResource) Delete(
 		return
 	}
 
-	err := r.Client.HyperfleetV1alpha1().Clusters().Delete(ctx, state.Id.ValueString(), hfwrappers.DeleteOptions{})
+	err := r.Client.HyperfleetV1alpha1().Clusters().Delete(ctx, state.Name.ValueString(), hfwrappers.DeleteOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to delete Cluster", err.Error())
 		return
@@ -718,7 +785,8 @@ func (r *ClusterResource) ImportState(
 		return
 	}
 
-	// Use the ID passed in as the Cluster identifier
+	// Import IDs are account-scoped metadata.name values because the Platform API
+	// routes by name; Flatten populates the server UID into the Terraform state ID.
 	obj, err := r.Client.HyperfleetV1alpha1().Clusters().Get(ctx, req.ID, hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to import Cluster", err.Error())
@@ -768,11 +836,14 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.Id.IsNull() && !tf.Id.IsUnknown() {
 		native.Id = tf.Id.ValueString()
 	}
+	if !tf.AdditionalTrustBundle.IsNull() && !tf.AdditionalTrustBundle.IsUnknown() {
+		native.AdditionalTrustBundle = tf.AdditionalTrustBundle.ValueString()
+	}
 	if !tf.Delete_protection.IsNull() && !tf.Delete_protection.IsUnknown() {
 		native.Delete_protection = tf.Delete_protection.ValueBool()
 	}
-	if !tf.Display_name.IsNull() && !tf.Display_name.IsUnknown() {
-		native.Display_name = tf.Display_name.ValueString()
+	if !tf.DnsReservationId.IsNull() && !tf.DnsReservationId.IsUnknown() {
+		native.DnsReservationId = tf.DnsReservationId.ValueString()
 	}
 	if !tf.Expiration_timestamp.IsNull() && !tf.Expiration_timestamp.IsUnknown() {
 		native.Expiration_timestamp = tf.Expiration_timestamp.ValueString()
@@ -786,8 +857,114 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.ProvisionerConfigName.IsNull() && !tf.ProvisionerConfigName.IsUnknown() {
 		native.ProvisionerConfigName = tf.ProvisionerConfigName.ValueString()
 	}
+	if !tf.BalancingIgnoredLabels.IsNull() && !tf.BalancingIgnoredLabels.IsUnknown() {
+		items, collectionDiags := terraformListToStringSlice(tf.BalancingIgnoredLabels)
+		diags = append(diags, collectionDiags...)
+		native.BalancingIgnoredLabels = items
+	}
+	if !tf.Expanders.IsNull() && !tf.Expanders.IsUnknown() {
+		items, collectionDiags := terraformListToStringSlice(tf.Expanders)
+		diags = append(diags, collectionDiags...)
+		native.Expanders = items
+	}
+	if !tf.MaxFreeDifferenceRatioPercent.IsNull() && !tf.MaxFreeDifferenceRatioPercent.IsUnknown() {
+		value := tf.MaxFreeDifferenceRatioPercent.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field MaxFreeDifferenceRatioPercent value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.MaxFreeDifferenceRatioPercent = &i
+		}
+	}
+	if !tf.MaxNodeProvisionTime.IsNull() && !tf.MaxNodeProvisionTime.IsUnknown() {
+		native.MaxNodeProvisionTime = tf.MaxNodeProvisionTime.ValueString()
+	}
+	if !tf.MaxNodesTotal.IsNull() && !tf.MaxNodesTotal.IsUnknown() {
+		value := tf.MaxNodesTotal.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field MaxNodesTotal value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.MaxNodesTotal = &i
+		}
+	}
+	if !tf.MaxPodGracePeriod.IsNull() && !tf.MaxPodGracePeriod.IsUnknown() {
+		value := tf.MaxPodGracePeriod.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field MaxPodGracePeriod value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.MaxPodGracePeriod = &i
+		}
+	}
+	if !tf.PodPriorityThreshold.IsNull() && !tf.PodPriorityThreshold.IsUnknown() {
+		value := tf.PodPriorityThreshold.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field PodPriorityThreshold value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.PodPriorityThreshold = &i
+		}
+	}
+	if !tf.DelayAfterAddSeconds.IsNull() && !tf.DelayAfterAddSeconds.IsUnknown() {
+		value := tf.DelayAfterAddSeconds.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field DelayAfterAddSeconds value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.DelayAfterAddSeconds = &i
+		}
+	}
+	if !tf.DelayAfterDeleteSeconds.IsNull() && !tf.DelayAfterDeleteSeconds.IsUnknown() {
+		value := tf.DelayAfterDeleteSeconds.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field DelayAfterDeleteSeconds value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.DelayAfterDeleteSeconds = &i
+		}
+	}
+	if !tf.DelayAfterFailureSeconds.IsNull() && !tf.DelayAfterFailureSeconds.IsUnknown() {
+		value := tf.DelayAfterFailureSeconds.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field DelayAfterFailureSeconds value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.DelayAfterFailureSeconds = &i
+		}
+	}
+	if !tf.UnneededDurationSeconds.IsNull() && !tf.UnneededDurationSeconds.IsUnknown() {
+		value := tf.UnneededDurationSeconds.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field UnneededDurationSeconds value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.UnneededDurationSeconds = &i
+		}
+	}
+	if !tf.UtilizationThresholdPercent.IsNull() && !tf.UtilizationThresholdPercent.IsUnknown() {
+		value := tf.UtilizationThresholdPercent.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field UtilizationThresholdPercent value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.UtilizationThresholdPercent = &i
+		}
+	}
+	if !tf.Scaling.IsNull() && !tf.Scaling.IsUnknown() {
+		native.Scaling = tf.Scaling.ValueString()
+	}
 	if !tf.Channel.IsNull() && !tf.Channel.IsUnknown() {
 		native.Channel = tf.Channel.ValueString()
+	}
+	if !tf.OidcProviders.IsNull() && !tf.OidcProviders.IsUnknown() {
+		native.OidcProviders = tf.OidcProviders.ValueString()
+	}
+	if !tf.AuthenticationType.IsNull() && !tf.AuthenticationType.IsUnknown() {
+		native.AuthenticationType = tf.AuthenticationType.ValueString()
+	}
+	if !tf.ComponentRoutes.IsNull() && !tf.ComponentRoutes.IsUnknown() {
+		native.ComponentRoutes = tf.ComponentRoutes.ValueString()
 	}
 	if !tf.ContainerLogMaxFiles.IsNull() && !tf.ContainerLogMaxFiles.IsUnknown() {
 		value := tf.ContainerLogMaxFiles.ValueInt64()
@@ -948,8 +1125,8 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.TerminationHandlerQueueURL.IsNull() && !tf.TerminationHandlerQueueURL.IsUnknown() {
 		native.TerminationHandlerQueueURL = tf.TerminationHandlerQueueURL.ValueString()
 	}
-	if !tf.Type.IsNull() && !tf.Type.IsUnknown() {
-		native.Type = tf.Type.ValueString()
+	if !tf.PlatformType.IsNull() && !tf.PlatformType.IsUnknown() {
+		native.PlatformType = tf.PlatformType.ValueString()
 	}
 	if !tf.Version.IsNull() && !tf.Version.IsUnknown() {
 		native.Version = tf.Version.ValueString()
@@ -1016,13 +1193,30 @@ func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.D
 	var diags diag.Diagnostics
 	tf.Name = toTerraformString(native.Name)
 	tf.Id = toTerraformString(native.Id)
+	tf.AdditionalTrustBundle = toTerraformString(native.AdditionalTrustBundle)
 	tf.Delete_protection = toTerraformBool(native.Delete_protection)
-	tf.Display_name = toTerraformString(native.Display_name)
+	tf.DnsReservationId = toTerraformString(native.DnsReservationId)
 	tf.Expiration_timestamp = toTerraformString(native.Expiration_timestamp)
 	tf.RoleARN = toTerraformString(native.RoleARN)
 	tf.Platform = toTerraformString(native.Platform)
 	tf.ProvisionerConfigName = toTerraformString(native.ProvisionerConfigName)
+	tf.BalancingIgnoredLabels = toTerraformList(native.BalancingIgnoredLabels)
+	tf.Expanders = toTerraformList(native.Expanders)
+	tf.MaxFreeDifferenceRatioPercent = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.MaxFreeDifferenceRatioPercent))
+	tf.MaxNodeProvisionTime = toTerraformString(native.MaxNodeProvisionTime)
+	tf.MaxNodesTotal = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.MaxNodesTotal))
+	tf.MaxPodGracePeriod = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.MaxPodGracePeriod))
+	tf.PodPriorityThreshold = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.PodPriorityThreshold))
+	tf.DelayAfterAddSeconds = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.DelayAfterAddSeconds))
+	tf.DelayAfterDeleteSeconds = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.DelayAfterDeleteSeconds))
+	tf.DelayAfterFailureSeconds = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.DelayAfterFailureSeconds))
+	tf.UnneededDurationSeconds = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.UnneededDurationSeconds))
+	tf.UtilizationThresholdPercent = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.UtilizationThresholdPercent))
+	tf.Scaling = toTerraformString(native.Scaling)
 	tf.Channel = toTerraformString(native.Channel)
+	tf.OidcProviders = toTerraformString(native.OidcProviders)
+	tf.AuthenticationType = toTerraformString(native.AuthenticationType)
+	tf.ComponentRoutes = toTerraformString(native.ComponentRoutes)
 	tf.ContainerLogMaxFiles = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.ContainerLogMaxFiles))
 	tf.ContainerLogMaxSize = toTerraformString(native.ContainerLogMaxSize)
 	tf.ImageGCHighThresholdPercent = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.ImageGCHighThresholdPercent))
@@ -1060,7 +1254,7 @@ func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.D
 	tf.ControlPlaneARN = toTerraformString(native.ControlPlaneARN)
 	tf.SharedVPCRolesRefIngressARN = toTerraformString(native.SharedVPCRolesRefIngressARN)
 	tf.TerminationHandlerQueueURL = toTerraformString(native.TerminationHandlerQueueURL)
-	tf.Type = toTerraformString(native.Type)
+	tf.PlatformType = toTerraformString(native.PlatformType)
 	tf.Version = toTerraformString(native.Version)
 	tf.OidcConfigId = toTerraformString(native.OidcConfigId)
 	tf.Properties = toTerraformMap(native.Properties)

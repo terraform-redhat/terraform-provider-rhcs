@@ -245,7 +245,7 @@ generate-hyperfleet:
 		--mode=tf \
 		--draft="$$HYPERFLEET_TMPDIR/clientset/pathbind/pathbind-draft.yaml" \
 		--overrides=provider/hyperfleet/pathbind-overrides.yaml \
-		--output-dir="$$OUTPUT_DIR"; \
+		--output-dir="$$OUTPUT_DIR" || exit 1; \
 	echo "Generated files written to $$OUTPUT_DIR"
 
 .PHONY: docs

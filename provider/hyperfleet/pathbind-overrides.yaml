@@ -23,11 +23,6 @@ resources:
         description: "Human-readable cluster name. Immutable after creation."
 
       # optional mutable cluster metadata fields
-      - path: spec.displayName
-        alias: display_name
-        type: string
-        description: "Optional display name for the cluster. Can be updated after cluster creation."
-
       - path: spec.deleteProtection
         alias: delete_protection
         type: bool
@@ -90,8 +85,20 @@ resources:
         type: string
         description: "Scheduler profile used by the hosted cluster. Valid values are LowNodeUtilization, HighNodeUtilization, and NoScoring."
 
-      # Complex SDK values use explicit Terraform representations. Arrays are
-      # JSON strings because the draft does not retain their element schemas.
+      # Nested object arrays use JSON strings because list(object) currently
+      # supports only scalar element attributes.
+      - path: spec.hostedCluster.configuration.authentication.oidcProviders
+        alias: oidc_providers
+        goName: OidcProviders
+        type: string
+        description: "OIDC identity provider configurations encoded as a JSON array."
+      - path: spec.hostedCluster.configuration.ingress.componentRoutes
+        alias: component_routes
+        goName: ComponentRoutes
+        type: string
+        description: "Custom component routes encoded as a JSON array."
+
+      # Complex SDK values use explicit Terraform representations.
       - path: spec.hostedCluster.configuration.kubelet.kubeReserved
         type: map
       - path: spec.hostedCluster.configuration.kubelet.systemReserved
@@ -192,10 +199,24 @@ resources:
 
   nodePool:
     aliases:
+      - path: metadata.name
+        alias: name
+        type: string
+        required: true
+        immutable: true
+        description: "Client-selected NodePool name in <cluster>.<child> form."
       - path: metadata.uid
         alias: id
         type: string
         computed: true
+
+      - path: spec.nodePool.clusterName
+        alias: cluster_name
+        goName: ClusterName
+        type: string
+        required: true
+        immutable: true
+        description: "Name of the parent cluster; must match the NodePool name prefix."
 
       - path: spec.nodePool.platform.type
         alias: platform_type
@@ -251,7 +272,7 @@ resources:
         immutable: true
         operations:
           - create
-        description: "ID of the parent cluster."
+        description: "UID of the parent cluster; validated against cluster_name."
 
       - alias: phase
         type: string
@@ -265,8 +286,9 @@ resources:
       - path: metadata.name
         alias: name
         type: string
-        computed: true
-        description: "Server-generated OIDC configuration name."
+        required: true
+        immutable: true
+        description: "Client-selected OIDC configuration name."
 
       - path: metadata.uid
         alias: id
@@ -281,6 +303,7 @@ resources:
         immutable: true
       - path: spec.type
         type: string
+        required: true
         immutable: true
       - path: spec.issuerUrl
         alias: issuer_url

@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -54,12 +53,6 @@ type NodePoolHandler interface {
 	// Use this to populate computed fields, adjust state values, or perform post-processing
 	// that requires access to both the API response and the state being built.
 	PostFlatten(ctx context.Context, state *NodePoolState, resp *v1alpha1.NodePool)
-
-	// Namespace derives the K8s namespace for this resource from state fields
-	// (e.g. a parent ID). Used by Read/Delete/ImportState, which only have
-	// access to Terraform state (no SDK object) before calling the API.
-	// Must be a pure, side-effect-free computation (no API calls).
-	Namespace(ctx context.Context, state *NodePoolState) string
 }
 
 // NodePoolResource manages NodePool resources via the hyperfleet Platform API.
@@ -117,7 +110,10 @@ func (r *NodePoolResource) Schema(
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name.",
-				Optional:            true,
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"id": schema.StringAttribute{
 				MarkdownDescription: "Id.",
@@ -130,14 +126,18 @@ func (r *NodePoolResource) Schema(
 				MarkdownDescription: "AutoRepair.",
 				Optional:            true,
 			},
-			"display_name": schema.StringAttribute{
-				MarkdownDescription: "DisplayName.",
-				Optional:            true,
-			},
 			"labels": schema.MapAttribute{
 				MarkdownDescription: "Labels.",
 				Optional:            true,
 				ElementType:         types.StringType,
+			},
+			"max_surge": schema.StringAttribute{
+				MarkdownDescription: "MaxSurge.",
+				Optional:            true,
+			},
+			"max_unavailable": schema.StringAttribute{
+				MarkdownDescription: "MaxUnavailable.",
+				Optional:            true,
 			},
 			"max": schema.Int64Attribute{
 				MarkdownDescription: "Max.",
@@ -149,7 +149,10 @@ func (r *NodePoolResource) Schema(
 			},
 			"cluster_name": schema.StringAttribute{
 				MarkdownDescription: "ClusterName.",
-				Optional:            true,
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"config": schema.ListNestedAttribute{
 				MarkdownDescription: "ConfigMap references containing serialized nodepool configuration.",
@@ -166,6 +169,11 @@ func (r *NodePoolResource) Schema(
 			"node_drain_timeout": schema.StringAttribute{
 				MarkdownDescription: "NodeDrainTimeout.",
 				Optional:            true,
+			},
+			"node_labels": schema.MapAttribute{
+				MarkdownDescription: "NodeLabels.",
+				Optional:            true,
+				ElementType:         types.StringType,
 			},
 			"ami": schema.StringAttribute{
 				MarkdownDescription: "Ami.",
@@ -211,24 +219,8 @@ func (r *NodePoolResource) Schema(
 				MarkdownDescription: "ResourceTags.",
 				Optional:            true,
 			},
-			"encrypted": schema.BoolAttribute{
-				MarkdownDescription: "Encrypted.",
-				Optional:            true,
-			},
-			"encryption_key": schema.StringAttribute{
-				MarkdownDescription: "EncryptionKey.",
-				Optional:            true,
-			},
-			"iops": schema.Int64Attribute{
-				MarkdownDescription: "Iops.",
-				Optional:            true,
-			},
 			"size": schema.Int64Attribute{
 				MarkdownDescription: "Size.",
-				Optional:            true,
-			},
-			"root_volume_type": schema.StringAttribute{
-				MarkdownDescription: "RootVolumeType.",
 				Optional:            true,
 			},
 			"security_groups": schema.StringAttribute{
@@ -355,11 +347,8 @@ func (r *NodePoolResource) Create(
 		return
 	}
 
-	// Create via API
-	// For namespaced resources, obj.GetNamespace() reflects the value the handler's
-	// PostExpand set on the SDK object; passing it here keeps the client-scoped
-	// namespace and the object's namespace in sync.
-	created, err := r.Client.HyperfleetV1alpha1().NodePools(obj.GetNamespace()).Create(ctx, obj, hfwrappers.CreateOptions{})
+	// Create via API. The Platform API derives the account namespace internally.
+	created, err := r.Client.HyperfleetV1alpha1().NodePools().Create(ctx, obj, hfwrappers.CreateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create NodePool", err.Error())
 		return
@@ -415,8 +404,8 @@ func (r *NodePoolResource) Read(
 		return
 	}
 
-	// Get current resource from API
-	obj, err := r.Client.HyperfleetV1alpha1().NodePools(r.Handler.Namespace(ctx, &state)).Get(ctx, state.Id.ValueString(), hfwrappers.GetOptions{})
+	// Platform API routes by account-scoped metadata.name; metadata.uid remains the Terraform identity.
+	obj, err := r.Client.HyperfleetV1alpha1().NodePools().Get(ctx, state.Name.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -491,8 +480,8 @@ func (r *NodePoolResource) Update(
 		return
 	}
 
-	// Fetch the current object so fields not represented in Terraform are preserved.
-	obj, err := r.Client.HyperfleetV1alpha1().NodePools(r.Handler.Namespace(ctx, &plan)).Get(ctx, plan.Id.ValueString(), hfwrappers.GetOptions{})
+	// Fetch by account-scoped metadata.name so fields not represented in Terraform are preserved.
+	obj, err := r.Client.HyperfleetV1alpha1().NodePools().Get(ctx, plan.Name.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read NodePool for update", err.Error())
 		return
@@ -511,8 +500,8 @@ func (r *NodePoolResource) Update(
 		return
 	}
 
-	// Update via API
-	updated, err := r.Client.HyperfleetV1alpha1().NodePools(obj.GetNamespace()).Update(ctx, obj, hfwrappers.UpdateOptions{})
+	// Update via API. The Platform API derives the account namespace internally.
+	updated, err := r.Client.HyperfleetV1alpha1().NodePools().Update(ctx, obj, hfwrappers.UpdateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update NodePool", err.Error())
 		return
@@ -568,7 +557,7 @@ func (r *NodePoolResource) Delete(
 		return
 	}
 
-	err := r.Client.HyperfleetV1alpha1().NodePools(r.Handler.Namespace(ctx, &state)).Delete(ctx, state.Id.ValueString(), hfwrappers.DeleteOptions{})
+	err := r.Client.HyperfleetV1alpha1().NodePools().Delete(ctx, state.Name.ValueString(), hfwrappers.DeleteOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to delete NodePool", err.Error())
 		return
@@ -593,17 +582,9 @@ func (r *NodePoolResource) ImportState(
 		return
 	}
 
-	// Use the ID passed in as the NodePool identifier
-	parts := strings.SplitN(req.ID, "/", 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		resp.Diagnostics.AddError("Invalid NodePool import ID", "expected namespace/id")
-		return
-	}
-	namespace := parts[0]
-	if !strings.HasPrefix(namespace, "cluster-") {
-		namespace = "cluster-" + namespace
-	}
-	obj, err := r.Client.HyperfleetV1alpha1().NodePools(namespace).Get(ctx, parts[1], hfwrappers.GetOptions{})
+	// Import IDs are account-scoped metadata.name values because the Platform API
+	// routes by name; Flatten populates the server UID into the Terraform state ID.
+	obj, err := r.Client.HyperfleetV1alpha1().NodePools().Get(ctx, req.ID, hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to import NodePool", err.Error())
 		return
@@ -656,13 +637,16 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 		b := tf.AutoRepair.ValueBool()
 		native.AutoRepair = &b
 	}
-	if !tf.DisplayName.IsNull() && !tf.DisplayName.IsUnknown() {
-		native.DisplayName = tf.DisplayName.ValueString()
-	}
 	if !tf.Labels.IsNull() && !tf.Labels.IsUnknown() {
 		values, collectionDiags := terraformMapToStringMap(tf.Labels)
 		diags = append(diags, collectionDiags...)
 		native.Labels = values
+	}
+	if !tf.MaxSurge.IsNull() && !tf.MaxSurge.IsUnknown() {
+		native.MaxSurge = tf.MaxSurge.ValueString()
+	}
+	if !tf.MaxUnavailable.IsNull() && !tf.MaxUnavailable.IsUnknown() {
+		native.MaxUnavailable = tf.MaxUnavailable.ValueString()
 	}
 	if !tf.Max.IsNull() && !tf.Max.IsUnknown() {
 		value := tf.Max.ValueInt64()
@@ -692,6 +676,11 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 	}
 	if !tf.NodeDrainTimeout.IsNull() && !tf.NodeDrainTimeout.IsUnknown() {
 		native.NodeDrainTimeout = tf.NodeDrainTimeout.ValueString()
+	}
+	if !tf.NodeLabels.IsNull() && !tf.NodeLabels.IsUnknown() {
+		values, collectionDiags := terraformMapToStringMap(tf.NodeLabels)
+		diags = append(diags, collectionDiags...)
+		native.NodeLabels = values
 	}
 	if !tf.Ami.IsNull() && !tf.Ami.IsUnknown() {
 		native.Ami = tf.Ami.ValueString()
@@ -726,23 +715,9 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 	if !tf.ResourceTags.IsNull() && !tf.ResourceTags.IsUnknown() {
 		native.ResourceTags = tf.ResourceTags.ValueString()
 	}
-	if !tf.Encrypted.IsNull() && !tf.Encrypted.IsUnknown() {
-		b := tf.Encrypted.ValueBool()
-		native.Encrypted = &b
-	}
-	if !tf.EncryptionKey.IsNull() && !tf.EncryptionKey.IsUnknown() {
-		native.EncryptionKey = tf.EncryptionKey.ValueString()
-	}
-	if !tf.Iops.IsNull() && !tf.Iops.IsUnknown() {
-		i := tf.Iops.ValueInt64()
-		native.Iops = &i
-	}
 	if !tf.Size.IsNull() && !tf.Size.IsUnknown() {
 		i := tf.Size.ValueInt64()
 		native.Size = &i
-	}
-	if !tf.RootVolumeType.IsNull() && !tf.RootVolumeType.IsUnknown() {
-		native.RootVolumeType = tf.RootVolumeType.ValueString()
 	}
 	if !tf.SecurityGroups.IsNull() && !tf.SecurityGroups.IsUnknown() {
 		native.SecurityGroups = tf.SecurityGroups.ValueString()
@@ -798,8 +773,9 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 	tf.Name = toTerraformString(native.Name)
 	tf.Id = toTerraformString(native.Id)
 	tf.AutoRepair = toTerraformBoolPtr(native.AutoRepair)
-	tf.DisplayName = toTerraformString(native.DisplayName)
 	tf.Labels = toTerraformMap(native.Labels)
+	tf.MaxSurge = toTerraformString(native.MaxSurge)
+	tf.MaxUnavailable = toTerraformString(native.MaxUnavailable)
 	tf.Max = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.Max))
 	tf.Min = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.Min))
 	tf.ClusterName = toTerraformString(native.ClusterName)
@@ -811,6 +787,7 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 		diags = append(diags, collectionDiags...)
 	}
 	tf.NodeDrainTimeout = toTerraformString(native.NodeDrainTimeout)
+	tf.NodeLabels = toTerraformMap(native.NodeLabels)
 	tf.Ami = toTerraformString(native.Ami)
 	tf.ImageType = toTerraformString(native.ImageType)
 	tf.InstanceProfile = toTerraformString(native.InstanceProfile)
@@ -822,11 +799,7 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 	tf.MaxPrice = toTerraformString(native.MaxPrice)
 	tf.Tenancy = toTerraformString(native.Tenancy)
 	tf.ResourceTags = toTerraformString(native.ResourceTags)
-	tf.Encrypted = toTerraformBoolPtr(native.Encrypted)
-	tf.EncryptionKey = toTerraformString(native.EncryptionKey)
-	tf.Iops = toTerraformInt64Ptr(normalizeOptionalInt64(native.Iops))
 	tf.Size = toTerraformInt64Ptr(normalizeOptionalInt64(native.Size))
-	tf.RootVolumeType = toTerraformString(native.RootVolumeType)
 	tf.SecurityGroups = toTerraformString(native.SecurityGroups)
 	tf.Filters = toTerraformString(native.Filters)
 	tf.SubnetId = toTerraformString(native.SubnetId)

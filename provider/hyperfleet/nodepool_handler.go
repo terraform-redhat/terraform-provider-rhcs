@@ -19,6 +19,7 @@ package hyperfleet
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -49,6 +50,17 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 		diags.AddError("name is required", "NodePool name must be specified")
 		return diags
 	}
+	if input.ClusterName.IsNull() || input.ClusterName.ValueString() == "" {
+		diags.AddError("cluster_name is required", "Parent cluster name must be specified to create a NodePool")
+		return diags
+	}
+	if !strings.HasPrefix(input.Name.ValueString(), input.ClusterName.ValueString()+".") {
+		diags.AddError(
+			"invalid NodePool name",
+			fmt.Sprintf("NodePool name %q must start with parent cluster name %q followed by a dot", input.Name.ValueString(), input.ClusterName.ValueString()),
+		)
+		return diags
+	}
 
 	if input.Cluster_id.IsNull() || input.Cluster_id.ValueString() == "" {
 		diags.AddError("cluster_id is required", "Cluster ID must be specified to create a NodePool")
@@ -73,31 +85,35 @@ func (h *NodePoolHandlerImpl) PostExpand(
 
 	// Compute the worker instance profile from the parent cluster's operator roles prefix
 	// This is required for CAPA to correctly assign IAM permissions to worker nodes
+	clusterName := input.ClusterName.ValueString()
 	clusterID := input.Cluster_id.ValueString()
-	if clusterID != "" {
-		cluster, err := h.client.HyperfleetV1alpha1().Clusters().Get(ctx, clusterID, hfwrappers.GetOptions{})
+	if clusterName != "" {
+		cluster, err := h.client.HyperfleetV1alpha1().Clusters().Get(ctx, clusterName, hfwrappers.GetOptions{})
 		if err != nil {
 			diags.AddError(
 				"Failed to get parent cluster",
 				fmt.Sprintf(
 					"Cannot compute worker instance profile: failed to retrieve cluster %q: %v",
-					clusterID,
+					clusterName,
 					err,
 				),
 			)
 			return diags
 		}
-
-		// Set the nodepool namespace to match the cluster's namespace (cluster-<clusterID>)
-		// The API requires the namespace in the format "cluster-<uuid>"
-		obj.SetNamespace(fmt.Sprintf("cluster-%s", clusterID))
+		if string(cluster.UID) != clusterID {
+			diags.AddError(
+				"Parent cluster identity mismatch",
+				fmt.Sprintf("cluster_id %q does not match cluster_name %q (UID %q)", clusterID, clusterName, cluster.UID),
+			)
+			return diags
+		}
 
 		if cluster.Spec.HostedCluster.Platform.AWS == nil {
 			diags.AddError(
 				"Parent cluster has no AWS configuration",
 				fmt.Sprintf(
 					"Cannot compute worker instance profile: parent cluster %q has no AWS platform configuration",
-					clusterID,
+					clusterName,
 				),
 			)
 			return diags
@@ -108,14 +124,14 @@ func (h *NodePoolHandlerImpl) PostExpand(
 			diags.AddError(
 				"Cannot derive operator roles prefix",
 				fmt.Sprintf("Could not derive the operator roles prefix from parent cluster %q RolesRef. "+
-					"The worker instance profile is required; without it the create fails.", clusterID),
+					"The worker instance profile is required; without it the create fails.", clusterName),
 			)
 			return diags
 		}
 
 		// Set the instance profile
 		if obj.Spec.NodePool.Platform.AWS == nil {
-			obj.Spec.NodePool.Platform.AWS = &hypershiftv1beta1.AWSNodePoolPlatform{}
+			obj.Spec.NodePool.Platform.AWS = &v1alpha1.AWSNodePoolPlatform{}
 		}
 		obj.Spec.NodePool.Platform.AWS.InstanceProfile = prefix + workerInstanceProfileSuffix
 	}
@@ -126,13 +142,6 @@ func (h *NodePoolHandlerImpl) PostExpand(
 // PostResponse is called after API operations
 func (h *NodePoolHandlerImpl) PostResponse(ctx context.Context, resp *v1alpha1.NodePool) diag.Diagnostics {
 	return diag.Diagnostics{}
-}
-
-// Namespace derives the K8s namespace ("cluster-<uuid>") for this NodePool from
-// state.Cluster_id. Used by Read/Delete/ImportState, which only have access to
-// Terraform state (no SDK object) before calling the API. Must be side-effect-free.
-func (h *NodePoolHandlerImpl) Namespace(ctx context.Context, state *NodePoolState) string {
-	return fmt.Sprintf("cluster-%s", state.Cluster_id.ValueString())
 }
 
 // PostFlatten populates computed fields in the state from the API response

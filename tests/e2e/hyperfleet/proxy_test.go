@@ -34,10 +34,11 @@ var _ = Describe("Hyperfleet proxy", func() {
 		clusterOutput, err := clusterSvc.Output()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(clusterOutput.ClusterID).NotTo(BeEmpty(), fmt.Sprintf("proxy checks require existing cluster Terraform state in workspace %q", workspace))
-		clusterID := clusterOutput.ClusterID
 		clusterArgs, err := clusterSvc.ReadTFVars()
 		Expect(err).NotTo(HaveOccurred())
 		originalArgs := *clusterArgs
+		Expect(clusterArgs.ClusterName).NotTo(BeNil(), "proxy checks require the cluster name for Platform API lookups")
+		Expect(*clusterArgs.ClusterName).To(Equal(clusterName))
 		runProxyValidationChecks := strings.EqualFold(os.Getenv("HYPERFLEET_PROXY_VALIDATION_TEST"), "true")
 		invalidHTTPProxy := "http://proxy.example.com/" + strings.Repeat("x", 2049)
 
@@ -57,7 +58,7 @@ var _ = Describe("Hyperfleet proxy", func() {
 
 		hfClient := mustBuildHyperfleetClient(hyperfleetURL, awsRegion)
 		clusters := hfClient.HyperfleetV1alpha1().Clusters()
-		currentCluster, err := clusters.Get(ctx, clusterID, hfplatform.GetOptions{})
+		currentCluster, err := clusters.Get(ctx, clusterName, hfplatform.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		originalArgs.HTTPProxy = nil
 		originalArgs.HTTPSProxy = nil
@@ -72,7 +73,7 @@ var _ = Describe("Hyperfleet proxy", func() {
 		}
 		verifyClusterProxy := func(waitCtx context.Context, wantHTTP, wantHTTPS, wantNo string) {
 			Eventually(func() bool {
-				cluster, getErr := clusters.Get(waitCtx, clusterID, hfplatform.GetOptions{})
+				cluster, getErr := clusters.Get(waitCtx, clusterName, hfplatform.GetOptions{})
 				if getErr != nil {
 					return false
 				}
@@ -133,7 +134,7 @@ var _ = Describe("Hyperfleet proxy", func() {
 				_, destroyErr := invalidProxyClusterSvc.Destroy()
 				Expect(destroyErr).NotTo(HaveOccurred())
 				if outputErr == nil && unexpectedCluster.ClusterID != "" {
-					deleteErr := clusters.WaitUntil(ctx, unexpectedCluster.ClusterID,
+					deleteErr := clusters.WaitUntil(ctx, invalidClusterName,
 						func(cluster *v1alpha1.Cluster) bool { return cluster == nil }, pollInterval, clusterDeletedTimeout)
 					Expect(deleteErr).NotTo(HaveOccurred())
 				}

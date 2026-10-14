@@ -88,6 +88,11 @@ type ProfileSpec interface {
 	GetUnifiedAccRolesPath() string
 	GetOIDCConfig() string
 	GetSchedulerProfile() string
+	GetAutoscalerMaxNodeProvisionTime() string
+	GetAutoscalerMaxNodesTotal() int64
+	GetAutoscalerMaxPodGracePeriod() int64
+	GetAutoscalerPodPriorityThreshold() int64
+	GetComponentRoutes() string
 	GetAdditionalSGNumber() int
 	GetComputeReplicas() int
 	GetWorkerDiskSize() int
@@ -216,6 +221,20 @@ func (ctx *profileContext) GetOIDCConfig() string {
 func (ctx *profileContext) GetSchedulerProfile() string {
 	return ctx.profile.SchedulerProfile
 }
+
+func (ctx *profileContext) GetAutoscalerMaxNodeProvisionTime() string {
+	return ctx.profile.AutoscalerMaxNodeProvisionTime
+}
+func (ctx *profileContext) GetAutoscalerMaxNodesTotal() int64 {
+	return ctx.profile.AutoscalerMaxNodesTotal
+}
+func (ctx *profileContext) GetAutoscalerMaxPodGracePeriod() int64 {
+	return ctx.profile.AutoscalerMaxPodGracePeriod
+}
+func (ctx *profileContext) GetAutoscalerPodPriorityThreshold() int64 {
+	return ctx.profile.AutoscalerPodPriorityThreshold
+}
+func (ctx *profileContext) GetComponentRoutes() string { return ctx.profile.ComponentRoutes }
 
 func (ctx *profileContext) GetAdditionalSGNumber() int {
 	return ctx.profile.AdditionalSGNumber

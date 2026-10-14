@@ -20,10 +20,10 @@ type ClusterStateNative struct {
 	BalancingIgnoredLabels         string            `hfsdk:"spec.hostedCluster.autoscaling.balancingIgnoredLabels"`
 	Expanders                      string            `hfsdk:"spec.hostedCluster.autoscaling.expanders"`
 	MaxFreeDifferenceRatioPercent  *int32            `hfsdk:"spec.hostedCluster.autoscaling.maxFreeDifferenceRatioPercent"`
-	MaxNodeProvisionTime           string            `hfsdk:"spec.hostedCluster.autoscaling.maxNodeProvisionTime"`
-	MaxNodesTotal                  *int32            `hfsdk:"spec.hostedCluster.autoscaling.maxNodesTotal"`
-	MaxPodGracePeriod              *int32            `hfsdk:"spec.hostedCluster.autoscaling.maxPodGracePeriod"`
-	PodPriorityThreshold           *int32            `hfsdk:"spec.hostedCluster.autoscaling.podPriorityThreshold"`
+	AutoscalerMaxNodeProvisionTime string            `hfsdk:"spec.hostedCluster.autoscaling.maxNodeProvisionTime"`
+	AutoscalerMaxNodesTotal        *int32            `hfsdk:"spec.hostedCluster.autoscaling.maxNodesTotal"`
+	AutoscalerMaxPodGracePeriod    *int32            `hfsdk:"spec.hostedCluster.autoscaling.maxPodGracePeriod"`
+	AutoscalerPodPriorityThreshold *int32            `hfsdk:"spec.hostedCluster.autoscaling.podPriorityThreshold"`
 	DelayAfterAddSeconds           *int32            `hfsdk:"spec.hostedCluster.autoscaling.scaleDown.delayAfterAddSeconds"`
 	DelayAfterDeleteSeconds        *int32            `hfsdk:"spec.hostedCluster.autoscaling.scaleDown.delayAfterDeleteSeconds"`
 	DelayAfterFailureSeconds       *int32            `hfsdk:"spec.hostedCluster.autoscaling.scaleDown.delayAfterFailureSeconds"`

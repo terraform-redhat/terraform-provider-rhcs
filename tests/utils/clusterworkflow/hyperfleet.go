@@ -23,7 +23,6 @@ import (
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
 	hfplatform "github.com/openshift-online/rosa-hyperfleet-api/clientset/platform"
 	hfrest "github.com/openshift-online/rosa-hyperfleet-api/clientset/rest"
-
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -432,17 +431,41 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 	if schedulerProfile != "" {
 		schedulerProfileValue = &schedulerProfile
 	}
+	var maxProvision *string
+	if value := profile.Profile().GetAutoscalerMaxNodeProvisionTime(); value != "" {
+		maxProvision = &value
+	}
+	var maxNodes, maxGrace, podPriority *int64
+	if value := profile.Profile().GetAutoscalerMaxNodesTotal(); value != 0 {
+		maxNodes = &value
+	}
+	if value := profile.Profile().GetAutoscalerMaxPodGracePeriod(); value != 0 {
+		maxGrace = &value
+	}
+	if value := profile.Profile().GetAutoscalerPodPriorityThreshold(); value != 0 {
+		podPriority = &value
+	}
+	componentRoutes := profile.Profile().GetComponentRoutes()
+	var componentRoutesValue *string
+	if componentRoutes != "" {
+		componentRoutesValue = &componentRoutes
+	}
 	clusterArgs := &exec.HyperfleetClusterArgs{
-		HyperfleetURL:       &hyperfleetURL,
-		ReleaseImage:        &releaseImage,
-		AWSRegion:           &region,
-		ClusterName:         &clusterName,
-		OperatorRolesPrefix: &operatorRolesPrefix,
-		SubnetID:            &subnetID,
-		VPCID:               &vpcID,
-		AvailabilityZone:    &availabilityZone,
-		OIDCConfigID:        &oidcOutput.OidcConfigID,
-		SchedulerProfile:    schedulerProfileValue,
+		HyperfleetURL:                  &hyperfleetURL,
+		ReleaseImage:                   &releaseImage,
+		AWSRegion:                      &region,
+		ClusterName:                    &clusterName,
+		OperatorRolesPrefix:            &operatorRolesPrefix,
+		SubnetID:                       &subnetID,
+		VPCID:                          &vpcID,
+		AvailabilityZone:               &availabilityZone,
+		OIDCConfigID:                   &oidcOutput.OidcConfigID,
+		SchedulerProfile:               schedulerProfileValue,
+		AutoscalerMaxNodeProvisionTime: maxProvision,
+		AutoscalerMaxNodesTotal:        maxNodes,
+		AutoscalerMaxPodGracePeriod:    maxGrace,
+		AutoscalerPodPriorityThreshold: podPriority,
+		ComponentRoutes:                componentRoutesValue,
 	}
 	// Customer AWS tags are applied at provisioning time only, so they can only
 	// be set on create.
@@ -515,6 +538,61 @@ func cleanupHyperFleetProxyOnError(proxy exec.ProxyService, cause error) error {
 		return fmt.Errorf("%w (also failed to destroy HyperFleet proxy endpoint: %v)", cause, cleanupErr)
 	}
 	return cause
+}
+
+// Update merges the supplied non-nil fields into the existing cluster
+// arguments and reapplies the Terraform-managed HyperFleet cluster.
+func (b *hyperFleetBackend) Update(args *exec.HyperfleetClusterArgs) error {
+	if args.HyperfleetURL != nil {
+		b.args.HyperfleetURL = args.HyperfleetURL
+	}
+	if args.AWSRegion != nil {
+		b.args.AWSRegion = args.AWSRegion
+	}
+	if args.ClusterName != nil {
+		b.args.ClusterName = args.ClusterName
+	}
+	if args.OperatorRolesPrefix != nil {
+		b.args.OperatorRolesPrefix = args.OperatorRolesPrefix
+	}
+	if args.SubnetID != nil {
+		b.args.SubnetID = args.SubnetID
+	}
+	if args.VPCID != nil {
+		b.args.VPCID = args.VPCID
+	}
+	if args.AvailabilityZone != nil {
+		b.args.AvailabilityZone = args.AvailabilityZone
+	}
+	if args.ExpirationTimestamp != nil {
+		b.args.ExpirationTimestamp = args.ExpirationTimestamp
+	}
+	if args.OIDCConfigID != nil {
+		b.args.OIDCConfigID = args.OIDCConfigID
+	}
+	if args.SchedulerProfile != nil {
+		b.args.SchedulerProfile = args.SchedulerProfile
+	}
+	if args.AutoscalerMaxNodeProvisionTime != nil {
+		b.args.AutoscalerMaxNodeProvisionTime = args.AutoscalerMaxNodeProvisionTime
+	}
+	if args.AutoscalerMaxNodesTotal != nil {
+		b.args.AutoscalerMaxNodesTotal = args.AutoscalerMaxNodesTotal
+	}
+	if args.AutoscalerMaxPodGracePeriod != nil {
+		b.args.AutoscalerMaxPodGracePeriod = args.AutoscalerMaxPodGracePeriod
+	}
+	if args.AutoscalerPodPriorityThreshold != nil {
+		b.args.AutoscalerPodPriorityThreshold = args.AutoscalerPodPriorityThreshold
+	}
+	if args.ComponentRoutes != nil {
+		b.args.ComponentRoutes = args.ComponentRoutes
+	}
+	if args.Tags != nil {
+		b.args.Tags = args.Tags
+	}
+	_, err := b.service.Apply(b.args)
+	return err
 }
 
 func (b *hyperFleetBackend) WaitReady(ctx context.Context, _ string) error {

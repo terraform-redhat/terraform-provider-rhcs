@@ -11,6 +11,7 @@ import (
 // rhcs_oidcconfig_hyperfleet manifest (managed OIDC mode).
 type HyperfleetOidcConfigArgs struct {
 	HyperfleetURL *string `hcl:"hyperfleet_url"`
+	Name          *string `hcl:"name"`
 	Type          *string `hcl:"type"`
 }
 

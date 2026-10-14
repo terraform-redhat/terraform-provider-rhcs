@@ -67,7 +67,44 @@ func verifyHyperfleetClusterUpdate(expected string) http.HandlerFunc {
 	return func(_ http.ResponseWriter, request *http.Request) {
 		body, err := io.ReadAll(request.Body)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(body)).To(MatchJSON(expected))
+		var actualObject, expectedObject map[string]any
+		Expect(json.Unmarshal(body, &actualObject)).To(Succeed())
+		Expect(json.Unmarshal([]byte(expected), &expectedObject)).To(Succeed())
+
+		Expect(actualObject["kind"]).To(Equal("Cluster"))
+		Expect(actualObject["apiVersion"]).To(Equal("hyperfleet.io/v1alpha1"))
+		metadata, ok := actualObject["metadata"].(map[string]any)
+		Expect(ok).To(BeTrue(), "PUT body should contain resource metadata")
+		Expect(metadata["name"]).To(Equal("my-cluster"))
+		Expect(metadata["uid"]).To(Equal("test-cluster-id"))
+		status, ok := actualObject["status"].(map[string]any)
+		Expect(ok).To(BeTrue(), "PUT body should preserve the fetched status")
+		Expect(status["phase"]).To(Equal("Ready"))
+
+		expectHyperfleetJSONSubset(actualObject, expectedObject, "")
+	}
+}
+
+func expectHyperfleetJSONSubset(actual, expected any, path string) {
+	expectedObject, isObject := expected.(map[string]any)
+	if !isObject {
+		Expect(actual).To(Equal(expected), "unexpected value at %s", path)
+		return
+	}
+	actualObject, isObject := actual.(map[string]any)
+	Expect(isObject).To(BeTrue(), "expected object at %s", path)
+	for key, expectedValue := range expectedObject {
+		actualValue, exists := actualObject[key]
+		fieldPath := key
+		if path != "" {
+			fieldPath = path + "." + key
+		}
+		// Optional nil API fields use omitempty and are serialized as absent.
+		if expectedValue == nil && (!exists || actualValue == nil) {
+			continue
+		}
+		Expect(exists).To(BeTrue(), "missing field %s", fieldPath)
+		expectHyperfleetJSONSubset(actualValue, expectedValue, fieldPath)
 	}
 }
 
@@ -453,7 +490,7 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 			// AWS resources created for the cluster cannot be retagged, so a tag
 			// change must be planned as a replacement rather than an update.
 			hyperfleetServer.RouteToHandler(
-				http.MethodGet, "/api/v0/clusters/test-cluster-id",
+				http.MethodGet, "/api/v0/clusters/my-cluster",
 				RespondWith(http.StatusOK, clusterWithTags, header),
 			)
 			hyperfleetServer.AppendHandlers(
@@ -598,11 +635,15 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 				),
 				// Second apply: refresh (Read), then send only the changed field.
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
 					RespondWith(http.StatusOK, clusterWithoutExpiration, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPut, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
+					RespondWith(http.StatusOK, clusterWithoutExpiration, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/clusters/my-cluster"),
 					verifyHyperfleetClusterUpdate(`{"spec":{"expirationTimestamp":"2025-01-01T00:00:00Z"}}`),
 					RespondWith(http.StatusOK, clusterWithExpiration, header),
 				),
@@ -680,11 +721,15 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 				// The second apply attempts an invalid edit. Terraform refreshes the
 				// existing state before the rejected partial PUT.
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
 					RespondWith(http.StatusOK, initialResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPut, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
+					RespondWith(http.StatusOK, initialResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/clusters/my-cluster"),
 					verifyHyperfleetClusterUpdate(fmt.Sprintf(`{
 						"spec": {
 							"hostedCluster": {
@@ -703,11 +748,15 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 				// The valid update below follows the rejected update. The GET
 				// confirms that the previous configuration is still present.
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
 					RespondWith(http.StatusOK, initialResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPut, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
+					RespondWith(http.StatusOK, initialResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/clusters/my-cluster"),
 					verifyHyperfleetClusterUpdate(fmt.Sprintf(`{
 						"spec": {
 							"hostedCluster": {
@@ -725,11 +774,15 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 				),
 				// The third apply removes the proxy attributes from Terraform.
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
 					RespondWith(http.StatusOK, updatedResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPut, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
+					RespondWith(http.StatusOK, updatedResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/clusters/my-cluster"),
 					verifyHyperfleetClusterUpdate(`{
 						"spec": {
 							"hostedCluster": {
@@ -833,11 +886,11 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					RespondWith(http.StatusCreated, createResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
 					RespondWith(http.StatusOK, createResponse, header),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodDelete, "/api/v0/clusters/test-cluster-id"),
+					VerifyRequest(http.MethodDelete, "/api/v0/clusters/my-cluster"),
 					RespondWith(http.StatusNoContent, ""),
 				),
 			)
@@ -884,6 +937,7 @@ var _ = Describe("rhcs_oidcconfig_hyperfleet", func() {
 
 			resource "rhcs_oidcconfig_hyperfleet" "test" {
 				provider = rhcs.hf
+				name     = "test-cluster.oidc"
 				type     = "unmanaged"
 			}
 		`)

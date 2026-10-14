@@ -36,7 +36,7 @@ type NodePoolState struct {
 	Tenancy                       types.String `tfsdk:"tenancy"`
 	ResourceTags                  types.String `tfsdk:"resource_tags"`
 	Size                          types.Int64  `tfsdk:"size"`
-	SecurityGroups                types.String `tfsdk:"security_groups"`
+	Additional_security_group_ids types.List   `tfsdk:"additional_security_group_ids"`
 	Filters                       types.String `tfsdk:"filters"`
 	SubnetId                      types.String `tfsdk:"subnet_id"`
 	Platform_type                 types.String `tfsdk:"platform_type"`
@@ -59,14 +59,8 @@ func mergeResponseNodePool(plan, response *NodePoolState) {
 	}
 	// Only copy computed and required fields from response, skip optional fields
 	// to avoid overwriting user inputs with API-generated default values
-	if !response.Name.IsNull() {
-		plan.Name = response.Name
-	}
 	if !response.Id.IsNull() {
 		plan.Id = response.Id
-	}
-	if !response.ClusterName.IsNull() {
-		plan.ClusterName = response.ClusterName
 	}
 	if !response.Platform_type.IsNull() {
 		plan.Platform_type = response.Platform_type

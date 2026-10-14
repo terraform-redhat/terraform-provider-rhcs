@@ -152,15 +152,13 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "ProvisionerConfigName.",
 				Optional:            true,
 			},
-			"balancing_ignored_labels": schema.ListAttribute{
+			"balancing_ignored_labels": schema.StringAttribute{
 				MarkdownDescription: "BalancingIgnoredLabels.",
 				Optional:            true,
-				ElementType:         types.StringType,
 			},
-			"expanders": schema.ListAttribute{
+			"expanders": schema.StringAttribute{
 				MarkdownDescription: "Expanders.",
 				Optional:            true,
-				ElementType:         types.StringType,
 			},
 			"max_free_difference_ratio_percent": schema.Int64Attribute{
 				MarkdownDescription: "MaxFreeDifferenceRatioPercent.",
@@ -858,14 +856,10 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 		native.ProvisionerConfigName = tf.ProvisionerConfigName.ValueString()
 	}
 	if !tf.BalancingIgnoredLabels.IsNull() && !tf.BalancingIgnoredLabels.IsUnknown() {
-		items, collectionDiags := terraformListToStringSlice(tf.BalancingIgnoredLabels)
-		diags = append(diags, collectionDiags...)
-		native.BalancingIgnoredLabels = items
+		native.BalancingIgnoredLabels = tf.BalancingIgnoredLabels.ValueString()
 	}
 	if !tf.Expanders.IsNull() && !tf.Expanders.IsUnknown() {
-		items, collectionDiags := terraformListToStringSlice(tf.Expanders)
-		diags = append(diags, collectionDiags...)
-		native.Expanders = items
+		native.Expanders = tf.Expanders.ValueString()
 	}
 	if !tf.MaxFreeDifferenceRatioPercent.IsNull() && !tf.MaxFreeDifferenceRatioPercent.IsUnknown() {
 		value := tf.MaxFreeDifferenceRatioPercent.ValueInt64()
@@ -1200,8 +1194,8 @@ func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.D
 	tf.RoleARN = toTerraformString(native.RoleARN)
 	tf.Platform = toTerraformString(native.Platform)
 	tf.ProvisionerConfigName = toTerraformString(native.ProvisionerConfigName)
-	tf.BalancingIgnoredLabels = toTerraformList(native.BalancingIgnoredLabels)
-	tf.Expanders = toTerraformList(native.Expanders)
+	tf.BalancingIgnoredLabels = toTerraformString(native.BalancingIgnoredLabels)
+	tf.Expanders = toTerraformString(native.Expanders)
 	tf.MaxFreeDifferenceRatioPercent = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.MaxFreeDifferenceRatioPercent))
 	tf.MaxNodeProvisionTime = toTerraformString(native.MaxNodeProvisionTime)
 	tf.MaxNodesTotal = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.MaxNodesTotal))

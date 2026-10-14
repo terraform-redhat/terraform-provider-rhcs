@@ -42,9 +42,6 @@ func mergeResponseOidcConfig(plan, response *OidcConfigState) {
 	if !response.Issuer_url.IsNull() {
 		plan.Issuer_url = response.Issuer_url
 	}
-	if !response.Type.IsNull() {
-		plan.Type = response.Type
-	}
 	if !response.Phase.IsNull() {
 		plan.Phase = response.Phase
 	}

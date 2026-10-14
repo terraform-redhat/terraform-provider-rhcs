@@ -110,10 +110,7 @@ func (r *NodePoolResource) Schema(
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name.",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
+				Optional:            true,
 			},
 			"id": schema.StringAttribute{
 				MarkdownDescription: "Id.",
@@ -149,10 +146,7 @@ func (r *NodePoolResource) Schema(
 			},
 			"cluster_name": schema.StringAttribute{
 				MarkdownDescription: "ClusterName.",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
+				Optional:            true,
 			},
 			"config": schema.ListNestedAttribute{
 				MarkdownDescription: "ConfigMap references containing serialized nodepool configuration.",
@@ -223,9 +217,17 @@ func (r *NodePoolResource) Schema(
 				MarkdownDescription: "Size.",
 				Optional:            true,
 			},
-			"security_groups": schema.StringAttribute{
-				MarkdownDescription: "SecurityGroups.",
-				Optional:            true,
+			"additional_security_group_ids": schema.ListNestedAttribute{
+				MarkdownDescription: "Additional AWS security group IDs to attach to node pool instances.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							MarkdownDescription: "AWS security group ID (for example sg-0a1b2c3d).",
+							Required:            true,
+						},
+					},
+				},
+				Optional: true,
 			},
 			"filters": schema.StringAttribute{
 				MarkdownDescription: "Filters.",
@@ -719,8 +721,10 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 		i := tf.Size.ValueInt64()
 		native.Size = &i
 	}
-	if !tf.SecurityGroups.IsNull() && !tf.SecurityGroups.IsUnknown() {
-		native.SecurityGroups = tf.SecurityGroups.ValueString()
+	if !tf.Additional_security_group_ids.IsNull() && !tf.Additional_security_group_ids.IsUnknown() {
+		encoded, collectionDiags := terraformObjectListToJSON(tf.Additional_security_group_ids)
+		diags = append(diags, collectionDiags...)
+		native.Additional_security_group_ids = encoded
 	}
 	if !tf.Filters.IsNull() && !tf.Filters.IsUnknown() {
 		native.Filters = tf.Filters.ValueString()
@@ -800,7 +804,13 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 	tf.Tenancy = toTerraformString(native.Tenancy)
 	tf.ResourceTags = toTerraformString(native.ResourceTags)
 	tf.Size = toTerraformInt64Ptr(normalizeOptionalInt64(native.Size))
-	tf.SecurityGroups = toTerraformString(native.SecurityGroups)
+	{
+		var collectionDiags diag.Diagnostics
+		tf.Additional_security_group_ids, collectionDiags = terraformJSONToObjectList(native.Additional_security_group_ids, map[string]attr.Type{
+			"id": types.StringType,
+		})
+		diags = append(diags, collectionDiags...)
+	}
 	tf.Filters = toTerraformString(native.Filters)
 	tf.SubnetId = toTerraformString(native.SubnetId)
 	tf.Platform_type = toTerraformString(native.Platform_type)

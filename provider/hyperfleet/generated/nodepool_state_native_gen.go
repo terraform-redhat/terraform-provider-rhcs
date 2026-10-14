@@ -32,7 +32,7 @@ type NodePoolStateNative struct {
 	Tenancy                       string            `hfsdk:"spec.nodePool.platform.aws.placement.tenancy"`
 	ResourceTags                  string            `hfsdk:"spec.nodePool.platform.aws.resourceTags"`
 	Size                          *int64            `hfsdk:"spec.nodePool.platform.aws.rootVolume.size"`
-	SecurityGroups                string            `hfsdk:"spec.nodePool.platform.aws.securityGroups"`
+	Additional_security_group_ids string            `hfsdk:"spec.nodePool.platform.aws.securityGroups"`
 	Filters                       string            `hfsdk:"spec.nodePool.platform.aws.subnet.filters"`
 	SubnetId                      string            `hfsdk:"spec.nodePool.platform.aws.subnet.id"`
 	Platform_type                 string            `hfsdk:"spec.nodePool.platform.type"`

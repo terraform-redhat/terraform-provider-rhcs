@@ -107,9 +107,9 @@ func (r *OidcConfigResource) Schema(
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name.",
-				Required:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"id": schema.StringAttribute{
@@ -142,7 +142,7 @@ func (r *OidcConfigResource) Schema(
 			},
 			"type": schema.StringAttribute{
 				MarkdownDescription: "Type.",
-				Required:            true,
+				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},

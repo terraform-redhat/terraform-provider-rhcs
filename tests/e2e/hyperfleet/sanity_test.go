@@ -16,19 +16,21 @@ import (
 	. "github.com/onsi/gomega"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
+	hfplatform "github.com/openshift-online/rosa-hyperfleet-api/clientset/platform"
 	hfrest "github.com/openshift-online/rosa-hyperfleet-api/clientset/rest"
 
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 const (
-	clusterReadyTimeout   = 90 * time.Minute
-	clusterDeletedTimeout = 60 * time.Minute
-	nodepoolReadyTimeout  = 45 * time.Minute
-	pollInterval          = 30 * time.Second
-	vpcDestroyTimeout     = 30 * time.Minute
+	clusterReadyTimeout    = 90 * time.Minute
+	clusterDeletedTimeout  = 60 * time.Minute
+	nodepoolReadyTimeout   = 45 * time.Minute
+	oidcConfigReadyTimeout = 15 * time.Minute
+	pollInterval           = 30 * time.Second
 
 	// teardownGracePeriod bounds how long Ginkgo lets a cleanup node keep running
 	// after an interrupt (Ctrl-C) before force-aborting it. Without an override,
@@ -48,7 +50,9 @@ var awsRegionRE = regexp.MustCompile(`[a-z]+-(?:[a-z]+-)+\d+`)
 var _ = Describe("Hyperfleet sanity", func() {
 	It("creates and destroys a hyperfleet cluster end-to-end", func() {
 		hyperfleetURL := requireEnv("HYPERFLEET_URL")
+		releaseImage := requireEnv(config.EnvHyperfleetReleaseImage)
 		clusterName := requireEnvWithDefault("HYPERFLEET_CLUSTER_NAME", fmt.Sprintf("hf-e2e-%d", time.Now().Unix()))
+		oidcConfigName := clusterName + ".oidc"
 		operatorRolesPrefix := requireEnvWithDefault("HYPERFLEET_OPERATOR_ROLES_PREFIX", clusterName)
 		vpcCIDR := requireEnvWithDefault("HYPERFLEET_VPC_CIDR", "10.0.0.0/16")
 		instanceType := requireEnvWithDefault("HYPERFLEET_NODEPOOL_INSTANCE_TYPE", "m5.xlarge")
@@ -64,8 +68,8 @@ var _ = Describe("Hyperfleet sanity", func() {
 		// but the underlying nodepool stays in Deleting until the cluster itself
 		// is deleted — at which point the operator cascades the cleanup.
 		// np2: no PDB constraint; deletion completes and is confirmed via SDK.
-		np1Name := clusterName + "-np1"
-		np2Name := clusterName + "-np2"
+		np1Name := clusterName + ".np1"
+		np2Name := clusterName + ".np2"
 
 		workspace := clusterName
 
@@ -74,8 +78,11 @@ var _ = Describe("Hyperfleet sanity", func() {
 
 		// ── Create all services upfront so DeferCleanups can be registered in
 		// reverse teardown order before any apply runs.
-		// LIFO execution: np2 → np1 → cluster → IAM → VPC.
+		// LIFO execution: np2 → np1 → cluster → IAM → OidcConfig → VPC.
 		vpcSvc, err := exec.NewHyperfleetVPCService(workspace)
+		Expect(err).NotTo(HaveOccurred())
+
+		oidcSvc, err := exec.NewHyperfleetOidcConfigService(workspace)
 		Expect(err).NotTo(HaveOccurred())
 
 		iamSvc, err := exec.NewHyperfleetIAMService(workspace)
@@ -95,28 +102,18 @@ var _ = Describe("Hyperfleet sanity", func() {
 		var vpcOut *exec.HyperfleetVPCOutput
 		DeferCleanup(func(ctx SpecContext) {
 			By("Teardown: destroy VPC")
-			if vpcOut != nil {
-				Expect(helper.DeleteClassicLoadBalancers(awsRegion, vpcOut.VPCID)).To(Succeed())
-				Expect(helper.DeleteNonDefaultSecurityGroups(awsRegion, vpcOut.VPCID)).To(Succeed())
-				// The cluster operator writes CNAME records (api.*, *.apps.*) into
-				// the private <name>.hypershift.local hosted zone. terraform destroy
-				// of aws_route53_zone.hyperfleet fails with HostedZoneNotEmpty while
-				// those records remain, so purge them before destroying the VPC.
-				Expect(helper.PurgeHostedZoneRecords(awsRegion, vpcOut.HostedZoneID)).To(Succeed())
-			}
-			// The cluster operator releases VPC resources (ENIs, security groups)
-			// asynchronously after the cluster object is deleted. Retry terraform
-			// destroy to allow time for those resources to be fully released.
-			Eventually(func() error {
-				_, err := vpcSvc.Destroy()
-				if err != nil {
-					Logger.Infof("[teardown] VPC destroy attempt failed (will retry): %v", err)
-				}
-				return err
-			}).WithContext(ctx).WithTimeout(vpcDestroyTimeout).WithPolling(2 * time.Minute).Should(Succeed())
+			Expect(clusterworkflow.DestroyHyperFleetVPC(ctx, vpcSvc, vpcOut, awsRegion)).To(Succeed())
 		}, GracePeriod(teardownGracePeriod))
 
-		// IAM destroy — registered 2nd, runs 4th.
+		// OidcConfig destroy — registered 2nd, runs 4th.
+		// OidcConfig is independent of cluster and can be deleted at any time.
+		DeferCleanup(func(_ SpecContext) {
+			By("Teardown: destroy OIDC config")
+			_, err := oidcSvc.Destroy()
+			Expect(err).NotTo(HaveOccurred())
+		}, GracePeriod(teardownGracePeriod))
+
+		// IAM destroy — registered 3rd, runs 5th.
 		// Accepts SpecContext (unused) because GracePeriod requires a
 		// context-accepting callback, even though this teardown does not wait.
 		DeferCleanup(func(_ SpecContext) {
@@ -125,7 +122,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}, GracePeriod(teardownGracePeriod))
 
-		// Cluster destroy — registered 3rd, runs 3rd.
+		// Cluster destroy — registered 4th, runs 3rd.
 		// The operator cascades deletion to any nodepool still in Deleting phase
 		// (e.g. np1), so no extra handling is needed here.
 		var clusterID string
@@ -138,13 +135,13 @@ var _ = Describe("Hyperfleet sanity", func() {
 			Expect(destroyErr).NotTo(HaveOccurred())
 
 			waitErr := clusters.WaitUntil(
-				ctx, clusterID,
+				ctx, clusterName,
 				func(c *v1alpha1.Cluster) bool {
 					if c == nil {
-						Logger.Infof("[wait] cluster %s: deleted", clusterID)
+						Logger.Infof("[wait] cluster %s: deleted", clusterName)
 						return true
 					}
-					Logger.Infof("[wait] cluster %s phase: %s (waiting for deletion)", clusterID, c.Status.Phase)
+					Logger.Infof("[wait] cluster %s phase: %s (waiting for deletion)", clusterName, c.Status.Phase)
 					return false
 				},
 				pollInterval, clusterDeletedTimeout,
@@ -153,7 +150,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			Logger.Infof("[teardown] cluster %s deletion confirmed — proceeding with IAM/VPC teardown", clusterID)
 		}, GracePeriod(teardownGracePeriod))
 
-		// np1 destroy — registered 4th, runs 2nd.
+		// np1 destroy — registered 5th, runs 2nd.
 		// The API accepts the delete and the Terraform state is cleared immediately.
 		// The underlying nodepool remains in Deleting phase (PDB prevents eviction)
 		// until the cluster deletion cascades through it.
@@ -166,7 +163,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Log the observed phase for diagnostics without blocking on completion.
-			nodepools := hfClient.HyperfleetV1alpha1().NodePools(clusterID)
+			nodepools := hfClient.HyperfleetV1alpha1().NodePools()
 			_ = nodepools.WaitUntil(
 				ctx, np1Name,
 				func(np *v1alpha1.NodePool) bool {
@@ -184,7 +181,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			)
 		}, GracePeriod(teardownGracePeriod))
 
-		// np2 destroy — registered 5th, runs 1st.
+		// np2 destroy — registered 6th, runs 1st.
 		// No PDB constraint; we confirm deletion via SDK before moving on.
 		DeferCleanup(func(ctx SpecContext) {
 			By("Teardown: destroy node pool 2 and wait for deletion")
@@ -193,7 +190,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			}
 			_, err := np2Svc.Destroy()
 			Expect(err).NotTo(HaveOccurred())
-			waitErr := hfClient.HyperfleetV1alpha1().NodePools(clusterID).WaitUntil(
+			waitErr := hfClient.HyperfleetV1alpha1().NodePools().WaitUntil(
 				ctx, np2Name,
 				func(np *v1alpha1.NodePool) bool {
 					if np == nil {
@@ -222,36 +219,32 @@ var _ = Describe("Hyperfleet sanity", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(vpcOut.VPCID).NotTo(BeEmpty())
 		Expect(vpcOut.PrivateSubnetID).NotTo(BeEmpty())
+		Expect(vpcOut.PublicSubnetID).NotTo(BeEmpty())
 
-		// ── Phase 2: cluster ───────────────────────────────────────────────
-		By("Phase 2: apply cluster")
-		expiresAt := time.Now().UTC().Add(4 * time.Hour).Format(time.RFC3339)
-		_, err = clusterSvc.Apply(&exec.HyperfleetClusterArgs{
-			HyperfleetURL:       &hyperfleetURL,
-			AWSRegion:           &awsRegion,
-			ClusterName:         &clusterName,
-			OperatorRolesPrefix: &operatorRolesPrefix,
-			SubnetID:            &vpcOut.PrivateSubnetID,
-			VPCID:               &vpcOut.VPCID,
-			AvailabilityZone:    &availabilityZone,
-			ExpirationTimestamp: &expiresAt,
+		// ── Phase 2: OidcConfig ─────────────────────────────────────────────
+		// OidcConfig (managed mode) computes its own issuer URL.
+		By("Phase 2: apply OidcConfig (managed mode)")
+		_, err = oidcSvc.Apply(&exec.HyperfleetOidcConfigArgs{
+			HyperfleetURL: &hyperfleetURL,
+			Name:          &oidcConfigName,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		clusterTFOut, err := clusterSvc.Output()
+		oidcOut, err := oidcSvc.Output()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(clusterTFOut.ClusterID).NotTo(BeEmpty())
-		Expect(clusterTFOut.OIDCIssuer).NotTo(BeEmpty())
-
-		clusterID = clusterTFOut.ClusterID
-		oidcIssuerURL := clusterTFOut.OIDCIssuer
+		Expect(oidcOut.OidcConfigID).NotTo(BeEmpty(), "OidcConfig should have an ID after creation")
+		Expect(oidcOut.IssuerURL).NotTo(BeEmpty(), "OidcConfig should compute issuer URL in managed mode")
+		// Phase will be Pending until cluster is created and associated
+		Logger.Infof("[verify] OidcConfig %s created: issuer_url=%s, phase=%s", oidcOut.OidcConfigID, oidcOut.IssuerURL, oidcOut.Phase)
 
 		// ── Phase 3: IAM roles + OIDC provider ────────────────────────────
+		// Use the OidcConfig issuer URL to create IAM resources
+		// Thumbprint will be available once OidcConfig reaches Ready after cluster association
 		By("Phase 3: apply IAM roles")
 		_, err = iamSvc.Apply(&exec.HyperfleetIAMArgs{
 			AWSRegion:           &awsRegion,
 			OperatorRolesPrefix: &operatorRolesPrefix,
-			OIDCIssuerURL:       &oidcIssuerURL,
+			OIDCIssuerURL:       &oidcOut.IssuerURL, // Use OidcConfig computed issuer URL
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -260,17 +253,79 @@ var _ = Describe("Hyperfleet sanity", func() {
 		Expect(iamOut.OIDCProviderARN).NotTo(BeEmpty())
 		Expect(iamOut.WorkerRoleARN).NotTo(BeEmpty())
 
-		// ── Wait for cluster Ready ─────────────────────────────────────────
-		By("Waiting for cluster to reach Ready phase")
+		// ── Phase 4: cluster ───────────────────────────────────────────────
+		// Cluster references the OidcConfig by ID
+		By("Phase 4: apply cluster")
+		expiresAt := time.Now().UTC().Add(4 * time.Hour).Format(time.RFC3339)
+		// Customer AWS tags are applied when the cluster's AWS resources are
+		// provisioned and cannot be changed afterwards, so they are set on create
+		// and repeated verbatim on every later apply — a changed value would plan
+		// a cluster replacement.
+		clusterTags := map[string]string{"cost-center": "cc-1234", "qe-managed": "true"}
+		_, err = clusterSvc.Apply(&exec.HyperfleetClusterArgs{
+			HyperfleetURL:       &hyperfleetURL,
+			ReleaseImage:        &releaseImage,
+			AWSRegion:           &awsRegion,
+			ClusterName:         &clusterName,
+			OperatorRolesPrefix: &operatorRolesPrefix,
+			SubnetID:            &vpcOut.PrivateSubnetID,
+			VPCID:               &vpcOut.VPCID,
+			AvailabilityZone:    &availabilityZone,
+			ExpirationTimestamp: &expiresAt,
+			OIDCConfigID:        &oidcOut.OidcConfigID, // Reference the OidcConfig
+			Tags:                &clusterTags,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		clusterTFOut, err := clusterSvc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(clusterTFOut.ClusterID).NotTo(BeEmpty())
+
+		clusterID = clusterTFOut.ClusterID
+		clustersCli := hfClient.HyperfleetV1alpha1().Clusters()
+
+		// ── Wait for OidcConfig Ready (after cluster association) ─────────
+		// OidcConfig only reaches Ready once associated with the cluster
+		By("Waiting for OidcConfig to reach Ready phase after cluster association")
+		oidcConfigs := hfClient.HyperfleetV1alpha1().OidcConfigs()
 		ctx := context.Background()
-		err = clusters.WaitUntil(
-			ctx, clusterID,
-			func(c *v1alpha1.Cluster) bool {
-				if c == nil {
-					Logger.Infof("[wait] cluster %s: not found", clusterID)
+		err = oidcConfigs.WaitUntil(
+			ctx, oidcOut.Name,
+			func(oc *v1alpha1.OidcConfig) bool {
+				if oc == nil {
+					Logger.Infof("[wait] oidcconfig %s: not found", oidcOut.Name)
 					return false
 				}
-				Logger.Infof("[wait] cluster %s phase: %s", clusterID, c.Status.Phase)
+				Logger.Infof("[wait] oidcconfig %s phase: %s", oidcOut.Name, oc.Status.Phase)
+				return oc.Status.Phase == v1alpha1.OidcConfigPhaseReady
+			},
+			pollInterval, oidcConfigReadyTimeout,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Refresh OidcConfig state to get computed thumbprint
+		_, err = oidcSvc.Apply(&exec.HyperfleetOidcConfigArgs{
+			HyperfleetURL: &hyperfleetURL,
+			Name:          &oidcConfigName,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		oidcRefreshed, err := oidcSvc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(oidcRefreshed.Phase).To(Equal(string(v1alpha1.OidcConfigPhaseReady)), "OidcConfig phase should be Ready after cluster association")
+		Expect(oidcRefreshed.Thumbprint).NotTo(BeEmpty(), "OidcConfig thumbprint should be computed after phase is Ready")
+		Logger.Infof("[verify] OidcConfig %s Ready: thumbprint=%s", oidcRefreshed.OidcConfigID, oidcRefreshed.Thumbprint)
+
+		// ── Wait for cluster Ready ─────────────────────────────────────────
+		By("Waiting for cluster to reach Ready phase")
+		err = clustersCli.WaitUntil(
+			ctx, clusterName,
+			func(c *v1alpha1.Cluster) bool {
+				if c == nil {
+					Logger.Infof("[wait] cluster %s: not found", clusterName)
+					return false
+				}
+				Logger.Infof("[wait] cluster %s phase: %s", clusterName, c.Status.Phase)
 				return c.Status.Phase == v1alpha1.ClusterPhaseReady
 			},
 			pollInterval, clusterReadyTimeout,
@@ -281,6 +336,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 		By("Verifying cluster Ready phase via Terraform state refresh")
 		_, err = clusterSvc.Apply(&exec.HyperfleetClusterArgs{
 			HyperfleetURL:       &hyperfleetURL,
+			ReleaseImage:        &releaseImage,
 			AWSRegion:           &awsRegion,
 			ClusterName:         &clusterName,
 			OperatorRolesPrefix: &operatorRolesPrefix,
@@ -288,6 +344,8 @@ var _ = Describe("Hyperfleet sanity", func() {
 			VPCID:               &vpcOut.VPCID,
 			AvailabilityZone:    &availabilityZone,
 			ExpirationTimestamp: &expiresAt,
+			OIDCConfigID:        &oidcRefreshed.OidcConfigID, // Reference the OidcConfig
+			Tags:                &clusterTags,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -296,14 +354,20 @@ var _ = Describe("Hyperfleet sanity", func() {
 		Expect(refreshedOut.Phase).To(Equal(string(v1alpha1.ClusterPhaseReady)))
 		Expect(refreshedOut.APIURL).NotTo(BeEmpty())
 
-		// ── Phase 4: node pools ────────────────────────────────────────────
-		By("Phase 4a: apply node pool 1")
+		By("Verifying the customer AWS tags reached the Platform API")
+		createdCluster, err := clustersCli.Get(ctx, clusterName, hfplatform.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(createdCluster.Spec.Tags).To(Equal(clusterTags))
+
+		// ── Phase 5: node pools ────────────────────────────────────────────
+		By("Phase 5a: apply node pool 1")
 		np1Replicas := 2
 		np2Replicas := 1
 		_, err = np1Svc.Apply(&exec.HyperfleetNodePoolArgs{
 			HyperfleetURL: &hyperfleetURL,
 			AWSRegion:     &awsRegion,
 			ClusterID:     &clusterID,
+			ClusterName:   &clusterName,
 			Name:          &np1Name,
 			SubnetID:      &vpcOut.PrivateSubnetID,
 			InstanceType:  &instanceType,
@@ -315,11 +379,12 @@ var _ = Describe("Hyperfleet sanity", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(np1TFOut.NodePoolID).NotTo(BeEmpty())
 
-		By("Phase 4b: apply node pool 2")
+		By("Phase 5b: apply node pool 2")
 		_, err = np2Svc.Apply(&exec.HyperfleetNodePoolArgs{
 			HyperfleetURL: &hyperfleetURL,
 			AWSRegion:     &awsRegion,
 			ClusterID:     &clusterID,
+			ClusterName:   &clusterName,
 			Name:          &np2Name,
 			SubnetID:      &vpcOut.PrivateSubnetID,
 			InstanceType:  &instanceType,
@@ -333,7 +398,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 
 		// ── Wait for both node pools to reach Ready ────────────────────────
 		By("Waiting for node pool 1 to reach Ready phase")
-		nodepools := hfClient.HyperfleetV1alpha1().NodePools(clusterID)
+		nodepools := hfClient.HyperfleetV1alpha1().NodePools()
 		err = nodepools.WaitUntil(
 			ctx, np1Name,
 			func(np *v1alpha1.NodePool) bool {
@@ -369,6 +434,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			HyperfleetURL: &hyperfleetURL,
 			AWSRegion:     &awsRegion,
 			ClusterID:     &clusterID,
+			ClusterName:   &clusterName,
 			Name:          &np1Name,
 			SubnetID:      &vpcOut.PrivateSubnetID,
 			InstanceType:  &instanceType,
@@ -385,6 +451,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			HyperfleetURL: &hyperfleetURL,
 			AWSRegion:     &awsRegion,
 			ClusterID:     &clusterID,
+			ClusterName:   &clusterName,
 			Name:          &np2Name,
 			SubnetID:      &vpcOut.PrivateSubnetID,
 			InstanceType:  &instanceType,
@@ -403,6 +470,7 @@ var _ = Describe("Hyperfleet sanity", func() {
 			HyperfleetURL: &hyperfleetURL,
 			AWSRegion:     &awsRegion,
 			ClusterID:     &clusterID,
+			ClusterName:   &clusterName,
 			Name:          &np2Name,
 			SubnetID:      &vpcOut.PrivateSubnetID,
 			InstanceType:  &instanceType,
@@ -414,6 +482,21 @@ var _ = Describe("Hyperfleet sanity", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(np2Scaled.Replicas).NotTo(BeNil())
 		Expect(*np2Scaled.Replicas).To(Equal(scaledReplicas))
+
+		By("Verifying node pool 2 scaled replicas through the Platform API")
+		err = nodepools.WaitUntil(
+			ctx, np2Name,
+			func(np *v1alpha1.NodePool) bool {
+				if np == nil || np.Spec.NodePool.Replicas == nil {
+					return false
+				}
+				Logger.Infof("[wait] nodepool %s phase: %s, replicas: %d", np2Name, np.Status.Phase, *np.Spec.NodePool.Replicas)
+				return np.Status.Phase == v1alpha1.NodePoolPhaseReady &&
+					*np.Spec.NodePool.Replicas == int32(scaledReplicas)
+			},
+			pollInterval, nodepoolReadyTimeout,
+		)
+		Expect(err).NotTo(HaveOccurred())
 	})
 })
 

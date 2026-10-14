@@ -16,3 +16,11 @@ output "nodepool_phase" {
 output "nodepool_replicas" {
   value = rhcs_nodepool_hyperfleet.nodepool.replicas
 }
+
+output "nodepool_min_replicas" {
+  value = rhcs_nodepool_hyperfleet.nodepool.autoscaling == null ? null : rhcs_nodepool_hyperfleet.nodepool.autoscaling.min_replicas
+}
+
+output "nodepool_max_replicas" {
+  value = rhcs_nodepool_hyperfleet.nodepool.autoscaling == null ? null : rhcs_nodepool_hyperfleet.nodepool.autoscaling.max_replicas
+}

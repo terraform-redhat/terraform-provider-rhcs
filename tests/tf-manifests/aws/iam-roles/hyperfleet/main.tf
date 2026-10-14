@@ -88,10 +88,15 @@ data "tls_certificate" "oidc" {
   url = var.oidc_issuer_url
 }
 
+# Use provided thumbprint if available (from OidcConfig), otherwise compute it dynamically
+locals {
+  oidc_thumbprint = var.oidc_thumbprint != "" ? var.oidc_thumbprint : data.tls_certificate.oidc.certificates[0].sha1_fingerprint
+}
+
 resource "aws_iam_openid_connect_provider" "hyperfleet" {
   url             = var.oidc_issuer_url
   client_id_list  = ["openshift"]
-  thumbprint_list = [data.tls_certificate.oidc.certificates[0].sha1_fingerprint]
+  thumbprint_list = [local.oidc_thumbprint]
 }
 
 # ── Operator IAM roles ────────────────────────────────────────────────────────

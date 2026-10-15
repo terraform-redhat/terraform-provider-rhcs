@@ -126,6 +126,13 @@ func (r *NodePoolResource) Schema(
 				MarkdownDescription: "AutoRepair.",
 				Optional:            true,
 			},
+			"ec2_instance_metadata_http_tokens": schema.StringAttribute{
+				MarkdownDescription: "EC2InstanceMetadataHttpTokens.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
 			"labels": schema.MapAttribute{
 				MarkdownDescription: "Labels.",
 				Optional:            true,
@@ -654,6 +661,9 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 		b := tf.AutoRepair.ValueBool()
 		native.AutoRepair = &b
 	}
+	if !tf.EC2InstanceMetadataHttpTokens.IsNull() && !tf.EC2InstanceMetadataHttpTokens.IsUnknown() {
+		native.EC2InstanceMetadataHttpTokens = tf.EC2InstanceMetadataHttpTokens.ValueString()
+	}
 	if !tf.Labels.IsNull() && !tf.Labels.IsUnknown() {
 		values, collectionDiags := terraformMapToStringMap(tf.Labels)
 		diags = append(diags, collectionDiags...)
@@ -782,6 +792,7 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 	tf.Name = toTerraformString(native.Name)
 	tf.Id = toTerraformString(native.Id)
 	tf.AutoRepair = toTerraformBoolPtr(native.AutoRepair)
+	tf.EC2InstanceMetadataHttpTokens = toTerraformString(native.EC2InstanceMetadataHttpTokens)
 	tf.Labels = toTerraformMap(native.Labels)
 	tf.MaxSurge = toTerraformString(native.MaxSurge)
 	tf.MaxUnavailable = toTerraformString(native.MaxUnavailable)

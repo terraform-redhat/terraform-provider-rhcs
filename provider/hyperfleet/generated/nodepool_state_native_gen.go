@@ -11,6 +11,7 @@ type NodePoolStateNative struct {
 	Name                          string            `hfsdk:"metadata.name"`
 	Id                            string            `hfsdk:"metadata.uid"`
 	AutoRepair                    *bool             `hfsdk:"spec.autoRepair"`
+	EC2InstanceMetadataHttpTokens string            `hfsdk:"spec.ec2InstanceMetadataHttpTokens"`
 	Labels                        map[string]string `hfsdk:"spec.labels"`
 	MaxSurge                      string            `hfsdk:"spec.maxSurge"`
 	MaxUnavailable                string            `hfsdk:"spec.maxUnavailable"`

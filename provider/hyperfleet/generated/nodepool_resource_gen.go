@@ -139,14 +139,6 @@ func (r *NodePoolResource) Schema(
 				MarkdownDescription: "MaxUnavailable.",
 				Optional:            true,
 			},
-			"max": schema.Int64Attribute{
-				MarkdownDescription: "Max.",
-				Optional:            true,
-			},
-			"min": schema.Int64Attribute{
-				MarkdownDescription: "Min.",
-				Optional:            true,
-			},
 			"cluster_name": schema.StringAttribute{
 				MarkdownDescription: "ClusterName.",
 				Required:            true,
@@ -295,6 +287,23 @@ func (r *NodePoolResource) Schema(
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"autoscaling": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"max_replicas": schema.Int64Attribute{
+						MarkdownDescription: "Max_replicas.",
+						Optional:            true,
+					},
+					"min_replicas": schema.Int64Attribute{
+						MarkdownDescription: "Min_replicas.",
+						Optional:            true,
+					},
+					"enabled": schema.BoolAttribute{
+						MarkdownDescription: "Enabled.",
+						Optional:            true,
+					},
+				},
+				Optional: true,
 			},
 		},
 	}
@@ -648,24 +657,6 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 	if !tf.MaxUnavailable.IsNull() && !tf.MaxUnavailable.IsUnknown() {
 		native.MaxUnavailable = tf.MaxUnavailable.ValueString()
 	}
-	if !tf.Max.IsNull() && !tf.Max.IsUnknown() {
-		value := tf.Max.ValueInt64()
-		if value < math.MinInt32 || value > math.MaxInt32 {
-			diags.AddError("Invalid int32 value", fmt.Sprintf("field Max value %d is outside the int32 range", value))
-		} else {
-			i := int32(value)
-			native.Max = &i
-		}
-	}
-	if !tf.Min.IsNull() && !tf.Min.IsUnknown() {
-		value := tf.Min.ValueInt64()
-		if value < math.MinInt32 || value > math.MaxInt32 {
-			diags.AddError("Invalid int32 value", fmt.Sprintf("field Min value %d is outside the int32 range", value))
-		} else {
-			i := int32(value)
-			native.Min = &i
-		}
-	}
 	if !tf.ClusterName.IsNull() && !tf.ClusterName.IsUnknown() {
 		native.ClusterName = tf.ClusterName.ValueString()
 	}
@@ -759,6 +750,14 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 	if !tf.Phase.IsNull() && !tf.Phase.IsUnknown() {
 		native.Phase = tf.Phase.ValueString()
 	}
+	if !tf.Autoscaling.IsNull() && !tf.Autoscaling.IsUnknown() {
+		bundleDiags := objectToNative(tf.Autoscaling, &native.Autoscaling, map[string]string{
+			"max_replicas": "Max_replicas",
+			"min_replicas": "Min_replicas",
+			"enabled":      "Enabled",
+		})
+		diags = append(diags, bundleDiags...)
+	}
 	return native, diags
 }
 
@@ -776,8 +775,6 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 	tf.Labels = toTerraformMap(native.Labels)
 	tf.MaxSurge = toTerraformString(native.MaxSurge)
 	tf.MaxUnavailable = toTerraformString(native.MaxUnavailable)
-	tf.Max = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.Max))
-	tf.Min = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.Min))
 	tf.ClusterName = toTerraformString(native.ClusterName)
 	{
 		var collectionDiags diag.Diagnostics
@@ -824,5 +821,17 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 	}
 	tf.Cluster_id = toTerraformString(native.Cluster_id)
 	tf.Phase = toTerraformString(native.Phase)
+	{
+		bundleAttrs := nativeBundleAttributes(native.Autoscaling, map[string]string{
+			"max_replicas": "Max_replicas",
+			"min_replicas": "Min_replicas",
+			"enabled":      "Enabled",
+		})
+		tf.Autoscaling, _ = types.ObjectValue(map[string]attr.Type{
+			"max_replicas": types.Int64Type,
+			"min_replicas": types.Int64Type,
+			"enabled":      types.BoolType,
+		}, bundleAttrs)
+	}
 	return tf, diags
 }

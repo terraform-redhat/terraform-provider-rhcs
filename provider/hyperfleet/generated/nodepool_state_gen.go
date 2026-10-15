@@ -18,8 +18,6 @@ type NodePoolState struct {
 	Labels                        types.Map    `tfsdk:"labels"`
 	MaxSurge                      types.String `tfsdk:"max_surge"`
 	MaxUnavailable                types.String `tfsdk:"max_unavailable"`
-	Max                           types.Int64  `tfsdk:"max"`
-	Min                           types.Int64  `tfsdk:"min"`
 	ClusterName                   types.String `tfsdk:"cluster_name"`
 	Config                        types.List   `tfsdk:"config"`
 	NodeDrainTimeout              types.String `tfsdk:"node_drain_timeout"`
@@ -46,6 +44,7 @@ type NodePoolState struct {
 	Tuning_config                 types.List   `tfsdk:"tuning_config"`
 	Cluster_id                    types.String `tfsdk:"cluster_id"`
 	Phase                         types.String `tfsdk:"phase"`
+	Autoscaling                   types.Object `tfsdk:"autoscaling"`
 }
 
 // mergeResponseNodePool merges API response values into Terraform state.
@@ -77,4 +76,5 @@ func mergeResponseNodePool(plan, response *NodePoolState) {
 	if !response.Phase.IsNull() {
 		plan.Phase = response.Phase
 	}
+	plan.Autoscaling = mergeTerraformObject(plan.Autoscaling, response.Autoscaling, []string{})
 }

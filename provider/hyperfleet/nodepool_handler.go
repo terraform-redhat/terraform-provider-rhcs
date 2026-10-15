@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
@@ -39,6 +40,12 @@ type NodePoolHandlerImpl struct {
 	client    hyperfleet.Interface
 	accountID string
 	callerARN string
+}
+
+var nodePoolAutoscalingAttributeTypes = map[string]attr.Type{
+	"enabled":      types.BoolType,
+	"min_replicas": types.Int64Type,
+	"max_replicas": types.Int64Type,
 }
 
 // PreExpand validates inputs and derives computed fields
@@ -67,6 +74,37 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 		return diags
 	}
 
+	if !input.Autoscaling.IsNull() && !input.Autoscaling.IsUnknown() {
+		config := readNodePoolAutoscaling(input.Autoscaling)
+		if config == nil {
+			diags.AddError("invalid autoscaling configuration", "The autoscaling block has an invalid shape")
+			return diags
+		}
+		if config.Enabled.IsUnknown() || config.MinReplicas.IsUnknown() || config.MaxReplicas.IsUnknown() {
+			return diags
+		}
+		if config.Enabled.IsNull() {
+			diags.AddError("invalid autoscaling configuration", "autoscaling.enabled must be specified")
+		} else if !config.Enabled.ValueBool() {
+			if !config.MinReplicas.IsNull() || !config.MaxReplicas.IsNull() {
+				diags.AddError("invalid autoscaling configuration", "min_replicas and max_replicas can only be set when autoscaling is enabled")
+			}
+		} else {
+			if input.Replicas.IsNull() == false || input.Replicas.IsUnknown() {
+				diags.AddError("conflicting nodepool sizing", "replicas cannot be set when autoscaling is enabled")
+			}
+			if config.MinReplicas.IsNull() || config.MaxReplicas.IsNull() {
+				diags.AddError("invalid autoscaling configuration", "enabled autoscaling requires min_replicas and max_replicas")
+			} else if config.MinReplicas.ValueInt64() < 0 {
+				diags.AddError("invalid autoscaling configuration", "min_replicas must be greater than or equal to zero")
+			} else if config.MaxReplicas.ValueInt64() < 1 {
+				diags.AddError("invalid autoscaling configuration", "max_replicas must be greater than or equal to one")
+			} else if config.MaxReplicas.ValueInt64() < config.MinReplicas.ValueInt64() {
+				diags.AddError("invalid autoscaling configuration", "max_replicas must be greater than or equal to min_replicas")
+			}
+		}
+	}
+
 	return diags
 }
 
@@ -77,6 +115,15 @@ func (h *NodePoolHandlerImpl) PostExpand(
 	obj *v1alpha1.NodePool,
 ) diag.Diagnostics {
 	var diags diag.Diagnostics
+
+	if input.Autoscaling.IsNull() {
+		obj.Spec.NodePool.AutoScaling = nil
+	} else if !input.Autoscaling.IsUnknown() {
+		config := readNodePoolAutoscaling(input.Autoscaling)
+		if config != nil && !config.Enabled.IsNull() && !config.Enabled.ValueBool() {
+			obj.Spec.NodePool.AutoScaling = nil
+		}
+	}
 
 	// Ensure platform.type is set to AWS platform (enum constant)
 	if obj.Spec.NodePool.Platform.Type == "" {
@@ -156,6 +203,45 @@ func (h *NodePoolHandlerImpl) PostFlatten(ctx context.Context, state *NodePoolSt
 	} else {
 		state.Phase = types.StringValue(string(v1alpha1.NodePoolPhaseProvisioning))
 	}
+
+	if resp.Spec.NodePool.AutoScaling == nil {
+		state.Autoscaling = types.ObjectNull(nodePoolAutoscalingAttributeTypes)
+		return
+	}
+
+	min := types.Int64Null()
+	if resp.Spec.NodePool.AutoScaling.Min != nil {
+		min = types.Int64Value(int64(*resp.Spec.NodePool.AutoScaling.Min))
+	}
+	max := types.Int64Value(int64(resp.Spec.NodePool.AutoScaling.Max))
+	autoscaling, diags := types.ObjectValue(nodePoolAutoscalingAttributeTypes, map[string]attr.Value{
+		"enabled":      types.BoolValue(true),
+		"min_replicas": min,
+		"max_replicas": max,
+	})
+	if !diags.HasError() {
+		state.Autoscaling = autoscaling
+	}
+}
+
+type nodePoolAutoscalingConfig struct {
+	Enabled     types.Bool
+	MinReplicas types.Int64
+	MaxReplicas types.Int64
+}
+
+func readNodePoolAutoscaling(value types.Object) *nodePoolAutoscalingConfig {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	attrs := value.Attributes()
+	enabled, enabledOK := attrs["enabled"].(types.Bool)
+	min, minOK := attrs["min_replicas"].(types.Int64)
+	max, maxOK := attrs["max_replicas"].(types.Int64)
+	if !enabledOK || !minOK || !maxOK {
+		return nil
+	}
+	return &nodePoolAutoscalingConfig{Enabled: enabled, MinReplicas: min, MaxReplicas: max}
 }
 
 // NewNodePoolHandlerImpl creates a new NodePoolHandlerImpl instance.

@@ -12,10 +12,12 @@ import (
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
 	hfplatform "github.com/openshift-online/rosa-hyperfleet-api/clientset/platform"
+	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 type hyperFleetNodePoolReplica struct {
@@ -28,16 +30,16 @@ type hyperFleetNodePoolReplica struct {
 // NewHyperFleetNodePoolReplica creates the fixed-replica nodepool strategy for
 // a cluster created by the HyperFleet cluster strategy.
 func NewHyperFleetNodePoolReplica(
-	clusterName, nodePoolName, clusterID, workspace string,
+	profile profilehandler.ProfileHandler, clusterName, nodePoolName, clusterID, workspace string,
 ) (exec.NodePoolReplicaLifecycle, error) {
 	if clusterID == "" {
 		return nil, fmt.Errorf("cluster ID is required to create a HyperFleet nodepool")
 	}
-	return newHyperFleetNodePoolReplica(clusterName, nodePoolName, clusterID, workspace)
+	return newHyperFleetNodePoolReplica(profile, clusterName, nodePoolName, clusterID, workspace)
 }
 
 func newHyperFleetNodePoolReplica(
-	clusterName, nodePoolName, clusterID, workspace string,
+	profile profilehandler.ProfileHandler, clusterName, nodePoolName, clusterID, workspace string,
 ) (*hyperFleetNodePoolReplica, error) {
 	hyperfleetURL, err := requiredEnv("HYPERFLEET_URL")
 	if err != nil {
@@ -90,19 +92,26 @@ func newHyperFleetNodePoolReplica(
 	if !strings.HasPrefix(name, clusterName+".") {
 		name = clusterName + "." + name
 	}
+	args := &exec.HyperfleetNodePoolArgs{
+		HyperfleetURL: &hyperfleetURL,
+		AWSRegion:     &region,
+		ClusterID:     &clusterID,
+		ClusterName:   &clusterName,
+		Name:          &name,
+		SubnetID:      &subnetID,
+		InstanceType:  &instanceType,
+	}
+	// The image family is baked into every instance the pool launches, so it
+	// can only be set on create; changing it would replace the pool.
+	if profile != nil && profile.Profile().IsWindows() {
+		imageType := string(hypershiftv1beta1.ImageTypeWindows)
+		args.ImageType = &imageType
+	}
 	return &hyperFleetNodePoolReplica{
 		service: service,
 		client:  client,
 		name:    name,
-		args: &exec.HyperfleetNodePoolArgs{
-			HyperfleetURL: &hyperfleetURL,
-			AWSRegion:     &region,
-			ClusterID:     &clusterID,
-			ClusterName:   &clusterName,
-			Name:          &name,
-			SubnetID:      &subnetID,
-			InstanceType:  &instanceType,
-		},
+		args:    args,
 	}, nil
 }
 

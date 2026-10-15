@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
+	. "github.com/openshift-online/ocm-sdk-go/testing"
 
 	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
@@ -147,6 +148,205 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
+		})
+	})
+
+	Context("Windows License Included image type", func() {
+		var hyperfleetServer *Server
+
+		// The parent cluster PostExpand reads to derive the worker instance
+		// profile.
+		clusterResponse := `{
+			"metadata": {
+				"uid": "test-cluster-id",
+				"name": "test-cluster",
+				"creationTimestamp": "2024-01-01T00:00:00Z"
+			},
+			"spec": {
+				"hostedCluster": {
+					"platform": {
+						"type": "AWS",
+						"aws": {
+							"region": "us-east-1",
+							"rolesRef": {
+								"nodePoolManagementARN": "arn:aws:iam::123456789012:role/test-cluster-NodePool"
+							}
+						}
+					}
+				}
+			},
+			"status": {
+				"phase": "Ready",
+				"controlPlaneEndpoint": {
+					"host": "api.test-cluster.example.com",
+					"port": 6443
+				}
+			}
+		}`
+
+		// nodepoolResponse is the Platform API representation of the node pool
+		// with the given platform.aws.imageType (raw JSON, may be empty).
+		nodepoolResponse := func(imageType string) string {
+			return fmt.Sprintf(`{
+				"metadata": {
+					"uid": "test-nodepool-id",
+					"name": "test-cluster.worker",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
+				"spec": {
+					"autoRepair": true,
+					"nodePool": {
+						"clusterName": "test-cluster",
+						"release": {
+							"image": ""
+						},
+						"platform": {
+							"type": "AWS",
+							"aws": {
+								%s
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
+								"instanceType": "m5.xlarge"
+							}
+						},
+						"replicas": 3
+					}
+				},
+				"status": {
+					"phase": "Ready"
+				}
+			}`, imageType)
+		}
+
+		header := http.Header{"Content-Type": []string{"application/json"}}
+
+		// nodepoolSource renders the node pool configuration with the given
+		// image_type assignment (HCL, may be empty).
+		nodepoolSource := func(url, imageType string) string {
+			return fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "hf"
+					hyperfleet_url = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_nodepool_hyperfleet" "test" {
+					provider      = rhcs.hf
+					cluster_id    = "test-cluster-id"
+					cluster_name  = "test-cluster"
+					name          = "test-cluster.worker"
+					replicas      = 3
+					subnet_id     = "subnet-0abc123"
+					auto_repair   = true
+					instance_type = "m5.xlarge"
+					%s
+				}
+			`, url, imageType)
+		}
+
+		BeforeEach(func() {
+			hyperfleetServer = NewServer()
+		})
+
+		AfterEach(func() {
+			hyperfleetServer.Close()
+		})
+
+		It("sends the image type as platform.aws.imageType on create", func() {
+			response := nodepoolResponse(`"imageType": "Windows",`)
+			hyperfleetServer.RouteToHandler(
+				http.MethodGet, "/api/v0/clusters/test-cluster",
+				RespondWith(http.StatusOK, clusterResponse, header),
+			)
+			hyperfleetServer.RouteToHandler(
+				http.MethodGet, "/api/v0/nodepools/test-cluster.worker",
+				RespondWith(http.StatusOK, response, header),
+			)
+			hyperfleetServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+					VerifyJQ(`.spec.nodePool.platform.aws.imageType`, "Windows"),
+					RespondWith(http.StatusCreated, response, header),
+				),
+			)
+
+			Terraform.Source(nodepoolSource(hyperfleetServer.URL(), `image_type = "Windows"`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// The value must round-trip, otherwise every plan would show a diff
+			// on an attribute that cannot be updated in place.
+			runOutput = Terraform.Run("plan", "-no-color", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("replaces the node pool when the image type changes", func() {
+			// A node cannot be converted between Linux and Windows, so a change
+			// must be planned as a replacement rather than an update.
+			response := nodepoolResponse(`"imageType": "Linux",`)
+			hyperfleetServer.RouteToHandler(
+				http.MethodGet, "/api/v0/clusters/test-cluster",
+				RespondWith(http.StatusOK, clusterResponse, header),
+			)
+			hyperfleetServer.RouteToHandler(
+				http.MethodGet, "/api/v0/nodepools/test-cluster.worker",
+				RespondWith(http.StatusOK, response, header),
+			)
+			hyperfleetServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+					RespondWith(http.StatusCreated, response, header),
+				),
+			)
+
+			Terraform.Source(nodepoolSource(hyperfleetServer.URL(), `image_type = "Linux"`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			Terraform.Source(nodepoolSource(hyperfleetServer.URL(), `image_type = "Windows"`))
+			runOutput = Terraform.Run("plan", "-no-color")
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("must be replaced")
+		})
+
+		It("replaces the node pool when the image type is removed", func() {
+			// Clearing the attribute drops a Windows pool back to the Linux
+			// default, which the Platform API rejects as an in-place update.
+			response := nodepoolResponse(`"imageType": "Windows",`)
+			hyperfleetServer.RouteToHandler(
+				http.MethodGet, "/api/v0/clusters/test-cluster",
+				RespondWith(http.StatusOK, clusterResponse, header),
+			)
+			hyperfleetServer.RouteToHandler(
+				http.MethodGet, "/api/v0/nodepools/test-cluster.worker",
+				RespondWith(http.StatusOK, response, header),
+			)
+			hyperfleetServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+					RespondWith(http.StatusCreated, response, header),
+				),
+			)
+
+			Terraform.Source(nodepoolSource(hyperfleetServer.URL(), `image_type = "Windows"`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			Terraform.Source(nodepoolSource(hyperfleetServer.URL(), ``))
+			runOutput = Terraform.Run("plan", "-no-color")
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("must be replaced")
+		})
+
+		It("rejects an image type outside the enum", func() {
+			Terraform.Source(nodepoolSource(hyperfleetServer.URL(), `image_type = "windows"`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`image_type must be "Linux" or "Windows"`)
 		})
 	})
 

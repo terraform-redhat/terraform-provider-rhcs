@@ -23,6 +23,10 @@ type HyperfleetNodePoolArgs struct {
 	DiskSize      *int                 `hcl:"disk_size"`
 	Tags          map[string]string    `hcl:"tags"`
 	Labels        map[string]string    `hcl:"labels"`
+
+	// ImageType is the operating system image family, "Linux" or "Windows".
+	// Immutable: changing it replaces the node pool.
+	ImageType *string `hcl:"image_type"`
 }
 
 type NodePoolAutoscaling struct {

@@ -23,6 +23,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
@@ -64,7 +65,8 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 	if !strings.HasPrefix(input.Name.ValueString(), input.ClusterName.ValueString()+".") {
 		diags.AddError(
 			"invalid NodePool name",
-			fmt.Sprintf("NodePool name %q must start with parent cluster name %q followed by a dot", input.Name.ValueString(), input.ClusterName.ValueString()),
+			fmt.Sprintf("NodePool name %q must start with parent cluster name %q followed by a dot",
+				input.Name.ValueString(), input.ClusterName.ValueString()),
 		)
 		return diags
 	}
@@ -104,6 +106,33 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 			}
 		}
 	}
+
+	diags.Append(validateImageType(input)...)
+
+	return diags
+}
+
+// validateImageType checks the operating system image family against the enum
+// the Platform API accepts on spec.nodePool.platform.aws.imageType, so a bad
+// value fails during apply instead of on the API round trip. The values are
+// case-sensitive, which is the most common way to get this wrong.
+func validateImageType(input *NodePoolState) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if input.ImageType.IsNull() || input.ImageType.IsUnknown() {
+		return diags
+	}
+
+	switch hypershiftv1beta1.ImageType(input.ImageType.ValueString()) {
+	case hypershiftv1beta1.ImageTypeLinux, hypershiftv1beta1.ImageTypeWindows:
+		return diags
+	}
+
+	diags.AddAttributeError(
+		path.Root("image_type"), "Invalid node pool image_type",
+		fmt.Sprintf("image_type must be %q or %q, got %q",
+			hypershiftv1beta1.ImageTypeLinux, hypershiftv1beta1.ImageTypeWindows, input.ImageType.ValueString()),
+	)
 
 	return diags
 }

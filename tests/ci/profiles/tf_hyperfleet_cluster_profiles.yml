@@ -16,6 +16,22 @@ profiles:
     tagging: true
     version: latest
 
+- as: hf-windows
+  cluster:
+    cluster_type: hyperfleet
+    product_id: rosa
+    cloud_provider: aws
+    region: us-east-1
+    multi_az: false
+    byovpc: true
+    private: false
+    oidc_config: managed
+    version: latest
+    # Node pools are created from a Windows (License Included) image. The
+    # account running this profile needs to be able to launch Windows
+    # instances in the region above.
+    windows: true
+
 - as: hf-optional-conf
   cluster:
     cluster_type: hyperfleet

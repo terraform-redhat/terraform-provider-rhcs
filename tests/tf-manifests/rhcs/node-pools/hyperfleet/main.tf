@@ -36,4 +36,5 @@ resource "rhcs_nodepool_hyperfleet" "nodepool" {
   instance_type = var.instance_type
   labels        = var.labels
   autoscaling   = var.autoscaling
+  image_type    = var.image_type
 }

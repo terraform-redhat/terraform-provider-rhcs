@@ -1,6 +1,6 @@
 module github.com/terraform-redhat/terraform-provider-rhcs
 
-go 1.26.7
+go 1.26.9
 
 require (
 	github.com/Masterminds/semver v1.5.0

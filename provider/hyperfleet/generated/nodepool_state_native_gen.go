@@ -14,8 +14,6 @@ type NodePoolStateNative struct {
 	Labels                        map[string]string `hfsdk:"spec.labels"`
 	MaxSurge                      string            `hfsdk:"spec.maxSurge"`
 	MaxUnavailable                string            `hfsdk:"spec.maxUnavailable"`
-	Max                           *int32            `hfsdk:"spec.nodePool.autoScaling.max"`
-	Min                           *int32            `hfsdk:"spec.nodePool.autoScaling.min"`
 	ClusterName                   string            `hfsdk:"spec.nodePool.clusterName"`
 	Config                        string            `hfsdk:"spec.nodePool.config"`
 	NodeDrainTimeout              string            `hfsdk:"spec.nodePool.nodeDrainTimeout"`
@@ -42,4 +40,12 @@ type NodePoolStateNative struct {
 	Tuning_config                 string            `hfsdk:"spec.nodePool.tuningConfig"`
 	Cluster_id                    string            `hfsdk:"-"`
 	Phase                         string            `hfsdk:"-"`
+	Autoscaling                   NodePoolAutoscalingNative
+}
+
+// NodePoolAutoscalingNative is the native representation of the autoscaling bundle.
+type NodePoolAutoscalingNative struct {
+	Max_replicas *int32 `hfsdk:"spec.nodePool.autoScaling.max"`
+	Min_replicas *int32 `hfsdk:"spec.nodePool.autoScaling.min"`
+	Enabled      bool   `hfsdk:"-"`
 }

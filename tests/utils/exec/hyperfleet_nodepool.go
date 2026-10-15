@@ -10,19 +10,20 @@ import (
 // HyperfleetNodePoolArgs contains the Terraform variable values for the
 // rhcs_nodepool_hyperfleet manifest.
 type HyperfleetNodePoolArgs struct {
-	HyperfleetURL *string              `hcl:"hyperfleet_url"`
-	AWSRegion     *string              `hcl:"aws_region"`
-	ClusterID     *string              `hcl:"cluster_id"`
-	ClusterName   *string              `hcl:"cluster_name"`
-	Name          *string              `hcl:"name"`
-	SubnetID      *string              `hcl:"subnet_id"`
-	AutoRepair    *bool                `hcl:"auto_repair"`
-	Replicas      *int                 `hcl:"replicas"`
-	Autoscaling   *NodePoolAutoscaling `hcl:"autoscaling"`
-	InstanceType  *string              `hcl:"instance_type"`
-	DiskSize      *int                 `hcl:"disk_size"`
-	Tags          map[string]string    `hcl:"tags"`
-	Labels        map[string]string    `hcl:"labels"`
+	HyperfleetURL                 *string              `hcl:"hyperfleet_url"`
+	AWSRegion                     *string              `hcl:"aws_region"`
+	ClusterID                     *string              `hcl:"cluster_id"`
+	ClusterName                   *string              `hcl:"cluster_name"`
+	Name                          *string              `hcl:"name"`
+	SubnetID                      *string              `hcl:"subnet_id"`
+	AutoRepair                    *bool                `hcl:"auto_repair"`
+	Replicas                      *int                 `hcl:"replicas"`
+	Autoscaling                   *NodePoolAutoscaling `hcl:"autoscaling"`
+	InstanceType                  *string              `hcl:"instance_type"`
+	DiskSize                      *int                 `hcl:"disk_size"`
+	EC2InstanceMetadataHttpTokens *string              `hcl:"ec2_instance_metadata_http_tokens"`
+	Tags                          map[string]string    `hcl:"tags"`
+	Labels                        map[string]string    `hcl:"labels"`
 }
 
 type NodePoolAutoscaling struct {

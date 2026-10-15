@@ -4,11 +4,15 @@
 package hyperfleet
 
 import (
+	"context"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
+	"github.com/openshift-online/rosa-hyperfleet-api/clientset/pathbind"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 )
 
@@ -96,5 +100,36 @@ func TestNodePoolState_AWSPlatformConfig(t *testing.T) {
 	}
 	if *np.Spec.NodePool.Platform.AWS.Subnet.ID != "subnet-123" {
 		t.Errorf("Subnet.ID = %q, want subnet-123", *np.Spec.NodePool.Platform.AWS.Subnet.ID)
+	}
+}
+
+func TestNodePoolState_EC2InstanceMetadataHttpTokensExpansion(t *testing.T) {
+	native := &NodePoolStateNative{EC2InstanceMetadataHttpTokens: "optional"}
+	obj := &v1alpha1.NodePool{}
+
+	if err := pathbind.Expand(context.Background(), native, obj); err != nil {
+		t.Fatalf("Expand: %v", err)
+	}
+	if got := obj.Spec.EC2InstanceMetadataHttpTokens; got != v1alpha1.EC2InstanceMetadataHttpTokensOptional {
+		t.Errorf("EC2InstanceMetadataHttpTokens = %q, want %q", got, v1alpha1.EC2InstanceMetadataHttpTokensOptional)
+	}
+}
+
+func TestNodePoolResourceSchema_EC2InstanceMetadataHttpTokens(t *testing.T) {
+	var resp resource.SchemaResponse
+	NewNodePool().Schema(context.Background(), resource.SchemaRequest{}, &resp)
+
+	attribute, ok := resp.Schema.Attributes["ec2_instance_metadata_http_tokens"].(schema.StringAttribute)
+	if !ok {
+		t.Fatal("ec2_instance_metadata_http_tokens is not a string attribute")
+	}
+	if !attribute.Optional {
+		t.Error("ec2_instance_metadata_http_tokens should be optional so the API can apply its required default")
+	}
+	if attribute.Computed {
+		t.Error("ec2_instance_metadata_http_tokens should not be provider-computed")
+	}
+	if len(attribute.PlanModifiers) == 0 {
+		t.Error("ec2_instance_metadata_http_tokens should require replacement when changed")
 	}
 }

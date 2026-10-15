@@ -76,6 +76,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				},
 				"spec": {
 					"autoRepair": true,
+					"ec2InstanceMetadataHttpTokens": "required",
 					"labels": {
 						"workload-type": "general"
 					},

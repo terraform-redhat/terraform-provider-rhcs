@@ -11,7 +11,21 @@ profiles:
     multi_az: false
     byovpc: true
     private: false
-    proxy: true
+    proxy: false
+    oidc_config: managed
+    version: latest
+    tagging: true
+
+- as: hyperfleet-explicit-proxy
+  cluster:
+    cluster_type: hyperfleet
+    product_id: rosa
+    cloud_provider: aws
+    region: us-east-1
+    multi_az: false
+    byovpc: true
+    private: false
+    proxy: true # Configures explicit HTTP(S) proxy URLs; this is not transparent proxying.
     oidc_config: managed
     tagging: true
     version: latest

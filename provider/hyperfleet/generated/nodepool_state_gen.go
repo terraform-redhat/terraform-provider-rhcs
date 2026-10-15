@@ -15,6 +15,7 @@ type NodePoolState struct {
 	Name                          types.String `tfsdk:"name"`
 	Id                            types.String `tfsdk:"id"`
 	AutoRepair                    types.Bool   `tfsdk:"auto_repair"`
+	EC2InstanceMetadataHttpTokens types.String `tfsdk:"ec2_instance_metadata_http_tokens"`
 	Labels                        types.Map    `tfsdk:"labels"`
 	MaxSurge                      types.String `tfsdk:"max_surge"`
 	MaxUnavailable                types.String `tfsdk:"max_unavailable"`

@@ -238,6 +238,15 @@ resources:
         computed: true
         description: "Platform type for the NodePool (AWS)."
 
+      - path: spec.ec2InstanceMetadataHttpTokens
+        alias: ec2_instance_metadata_http_tokens
+        goName: EC2InstanceMetadataHttpTokens
+        type: string
+        immutable: true
+        operations:
+          - create
+        description: "EC2 instance metadata HTTP token requirement. `required` enforces IMDSv2; `optional` permits IMDSv1. Defaults to `required` and is immutable after creation."
+
       - path: spec.labels
         type: map
       - path: spec.nodePool.config
@@ -328,7 +337,7 @@ resources:
         type: string
         required: true
         immutable: true
-        description: "Client-selected OIDC configuration name."
+        description: "Client-selected OIDC configuration name. Immutable after creation."
 
       - path: metadata.uid
         alias: id

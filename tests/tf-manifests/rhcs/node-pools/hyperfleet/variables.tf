@@ -58,6 +58,12 @@ variable "instance_type" {
   description = "EC2 instance type (e.g. m5.xlarge)"
 }
 
+variable "ec2_instance_metadata_http_tokens" {
+  type        = string
+  description = "EC2 instance metadata HTTP token requirement"
+  default     = null
+}
+
 variable "disk_size" {
   type        = number
   description = "Root volume size in GiB"

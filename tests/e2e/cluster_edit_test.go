@@ -4,14 +4,27 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
 
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
+	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
+	hfplatform "github.com/openshift-online/rosa-hyperfleet-api/clientset/platform"
+	hfrest "github.com/openshift-online/rosa-hyperfleet-api/clientset/rest"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -39,6 +52,10 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ShouldNot(HaveOccurred())
 
+		if profileHandler.Profile().GetClusterType() == constants.HYPERFLEET {
+			Skip("HyperFleet uses the shared cluster proxy workflow")
+		}
+
 		// Initialize the cluster service
 		By("Create cluster service")
 		clusterService, err = profileHandler.Services().GetClusterService()
@@ -54,73 +71,6 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 	})
 
 	Context("can edit/delete", func() {
-		It("proxy - [id:72489]", ci.High, ci.FeatureClusterProxy, func() {
-			if !profileHandler.Profile().IsProxy() {
-				Skip("No proxy configured")
-			}
-
-			By("Retrieve Proxy service")
-			proxyService, err := profileHandler.Services().GetProxyService()
-			Expect(err).ShouldNot(HaveOccurred())
-
-			readProxyArgs := func() (*exec.ProxyArgs, error) {
-				return proxyService.ReadTFVars()
-			}
-
-			By("Create new proxy")
-			proxyArgs, err := readProxyArgs()
-			Expect(err).ShouldNot(HaveOccurred())
-			proxyArgs.ProxyCount = new(2)
-			_, err = proxyService.Apply(proxyArgs)
-			Expect(err).ShouldNot(HaveOccurred())
-			defer func() {
-				By("Delete created proxy")
-				proxyArgs.ProxyCount = new(1)
-				_, err = proxyService.Apply(proxyArgs)
-				Expect(err).ShouldNot(HaveOccurred())
-			}()
-			proxiesOutput, err := proxyService.Output()
-			Expect(err).ShouldNot(HaveOccurred())
-			newProxyOutput := proxiesOutput.Proxies[1]
-
-			By("Edit cluster proxy with new proxy information")
-			clusterArgs.Proxy = &exec.Proxy{
-				AdditionalTrustBundle: new(newProxyOutput.AdditionalTrustBundle),
-				HTTPSProxy:            new(newProxyOutput.HttpsProxy),
-				HTTPProxy:             new(newProxyOutput.HttpProxy),
-				NoProxy:               new(newProxyOutput.NoProxy),
-			}
-			_, err = clusterService.Apply(clusterArgs)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			By("Verify new proxy information are set")
-			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
-			Expect(err).ToNot(HaveOccurred())
-			clusterProxy := clusterResp.Body().Proxy()
-			Expect(clusterProxy.HTTPProxy()).To(Equal(newProxyOutput.HttpProxy))
-			Expect(clusterProxy.HTTPSProxy()).To(Equal(newProxyOutput.HttpsProxy))
-			Expect(clusterProxy.NoProxy()).To(Equal(newProxyOutput.NoProxy))
-
-			// Remove proxy completely
-			By("Remove proxy from cluster")
-			clusterArgs.Proxy = &exec.Proxy{
-				AdditionalTrustBundle: helper.EmptyStringPointer,
-				HTTPSProxy:            helper.EmptyStringPointer,
-				HTTPProxy:             helper.EmptyStringPointer,
-				NoProxy:               helper.EmptyStringPointer,
-			}
-			clusterService.Apply(clusterArgs)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			By("Check proxy is removed")
-			clusterResp, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
-			Expect(err).ToNot(HaveOccurred())
-			clusterProxy = clusterResp.Body().Proxy()
-			Expect(clusterProxy.HTTPProxy()).To(BeEmpty())
-			Expect(clusterProxy.HTTPSProxy()).To(BeEmpty())
-			Expect(clusterProxy.NoProxy()).To(BeEmpty())
-		})
-
 		It("registry config - [id:76500]", ci.High, ci.FeatureClusterRegistryConfig, func() {
 			if !profileHandler.Profile().IsHCP() {
 				Skip("Test can run only on Hosted cluster")
@@ -733,3 +683,342 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 	})
 
 })
+
+var sharedClusterProxyAWSRegionRE = regexp.MustCompile(`[a-z]+-(?:[a-z]+-)+\d+`)
+
+const (
+	sharedClusterProxyPollInterval          = 30 * time.Second
+	sharedClusterProxyClusterDeletedTimeout = 60 * time.Minute
+	sharedClusterProxyTeardownGracePeriod   = 90 * time.Minute
+)
+
+var _ = Describe("Shared cluster proxy workflow", ci.Day2, ci.FeatureClusterProxy, func() {
+	It("creates, updates, and clears proxy settings - [id:72489]",
+		ci.High, ci.HyperfleetValidated, func(ctx SpecContext) {
+			profile, err := profilehandler.NewProfileHandlerFromYamlFile()
+			Expect(err).NotTo(HaveOccurred())
+			if clusterID == "" {
+				Skip("an existing cluster ID is required for the proxy day-2 workflow")
+			}
+			if !profile.Profile().IsProxy() {
+				Skip("No proxy configured")
+			}
+
+			if profile.Profile().GetClusterType() == constants.HYPERFLEET {
+				runHyperFleetClusterProxyWorkflow(ctx, profile)
+				return
+			}
+			runClassicClusterProxyWorkflow(profile)
+		})
+})
+
+func runClassicClusterProxyWorkflow(profile profilehandler.ProfileHandler) {
+	clusterService, err := profile.Services().GetClusterService()
+	Expect(err).NotTo(HaveOccurred())
+	clusterArgs, err := clusterService.ReadTFVars()
+	Expect(err).NotTo(HaveOccurred())
+	originalClusterArgs := *clusterArgs
+
+	proxyService, err := profile.Services().GetProxyService()
+	Expect(err).NotTo(HaveOccurred())
+	proxyArgs, err := proxyService.ReadTFVars()
+	Expect(err).NotTo(HaveOccurred())
+	proxyArgs.ProxyCount = new(2)
+	_, err = proxyService.Apply(proxyArgs)
+	Expect(err).NotTo(HaveOccurred())
+	DeferCleanup(func() {
+		By("Restore the original proxy endpoint")
+		proxyArgs.ProxyCount = new(1)
+		_, applyErr := proxyService.Apply(proxyArgs)
+		Expect(applyErr).NotTo(HaveOccurred())
+		By("Restore the original cluster settings")
+		_, applyErr = clusterService.Apply(&originalClusterArgs)
+		Expect(applyErr).NotTo(HaveOccurred())
+	})
+
+	proxiesOutput, err := proxyService.Output()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(proxiesOutput.Proxies).To(HaveLen(2))
+	newProxyOutput := proxiesOutput.Proxies[1]
+
+	By("Apply the new proxy endpoint")
+	clusterArgs.Proxy = &exec.Proxy{
+		AdditionalTrustBundle: new(newProxyOutput.AdditionalTrustBundle),
+		HTTPSProxy:            new(newProxyOutput.HttpsProxy),
+		HTTPProxy:             new(newProxyOutput.HttpProxy),
+		NoProxy:               new(newProxyOutput.NoProxy),
+	}
+	_, err = clusterService.Apply(clusterArgs)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Verify the new proxy settings")
+	clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+	Expect(err).NotTo(HaveOccurred())
+	clusterProxy := clusterResp.Body().Proxy()
+	Expect(clusterProxy.HTTPProxy()).To(Equal(newProxyOutput.HttpProxy))
+	Expect(clusterProxy.HTTPSProxy()).To(Equal(newProxyOutput.HttpsProxy))
+	Expect(clusterProxy.NoProxy()).To(Equal(newProxyOutput.NoProxy))
+
+	By("Remove the proxy settings")
+	clusterArgs.Proxy = &exec.Proxy{
+		AdditionalTrustBundle: helper.EmptyStringPointer,
+		HTTPSProxy:            helper.EmptyStringPointer,
+		HTTPProxy:             helper.EmptyStringPointer,
+		NoProxy:               helper.EmptyStringPointer,
+	}
+	_, err = clusterService.Apply(clusterArgs)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Verify the proxy settings are removed")
+	clusterResp, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+	Expect(err).NotTo(HaveOccurred())
+	clusterProxy = clusterResp.Body().Proxy()
+	Expect(clusterProxy.HTTPProxy()).To(BeEmpty())
+	Expect(clusterProxy.HTTPSProxy()).To(BeEmpty())
+	Expect(clusterProxy.NoProxy()).To(BeEmpty())
+}
+
+func runHyperFleetClusterProxyWorkflow(
+	ctx SpecContext,
+	profile profilehandler.ProfileHandler,
+) {
+	hyperfleetURL := os.Getenv("HYPERFLEET_URL")
+	Expect(hyperfleetURL).NotTo(BeEmpty(), "HYPERFLEET_URL is required")
+	apiRegion := sharedClusterProxyAWSRegionRE.FindString(hyperfleetURL)
+	if apiRegion == "" {
+		apiRegion = profile.Profile().GetRegion()
+	}
+	Expect(apiRegion).NotTo(BeEmpty(), "cannot derive the AWS region from HYPERFLEET_URL")
+	region := config.GetRegion()
+	if region == "" {
+		region = profile.Profile().GetRegion()
+	}
+	if region == "" {
+		region = apiRegion
+	}
+
+	clusterName := os.Getenv("HYPERFLEET_CLUSTER_NAME")
+	if clusterName == "" {
+		clusterName = config.GetRHCSClusterName()
+	}
+	if clusterName == "" {
+		clusterName = profile.Profile().GetName()
+	}
+	clusterService, err := exec.NewHyperfleetClusterService(clusterName)
+	Expect(err).NotTo(HaveOccurred())
+	clusterOutput, err := clusterService.Output()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(clusterOutput.ClusterID).NotTo(BeEmpty(),
+		fmt.Sprintf("proxy checks require existing cluster Terraform state in workspace %q", clusterName))
+	Expect(clusterOutput.ClusterID).To(Equal(clusterID))
+	clusterArgs, err := clusterService.ReadTFVars()
+	Expect(err).NotTo(HaveOccurred())
+	originalArgs := *clusterArgs
+
+	vpcWorkspace := clusterName + "-vpc"
+	vpcService, err := exec.NewHyperfleetVPCService(vpcWorkspace)
+	Expect(err).NotTo(HaveOccurred())
+	vpcOutput, err := vpcService.Output()
+	if err != nil || vpcOutput.VPCID == "" || vpcOutput.PublicSubnetID == "" {
+		vpcService, err = exec.NewHyperfleetVPCService(clusterName)
+		Expect(err).NotTo(HaveOccurred())
+		vpcOutput, err = vpcService.Output()
+	}
+	Expect(err).NotTo(HaveOccurred())
+	Expect(vpcOutput.VPCID).NotTo(BeEmpty())
+	Expect(vpcOutput.PublicSubnetID).NotTo(BeEmpty())
+
+	proxyWorkspace := clusterName + "-proxy-sanity"
+	proxyService, err := exec.NewProxyService(proxyWorkspace, constants.HYPERFLEET)
+	Expect(err).NotTo(HaveOccurred())
+	proxyTrustBundlePath := filepath.Join(config.GetRHCSOutputDir(), proxyWorkspace+"-ca.cert")
+	runProxyValidationChecks := strings.EqualFold(
+		os.Getenv("HYPERFLEET_PROXY_VALIDATION_TEST"), "true")
+	invalidHTTPProxy := "http://proxy.example.com/" + strings.Repeat("x", 2049)
+	var proxyAttempted bool
+	var clusterProxyChangeAttempted bool
+
+	client := buildSharedClusterProxyHyperFleetClient(ctx, hyperfleetURL, apiRegion)
+	clusters := client.HyperfleetV1alpha1().Clusters()
+	currentCluster, err := clusters.Get(ctx, clusterID, hfplatform.GetOptions{})
+	Expect(err).NotTo(HaveOccurred())
+	originalArgs.HTTPProxy = nil
+	originalArgs.HTTPSProxy = nil
+	originalArgs.NoProxy = nil
+	if currentCluster.Spec.HostedCluster.Configuration != nil &&
+		currentCluster.Spec.HostedCluster.Configuration.Proxy != nil {
+		httpProxy := currentCluster.Spec.HostedCluster.Configuration.Proxy.HTTPProxy
+		httpsProxy := currentCluster.Spec.HostedCluster.Configuration.Proxy.HTTPSProxy
+		noProxy := currentCluster.Spec.HostedCluster.Configuration.Proxy.NoProxy
+		originalArgs.HTTPProxy = &httpProxy
+		originalArgs.HTTPSProxy = &httpsProxy
+		originalArgs.NoProxy = &noProxy
+	}
+
+	verifyClusterProxy := func(waitCtx context.Context, wantHTTP, wantHTTPS, wantNo string) {
+		Eventually(func() bool {
+			cluster, getErr := clusters.Get(waitCtx, clusterID, hfplatform.GetOptions{})
+			if getErr != nil {
+				return false
+			}
+			configuration := cluster.Spec.HostedCluster.Configuration
+			if wantHTTP == "" && wantHTTPS == "" && wantNo == "" {
+				return configuration == nil || configuration.Proxy == nil
+			}
+			if configuration == nil || configuration.Proxy == nil {
+				return false
+			}
+			proxy := configuration.Proxy
+			return proxy.HTTPProxy == wantHTTP &&
+				proxy.HTTPSProxy == wantHTTPS &&
+				proxy.NoProxy == wantNo
+		}).WithContext(waitCtx).WithTimeout(5 * time.Minute).
+			WithPolling(sharedClusterProxyPollInterval).Should(BeTrue())
+	}
+	proxyString := func(value *string) string {
+		if value == nil {
+			return ""
+		}
+		return *value
+	}
+
+	DeferCleanup(func(cleanupCtx SpecContext) {
+		if !proxyAttempted {
+			return
+		}
+		if clusterProxyChangeAttempted {
+			By("Restore the retained cluster's original proxy settings")
+			_, restoreErr := clusterService.Apply(&originalArgs)
+			Expect(restoreErr).NotTo(HaveOccurred())
+			verifyClusterProxy(
+				cleanupCtx,
+				proxyString(originalArgs.HTTPProxy),
+				proxyString(originalArgs.HTTPSProxy),
+				proxyString(originalArgs.NoProxy),
+			)
+		}
+		By("Destroy the proxy endpoints created by this spec")
+		_, destroyErr := proxyService.Destroy()
+		Expect(destroyErr).NotTo(HaveOccurred())
+	}, GracePeriod(sharedClusterProxyTeardownGracePeriod))
+
+	if runProxyValidationChecks {
+		By("[72491] Verify an over-limit proxy is rejected during cluster creation")
+		invalidWorkspace := fmt.Sprintf("%s-invalid-proxy-%d", clusterName, time.Now().UnixNano())
+		invalidProxyClusterService, createErr := exec.NewHyperfleetClusterService(invalidWorkspace)
+		Expect(createErr).NotTo(HaveOccurred())
+		invalidClusterName := fmt.Sprintf("ip-%012d", time.Now().UnixNano()%1_000_000_000_000)
+		invalidExpiration := time.Now().UTC().Add(4 * time.Hour).Format(time.RFC3339)
+		invalidArgs := originalArgs
+		invalidArgs.ClusterName = &invalidClusterName
+		invalidArgs.ExpirationTimestamp = &invalidExpiration
+		invalidArgs.HTTPProxy = &invalidHTTPProxy
+		invalidArgs.HTTPSProxy = nil
+		invalidArgs.NoProxy = nil
+		invalidArgs.OIDCConfigID = nil
+		_, invalidCreateErr := invalidProxyClusterService.Apply(&invalidArgs)
+		if invalidCreateErr == nil {
+			unexpectedCluster, outputErr := invalidProxyClusterService.Output()
+			_, destroyErr := invalidProxyClusterService.Destroy()
+			Expect(destroyErr).NotTo(HaveOccurred())
+			if outputErr == nil && unexpectedCluster.ClusterID != "" {
+				deleteErr := clusters.WaitUntil(
+					ctx,
+					unexpectedCluster.ClusterID,
+					func(cluster *v1alpha1.Cluster) bool { return cluster == nil },
+					sharedClusterProxyPollInterval,
+					sharedClusterProxyClusterDeletedTimeout,
+				)
+				Expect(deleteErr).NotTo(HaveOccurred())
+			}
+			Fail("HyperFleet accepted an HTTP proxy longer than the 2048-character limit")
+		}
+		Expect(invalidCreateErr).To(HaveOccurred())
+		invalidCreateMessage := strings.ToLower(invalidCreateErr.Error())
+		Expect(invalidCreateMessage).To(Or(
+			ContainSubstring("2048"),
+			ContainSubstring("too long"),
+			ContainSubstring("length"),
+		))
+		_, destroyErr := invalidProxyClusterService.Destroy()
+		Expect(destroyErr).NotTo(HaveOccurred())
+	}
+
+	By("Create two proxy endpoints in the retained cluster VPC")
+	proxyCount := 2
+	proxyAttempted = true
+	_, err = proxyService.Apply(&exec.ProxyArgs{
+		ProxyCount:          &proxyCount,
+		Region:              &region,
+		VPCID:               &vpcOutput.VPCID,
+		PublicSubnetID:      &vpcOutput.PublicSubnetID,
+		TrustBundleFilePath: &proxyTrustBundlePath,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	proxies, err := proxyService.Output()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(proxies.Proxies).To(HaveLen(2))
+	initialProxy := proxies.Proxies[0]
+	updatedProxy := proxies.Proxies[1]
+	Expect(initialProxy.HttpProxy).NotTo(BeEmpty())
+	Expect(initialProxy.HttpsProxy).NotTo(BeEmpty())
+	Expect(updatedProxy.HttpProxy).NotTo(BeEmpty())
+	Expect(updatedProxy.HttpsProxy).NotTo(BeEmpty())
+
+	By("[72489] Apply and verify the first proxy endpoint")
+	updatedArgs := originalArgs
+	updatedArgs.HTTPProxy = &initialProxy.HttpProxy
+	updatedArgs.HTTPSProxy = &initialProxy.HttpsProxy
+	updatedArgs.NoProxy = &initialProxy.NoProxy
+	clusterProxyChangeAttempted = true
+	_, err = clusterService.Apply(&updatedArgs)
+	Expect(err).NotTo(HaveOccurred())
+	verifyClusterProxy(ctx, initialProxy.HttpProxy, initialProxy.HttpsProxy, initialProxy.NoProxy)
+
+	if runProxyValidationChecks {
+		By("[72490] Verify an over-limit proxy update is rejected")
+		invalidEditArgs := updatedArgs
+		invalidEditArgs.HTTPProxy = &invalidHTTPProxy
+		_, err = clusterService.Apply(&invalidEditArgs)
+		Expect(err).To(HaveOccurred())
+		verifyClusterProxy(ctx, initialProxy.HttpProxy, initialProxy.HttpsProxy, initialProxy.NoProxy)
+	}
+
+	By("[72489] Update the proxy endpoints and no_proxy")
+	updatedNoProxy := updatedProxy.NoProxy + ",example.com"
+	updatedArgs.HTTPProxy = &updatedProxy.HttpProxy
+	updatedArgs.HTTPSProxy = &updatedProxy.HttpsProxy
+	updatedArgs.NoProxy = &updatedNoProxy
+	_, err = clusterService.Apply(&updatedArgs)
+	Expect(err).NotTo(HaveOccurred())
+	verifyClusterProxy(ctx, updatedProxy.HttpProxy, updatedProxy.HttpsProxy, updatedNoProxy)
+
+	By("Clear the proxy settings from the retained cluster")
+	updatedArgs.HTTPProxy = nil
+	updatedArgs.HTTPSProxy = nil
+	updatedArgs.NoProxy = nil
+	_, err = clusterService.Apply(&updatedArgs)
+	Expect(err).NotTo(HaveOccurred())
+	verifyClusterProxy(ctx, "", "", "")
+}
+
+func buildSharedClusterProxyHyperFleetClient(
+	ctx context.Context,
+	hyperfleetURL,
+	region string,
+) *hyperfleet.Clientset {
+	awsConfig, err := awsconfig.LoadDefaultConfig(ctx)
+	Expect(err).NotTo(HaveOccurred())
+	identity, err := sts.NewFromConfig(awsConfig).GetCallerIdentity(
+		ctx, &sts.GetCallerIdentityInput{})
+	Expect(err).NotTo(HaveOccurred())
+	client, err := hyperfleet.NewForConfig(&hfrest.Config{
+		Host:      hyperfleetURL,
+		Region:    region,
+		AccountID: *identity.Account,
+		CallerARN: *identity.Arn,
+		AWSConfig: awsConfig,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	return client
+}

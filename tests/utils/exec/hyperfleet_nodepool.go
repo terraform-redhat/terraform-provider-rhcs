@@ -24,6 +24,10 @@ type HyperfleetNodePoolArgs struct {
 	EC2InstanceMetadataHttpTokens *string              `hcl:"ec2_instance_metadata_http_tokens"`
 	Tags                          map[string]string    `hcl:"tags"`
 	Labels                        map[string]string    `hcl:"labels"`
+
+	// ImageType is the operating system image family, "Linux" or "Windows".
+	// Immutable: changing it replaces the node pool.
+	ImageType *string `hcl:"image_type"`
 }
 
 type NodePoolAutoscaling struct {

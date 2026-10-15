@@ -19,6 +19,7 @@ type Profile struct {
 	StorageLB                      bool     `ini:"storage_lb,omitempty" json:"storage_lb,omitempty"` // the unit is GIB, don't support unit set
 	Tagging                        bool     `ini:"tagging,omitempty" json:"tagging,omitempty"`
 	Labeling                       bool     `ini:"labeling,omitempty" json:"labeling,omitempty"`
+	Windows                        bool     `ini:"windows,omitempty" json:"windows,omitempty"`
 	Etcd                           bool     `ini:"etcd_encryption,omitempty" json:"etcd_encryption,omitempty"`
 	FIPS                           bool     `ini:"fips,omitempty" json:"fips,omitempty"`
 	CCS                            bool     `ini:"ccs,omitempty" json:"ccs,omitempty"`

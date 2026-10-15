@@ -95,6 +95,27 @@ resources:
       - path: spec.hostedCluster.autoscaling.expanders
         type: string
 
+      - path: spec.hostedCluster.autoscaling.maxNodeProvisionTime
+        alias: autoscalerMaxNodeProvisionTime
+        type: string
+        description: "Maximum time cluster-autoscaler waits for a node to be provisioned."
+      - path: spec.hostedCluster.autoscaling.maxNodesTotal
+        alias: autoscalerMaxNodesTotal
+        type: "*int32"
+        description: "Maximum number of nodes across all node pools."
+      - path: spec.hostedCluster.autoscaling.maxPodGracePeriod
+        alias: autoscalerMaxPodGracePeriod
+        type: "*int32"
+        description: "Maximum pod graceful termination period in seconds."
+      - path: spec.hostedCluster.autoscaling.podPriorityThreshold
+        alias: autoscalerPodPriorityThreshold
+        type: "*int32"
+        description: "Pod priority threshold for cluster autoscaler scale-up."
+      - path: spec.hostedCluster.configuration.ingress.componentRoutes
+        alias: componentRoutes
+        type: string
+        description: "JSON-encoded component routes for the default ingress."
+
       # Complex SDK values use explicit Terraform representations. Arrays are
       # JSON strings because the draft does not retain their element schemas.
       - path: spec.hostedCluster.configuration.kubelet.kubeReserved

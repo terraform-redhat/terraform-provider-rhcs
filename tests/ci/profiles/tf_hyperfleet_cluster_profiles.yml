@@ -13,10 +13,10 @@ profiles:
     private: false
     proxy: true
     oidc_config: managed
-    version: latest
     tagging: true
+    version: latest
 
-- as: hf-scheduler
+- as: hf-optional-conf
   cluster:
     cluster_type: hyperfleet
     product_id: rosa
@@ -26,7 +26,12 @@ profiles:
     byovpc: true
     private: false
     oidc_config: managed
+    tagging: true
     scheduler_profile: HighNodeUtilization
+    autoscaler_max_node_provision_time: 15m
+    autoscaler_max_nodes_total: 10
+    autoscaler_max_pod_grace_period: 600
+    autoscaler_pod_priority_threshold: -8
     version: latest
 
 - as: hyperfleet-hcp-ad

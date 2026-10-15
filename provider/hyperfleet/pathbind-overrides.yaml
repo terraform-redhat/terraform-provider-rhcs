@@ -298,6 +298,24 @@ resources:
           - read
         description: "Current lifecycle phase of the node pool (Provisioning, Ready, Deleting)."
 
+      - alias: enabled
+        bundle: autoscaling
+        type: bool
+        operations:
+          - create
+          - update
+        description: "Enable NodePool autoscaling."
+
+      - path: spec.nodePool.autoScaling.min
+        alias: min_replicas
+        bundle: autoscaling
+        description: "Minimum number of replicas when autoscaling is enabled."
+
+      - path: spec.nodePool.autoScaling.max
+        alias: max_replicas
+        bundle: autoscaling
+        description: "Maximum number of replicas when autoscaling is enabled."
+
   oidcConfig:
     aliases:
       - path: metadata.name

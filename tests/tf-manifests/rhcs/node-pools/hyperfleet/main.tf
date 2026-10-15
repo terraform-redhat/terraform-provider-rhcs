@@ -35,4 +35,5 @@ resource "rhcs_nodepool_hyperfleet" "nodepool" {
   replicas      = var.replicas
   instance_type = var.instance_type
   labels        = var.labels
+  autoscaling   = var.autoscaling
 }

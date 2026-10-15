@@ -12,6 +12,7 @@ ARG OCM_VERSION=0.1.66
 ARG OC_VERSION=4.22.3
 
 FROM registry.access.redhat.com/ubi9/go-toolset:1.26.7-1792010711 AS builder
+ENV GOTOOLCHAIN=auto
 ARG TERRAFORM_VERSION
 USER root
 # Configure safe.directory before COPY: a worktree .git file is invalid inside the image build.
@@ -36,6 +37,7 @@ RUN go env -w GO111MODULE=on && \
     make install
 
 FROM registry.access.redhat.com/ubi9/go-toolset:1.26.7-1792010711
+ENV GOTOOLCHAIN=auto
 ARG TERRAFORM_VERSION
 ARG OCM_VERSION
 ARG OC_VERSION

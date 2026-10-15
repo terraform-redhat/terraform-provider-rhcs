@@ -34,28 +34,29 @@ import (
 var hyperFleetAWSRegionRE = regexp.MustCompile(`[a-z]+-(?:[a-z]+-)+\d+`)
 
 type hyperFleetBackend struct {
-	service exec.HyperfleetClusterService
-	proxy   exec.ProxyService
-	client  *hyperfleet.Clientset
-	args    *exec.HyperfleetClusterArgs
-	oidcID  string
+	service  exec.HyperfleetClusterService
+	proxy    exec.ProxyService
+	client   *hyperfleet.Clientset
+	args     *exec.HyperfleetClusterArgs
+	oidcName string
 }
 
 type hyperFleetFetcher struct {
-	client  *hyperfleet.Clientset
-	service exec.HyperfleetClusterService
+	client      *hyperfleet.Clientset
+	service     exec.HyperfleetClusterService
+	clusterName string
 }
 
 type hyperFleetDestroyer struct {
-	cluster   exec.HyperfleetClusterService
-	iam       exec.HyperfleetIAMService
-	oidc      exec.HyperfleetOidcConfigService
-	proxy     exec.ProxyService
-	vpc       exec.HyperfleetVPCService
-	client    *hyperfleet.Clientset
-	clusterID string
-	ownsVPC   bool
-	region    string
+	cluster     exec.HyperfleetClusterService
+	iam         exec.HyperfleetIAMService
+	oidc        exec.HyperfleetOidcConfigService
+	proxy       exec.ProxyService
+	vpc         exec.HyperfleetVPCService
+	client      *hyperfleet.Clientset
+	clusterName string
+	ownsVPC     bool
+	region      string
 }
 
 func newHyperFleetDestroyer(profile profilehandler.ProfileHandler, workspace string) (*hyperFleetDestroyer, error) {
@@ -119,15 +120,15 @@ func newHyperFleetDestroyer(profile profilehandler.ProfileHandler, workspace str
 		return nil, fmt.Errorf("%s is not set and Terraform state has no HyperFleet cluster ID", config.EnvClusterID)
 	}
 	return &hyperFleetDestroyer{
-		cluster:   clusterService,
-		iam:       iamService,
-		oidc:      oidcService,
-		proxy:     proxyService,
-		vpc:       vpcService,
-		client:    client,
-		clusterID: clusterID,
-		ownsVPC:   len(config.GetSubnetIDList()) == 0 || len(config.GetAvailabilityZoneList()) == 0,
-		region:    region,
+		cluster:     clusterService,
+		iam:         iamService,
+		oidc:        oidcService,
+		proxy:       proxyService,
+		vpc:         vpcService,
+		client:      client,
+		clusterName: clusterName,
+		ownsVPC:     len(config.GetSubnetIDList()) == 0 || len(config.GetAvailabilityZoneList()) == 0,
+		region:      region,
 	}, nil
 }
 
@@ -138,7 +139,7 @@ func (d *hyperFleetDestroyer) Destroy(ctx context.Context) error {
 	if _, err := d.cluster.Destroy(); err != nil {
 		return err
 	}
-	if err := waitForHyperFleetClusterDeletion(ctx, d.client, d.clusterID); err != nil {
+	if err := waitForHyperFleetClusterDeletion(ctx, d.client, d.clusterName); err != nil {
 		return err
 	}
 	if _, err := d.iam.Destroy(); err != nil {
@@ -249,7 +250,7 @@ func newHyperFleetFetcher(profile profilehandler.ProfileHandler) (*hyperFleetFet
 	if err != nil {
 		return nil, err
 	}
-	return &hyperFleetFetcher{client: client, service: service}, nil
+	return &hyperFleetFetcher{client: client, service: service, clusterName: clusterName}, nil
 }
 
 func (f *hyperFleetFetcher) FetchClusterID(ctx context.Context) (string, error) {
@@ -265,8 +266,12 @@ func (f *hyperFleetFetcher) FetchClusterID(ctx context.Context) (string, error) 
 	if clusterID == "" {
 		return "", nil
 	}
-	if _, err := f.client.HyperfleetV1alpha1().Clusters().Get(ctx, clusterID, hfplatform.GetOptions{}); err != nil {
+	cluster, err := f.client.HyperfleetV1alpha1().Clusters().Get(ctx, f.clusterName, hfplatform.GetOptions{})
+	if err != nil {
 		return "", err
+	}
+	if string(cluster.UID) != clusterID {
+		return "", fmt.Errorf("configured HyperFleet cluster ID %q does not match cluster %q UID %q", clusterID, f.clusterName, cluster.UID)
 	}
 	return clusterID, nil
 }
@@ -362,8 +367,10 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 	if oidcType == "" {
 		oidcType = "managed"
 	}
+	oidcConfigName := clusterName + ".oidc"
 	if _, err := oidcService.Apply(&exec.HyperfleetOidcConfigArgs{
 		HyperfleetURL: &hyperfleetURL,
+		Name:          &oidcConfigName,
 		Type:          &oidcType,
 	}); err != nil {
 		return nil, err
@@ -449,11 +456,11 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 		clusterArgs.NoProxy = &proxyOutput.NoProxy
 	}
 	backend := &hyperFleetBackend{
-		service: service,
-		proxy:   proxyService,
-		client:  client,
-		oidcID:  oidcOutput.OidcConfigID,
-		args:    clusterArgs,
+		service:  service,
+		proxy:    proxyService,
+		client:   client,
+		oidcName: oidcOutput.Name,
+		args:     clusterArgs,
 	}
 	return &Backend{Lifecycle: backend}, nil
 }
@@ -463,8 +470,19 @@ func (b *hyperFleetBackend) FetchClusterID(ctx context.Context) (string, error) 
 	if clusterID == "" {
 		return "", nil
 	}
-	if _, err := b.client.HyperfleetV1alpha1().Clusters().Get(ctx, clusterID, hfplatform.GetOptions{}); err != nil {
+	clusterName := ""
+	if b.args.ClusterName != nil {
+		clusterName = *b.args.ClusterName
+	}
+	if clusterName == "" {
+		return "", fmt.Errorf("HyperFleet cluster name is required to validate cluster ID %q", clusterID)
+	}
+	cluster, err := b.client.HyperfleetV1alpha1().Clusters().Get(ctx, clusterName, hfplatform.GetOptions{})
+	if err != nil {
 		return "", err
+	}
+	if string(cluster.UID) != clusterID {
+		return "", fmt.Errorf("configured HyperFleet cluster ID %q does not match cluster %q UID %q", clusterID, clusterName, cluster.UID)
 	}
 	return clusterID, nil
 }
@@ -499,16 +517,16 @@ func cleanupHyperFleetProxyOnError(proxy exec.ProxyService, cause error) error {
 	return cause
 }
 
-func (b *hyperFleetBackend) WaitReady(ctx context.Context, clusterID string) error {
+func (b *hyperFleetBackend) WaitReady(ctx context.Context, _ string) error {
 	if err := b.client.HyperfleetV1alpha1().OidcConfigs().WaitUntil(
 		ctx,
-		b.oidcID,
+		b.oidcName,
 		func(config *v1alpha1.OidcConfig) bool {
 			if config == nil {
-				log.Logger.Infof("[hyperfleet] OIDC config %s not found while waiting for Ready", b.oidcID)
+				log.Logger.Infof("[hyperfleet] OIDC config %s not found while waiting for Ready", b.oidcName)
 				return false
 			}
-			log.Logger.Infof("[hyperfleet] OIDC config %s phase: %s", b.oidcID, config.Status.Phase)
+			log.Logger.Infof("[hyperfleet] OIDC config %s phase: %s", b.oidcName, config.Status.Phase)
 			return config.Status.Phase == v1alpha1.OidcConfigPhaseReady
 		},
 		30*time.Second,
@@ -516,15 +534,22 @@ func (b *hyperFleetBackend) WaitReady(ctx context.Context, clusterID string) err
 	); err != nil {
 		return err
 	}
+	clusterName := ""
+	if b.args.ClusterName != nil {
+		clusterName = *b.args.ClusterName
+	}
+	if clusterName == "" {
+		return fmt.Errorf("HyperFleet cluster name is required while waiting for Ready")
+	}
 	return b.client.HyperfleetV1alpha1().Clusters().WaitUntil(
 		ctx,
-		clusterID,
+		clusterName,
 		func(cluster *v1alpha1.Cluster) bool {
 			if cluster == nil {
-				log.Logger.Infof("[hyperfleet] cluster %s not found while waiting for Ready", clusterID)
+				log.Logger.Infof("[hyperfleet] cluster %s not found while waiting for Ready", clusterName)
 				return false
 			}
-			log.Logger.Infof("[hyperfleet] cluster %s phase: %s", clusterID, cluster.Status.Phase)
+			log.Logger.Infof("[hyperfleet] cluster %s phase: %s", clusterName, cluster.Status.Phase)
 			return cluster.Status.Phase == v1alpha1.ClusterPhaseReady
 		},
 		30*time.Second,
@@ -532,16 +557,16 @@ func (b *hyperFleetBackend) WaitReady(ctx context.Context, clusterID string) err
 	)
 }
 
-func waitForHyperFleetClusterDeletion(ctx context.Context, client *hyperfleet.Clientset, clusterID string) error {
+func waitForHyperFleetClusterDeletion(ctx context.Context, client *hyperfleet.Clientset, clusterName string) error {
 	return client.HyperfleetV1alpha1().Clusters().WaitUntil(
 		ctx,
-		clusterID,
+		clusterName,
 		func(cluster *v1alpha1.Cluster) bool {
 			if cluster == nil {
-				log.Logger.Infof("[hyperfleet] cluster %s deleted", clusterID)
+				log.Logger.Infof("[hyperfleet] cluster %s deleted", clusterName)
 				return true
 			}
-			log.Logger.Infof("[hyperfleet] cluster %s phase while deleting: %s", clusterID, cluster.Status.Phase)
+			log.Logger.Infof("[hyperfleet] cluster %s phase while deleting: %s", clusterName, cluster.Status.Phase)
 			return false
 		},
 		30*time.Second,

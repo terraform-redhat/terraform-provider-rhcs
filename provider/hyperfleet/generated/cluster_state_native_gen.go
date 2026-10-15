@@ -10,13 +10,30 @@ package hyperfleetgenerated
 type ClusterStateNative struct {
 	Name                           string            `hfsdk:"metadata.name"`
 	Id                             string            `hfsdk:"metadata.uid"`
+	AdditionalTrustBundle          string            `hfsdk:"spec.additionalTrustBundle"`
 	Delete_protection              bool              `hfsdk:"spec.deleteProtection"`
-	Display_name                   string            `hfsdk:"spec.displayName"`
+	DnsReservationId               string            `hfsdk:"spec.dnsReservationId"`
 	Expiration_timestamp           string            `hfsdk:"spec.expirationTimestamp"`
 	RoleARN                        string            `hfsdk:"spec.hostedCluster.autoNode.provisionerConfig.karpenter.aws.roleARN"`
 	Platform                       string            `hfsdk:"spec.hostedCluster.autoNode.provisionerConfig.karpenter.platform"`
 	ProvisionerConfigName          string            `hfsdk:"spec.hostedCluster.autoNode.provisionerConfig.name"`
+	BalancingIgnoredLabels         []string          `hfsdk:"spec.hostedCluster.autoscaling.balancingIgnoredLabels"`
+	Expanders                      []string          `hfsdk:"spec.hostedCluster.autoscaling.expanders"`
+	MaxFreeDifferenceRatioPercent  *int32            `hfsdk:"spec.hostedCluster.autoscaling.maxFreeDifferenceRatioPercent"`
+	MaxNodeProvisionTime           string            `hfsdk:"spec.hostedCluster.autoscaling.maxNodeProvisionTime"`
+	MaxNodesTotal                  *int32            `hfsdk:"spec.hostedCluster.autoscaling.maxNodesTotal"`
+	MaxPodGracePeriod              *int32            `hfsdk:"spec.hostedCluster.autoscaling.maxPodGracePeriod"`
+	PodPriorityThreshold           *int32            `hfsdk:"spec.hostedCluster.autoscaling.podPriorityThreshold"`
+	DelayAfterAddSeconds           *int32            `hfsdk:"spec.hostedCluster.autoscaling.scaleDown.delayAfterAddSeconds"`
+	DelayAfterDeleteSeconds        *int32            `hfsdk:"spec.hostedCluster.autoscaling.scaleDown.delayAfterDeleteSeconds"`
+	DelayAfterFailureSeconds       *int32            `hfsdk:"spec.hostedCluster.autoscaling.scaleDown.delayAfterFailureSeconds"`
+	UnneededDurationSeconds        *int32            `hfsdk:"spec.hostedCluster.autoscaling.scaleDown.unneededDurationSeconds"`
+	UtilizationThresholdPercent    *int32            `hfsdk:"spec.hostedCluster.autoscaling.scaleDown.utilizationThresholdPercent"`
+	Scaling                        string            `hfsdk:"spec.hostedCluster.autoscaling.scaling"`
 	Channel                        string            `hfsdk:"spec.hostedCluster.channel"`
+	OidcProviders                  string            `hfsdk:"spec.hostedCluster.configuration.authentication.oidcProviders"`
+	AuthenticationType             string            `hfsdk:"spec.hostedCluster.configuration.authentication.type"`
+	ComponentRoutes                string            `hfsdk:"spec.hostedCluster.configuration.ingress.componentRoutes"`
 	ContainerLogMaxFiles           *int32            `hfsdk:"spec.hostedCluster.configuration.kubelet.containerLogMaxFiles"`
 	ContainerLogMaxSize            string            `hfsdk:"spec.hostedCluster.configuration.kubelet.containerLogMaxSize"`
 	ImageGCHighThresholdPercent    *int32            `hfsdk:"spec.hostedCluster.configuration.kubelet.imageGCHighThresholdPercent"`
@@ -54,7 +71,7 @@ type ClusterStateNative struct {
 	ControlPlaneARN                string            `hfsdk:"spec.hostedCluster.platform.aws.sharedVPC.rolesRef.controlPlaneARN"`
 	SharedVPCRolesRefIngressARN    string            `hfsdk:"spec.hostedCluster.platform.aws.sharedVPC.rolesRef.ingressARN"`
 	TerminationHandlerQueueURL     string            `hfsdk:"spec.hostedCluster.platform.aws.terminationHandlerQueueURL"`
-	Type                           string            `hfsdk:"spec.hostedCluster.platform.type"`
+	PlatformType                   string            `hfsdk:"spec.hostedCluster.platform.type"`
 	Version                        string            `hfsdk:"spec.hostedCluster.release.image"`
 	OidcConfigId                   string            `hfsdk:"spec.oidcConfigId"`
 	Properties                     map[string]string `hfsdk:"spec.properties"`

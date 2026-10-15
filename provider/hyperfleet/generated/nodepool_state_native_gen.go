@@ -11,13 +11,15 @@ type NodePoolStateNative struct {
 	Name                          string            `hfsdk:"metadata.name"`
 	Id                            string            `hfsdk:"metadata.uid"`
 	AutoRepair                    *bool             `hfsdk:"spec.autoRepair"`
-	DisplayName                   string            `hfsdk:"spec.displayName"`
 	Labels                        map[string]string `hfsdk:"spec.labels"`
+	MaxSurge                      string            `hfsdk:"spec.maxSurge"`
+	MaxUnavailable                string            `hfsdk:"spec.maxUnavailable"`
 	Max                           *int32            `hfsdk:"spec.nodePool.autoScaling.max"`
 	Min                           *int32            `hfsdk:"spec.nodePool.autoScaling.min"`
 	ClusterName                   string            `hfsdk:"spec.nodePool.clusterName"`
 	Config                        string            `hfsdk:"spec.nodePool.config"`
 	NodeDrainTimeout              string            `hfsdk:"spec.nodePool.nodeDrainTimeout"`
+	NodeLabels                    map[string]string `hfsdk:"spec.nodePool.nodeLabels"`
 	Ami                           string            `hfsdk:"spec.nodePool.platform.aws.ami"`
 	ImageType                     string            `hfsdk:"spec.nodePool.platform.aws.imageType"`
 	InstanceProfile               string            `hfsdk:"spec.nodePool.platform.aws.instanceProfile"`
@@ -29,11 +31,7 @@ type NodePoolStateNative struct {
 	MaxPrice                      string            `hfsdk:"spec.nodePool.platform.aws.placement.spot.maxPrice"`
 	Tenancy                       string            `hfsdk:"spec.nodePool.platform.aws.placement.tenancy"`
 	ResourceTags                  string            `hfsdk:"spec.nodePool.platform.aws.resourceTags"`
-	Encrypted                     *bool             `hfsdk:"spec.nodePool.platform.aws.rootVolume.encrypted"`
-	EncryptionKey                 string            `hfsdk:"spec.nodePool.platform.aws.rootVolume.encryptionKey"`
-	Iops                          *int64            `hfsdk:"spec.nodePool.platform.aws.rootVolume.iops"`
 	Size                          *int64            `hfsdk:"spec.nodePool.platform.aws.rootVolume.size"`
-	RootVolumeType                string            `hfsdk:"spec.nodePool.platform.aws.rootVolume.type"`
 	SecurityGroups                string            `hfsdk:"spec.nodePool.platform.aws.securityGroups"`
 	Filters                       string            `hfsdk:"spec.nodePool.platform.aws.subnet.filters"`
 	SubnetId                      string            `hfsdk:"spec.nodePool.platform.aws.subnet.id"`

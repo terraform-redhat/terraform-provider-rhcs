@@ -6,6 +6,7 @@ package clusterworkflow
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
@@ -18,11 +19,10 @@ import (
 )
 
 type hyperFleetNodePoolReplica struct {
-	service   exec.HyperfleetNodePoolService
-	client    *hyperfleet.Clientset
-	args      *exec.HyperfleetNodePoolArgs
-	clusterID string
-	name      string
+	service exec.HyperfleetNodePoolService
+	client  *hyperfleet.Clientset
+	args    *exec.HyperfleetNodePoolArgs
+	name    string
 }
 
 // NewHyperFleetNodePoolReplica creates the fixed-replica nodepool strategy for
@@ -87,11 +87,13 @@ func newHyperFleetNodePoolReplica(
 		instanceType = "m5.xlarge"
 	}
 	name := nodePoolName
+	if !strings.HasPrefix(name, clusterName+".") {
+		name = clusterName + "." + name
+	}
 	return &hyperFleetNodePoolReplica{
-		service:   service,
-		client:    client,
-		clusterID: clusterID,
-		name:      name,
+		service: service,
+		client:  client,
+		name:    name,
 		args: &exec.HyperfleetNodePoolArgs{
 			HyperfleetURL: &hyperfleetURL,
 			AWSRegion:     &region,
@@ -111,7 +113,7 @@ func (n *hyperFleetNodePoolReplica) Create(replicas int) error {
 }
 
 func (n *hyperFleetNodePoolReplica) WaitReady(ctx context.Context) error {
-	return n.client.HyperfleetV1alpha1().NodePools(n.clusterID).WaitUntil(
+	return n.client.HyperfleetV1alpha1().NodePools().WaitUntil(
 		ctx,
 		n.name,
 		func(nodePool *v1alpha1.NodePool) bool {
@@ -134,7 +136,7 @@ func (n *hyperFleetNodePoolReplica) UpdateReplicas(replicas int) error {
 }
 
 func (n *hyperFleetNodePoolReplica) Replicas(ctx context.Context) (int, error) {
-	nodePool, err := n.client.HyperfleetV1alpha1().NodePools(n.clusterID).Get(ctx, n.name, hfplatform.GetOptions{})
+	nodePool, err := n.client.HyperfleetV1alpha1().NodePools().Get(ctx, n.name, hfplatform.GetOptions{})
 	if err != nil {
 		return 0, err
 	}
@@ -150,7 +152,7 @@ func (n *hyperFleetNodePoolReplica) Destroy() error {
 }
 
 func (n *hyperFleetNodePoolReplica) WaitDeleted(ctx context.Context) error {
-	return n.client.HyperfleetV1alpha1().NodePools(n.clusterID).WaitUntil(
+	return n.client.HyperfleetV1alpha1().NodePools().WaitUntil(
 		ctx,
 		n.name,
 		func(nodePool *v1alpha1.NodePool) bool {

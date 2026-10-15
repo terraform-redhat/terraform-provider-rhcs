@@ -20,8 +20,8 @@ func TestNodePoolState_BasicFields(t *testing.T) {
 	replicas := int32(3)
 	np := &v1alpha1.NodePool{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-pool",
-			Namespace: "cluster-uid-123",
+			Name:      "my-cluster.my-pool",
+			Namespace: "account-123456789012",
 			UID:       "np-uid-456",
 		},
 		Spec: v1alpha1.NodePoolSpec{
@@ -31,7 +31,7 @@ func TestNodePoolState_BasicFields(t *testing.T) {
 				Replicas:    &replicas,
 				Platform: v1alpha1.NodePoolPlatform{
 					Type: hypershiftv1beta1.AWSPlatform,
-					AWS: &hypershiftv1beta1.AWSNodePoolPlatform{
+					AWS: &v1alpha1.AWSNodePoolPlatform{
 						InstanceType:    "m5.xlarge",
 						InstanceProfile: "my-prefix-ROSA-Worker-Role",
 						Subnet:          hypershiftv1beta1.AWSResourceReference{ID: &subnetID},
@@ -48,8 +48,8 @@ func TestNodePoolState_BasicFields(t *testing.T) {
 	if np.Spec.NodePool.ClusterName != "my-cluster" {
 		t.Errorf("ClusterName = %q, want my-cluster", np.Spec.NodePool.ClusterName)
 	}
-	if np.Name != "my-pool" {
-		t.Errorf("Name = %q, want my-pool", np.Name)
+	if np.Name != "my-cluster.my-pool" {
+		t.Errorf("Name = %q, want my-cluster.my-pool", np.Name)
 	}
 	if np.Spec.NodePool.Platform.AWS.InstanceType != "m5.xlarge" {
 		t.Errorf("InstanceType = %q, want m5.xlarge", np.Spec.NodePool.Platform.AWS.InstanceType)
@@ -71,7 +71,7 @@ func TestNodePoolState_AWSPlatformConfig(t *testing.T) {
 
 	np := &v1alpha1.NodePool{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "pool-aws",
+			Name: "test-cluster.pool-aws",
 			UID:  "np-789",
 		},
 		Spec: v1alpha1.NodePoolSpec{
@@ -79,9 +79,9 @@ func TestNodePoolState_AWSPlatformConfig(t *testing.T) {
 				ClusterName: "test-cluster",
 				Platform: v1alpha1.NodePoolPlatform{
 					Type: hypershiftv1beta1.AWSPlatform,
-					AWS: &hypershiftv1beta1.AWSNodePoolPlatform{
+					AWS: &v1alpha1.AWSNodePoolPlatform{
 						InstanceType: "m5.2xlarge",
-						RootVolume: &hypershiftv1beta1.Volume{
+						RootVolume: &v1alpha1.Volume{
 							Size: volumeSize,
 						},
 						Subnet: hypershiftv1beta1.AWSResourceReference{ID: &subnetID},

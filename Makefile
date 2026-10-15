@@ -18,6 +18,8 @@
 SHELL := bash
 
 export CGO_ENABLED=0
+export GOTOOLCHAIN=auto
+unexport GOROOT
 export version=""
 
 ifeq ($(shell go env GOOS),windows)

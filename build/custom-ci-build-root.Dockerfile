@@ -13,6 +13,7 @@
 # Snyk security presubmit, which runs go mod tidy/vendor on the build_root/src
 # image).
 FROM registry.access.redhat.com/ubi9/go-toolset:1.26.7-1792010711
+ENV GOTOOLCHAIN=auto
 
 USER root
 

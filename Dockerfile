@@ -1,4 +1,5 @@
 FROM registry.access.redhat.com/ubi9/go-toolset:1.26.7-1792010711 AS builder
+ENV GOTOOLCHAIN=auto
 COPY . .
 
 ENV GOFLAGS=-buildvcs=false

@@ -1205,43 +1205,6 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			).To(MatchRegexp(`KubeletConfig with name 'notexisting'[\n\t\s]*does not exist for cluster`))
 		})
 
-		It("imdsv2 fields - [id:75393]", ci.Medium, func() {
-			By("Try to create a nodepool with invalid imdsv2")
-			mpName := helper.GenerateRandomName("np-75393", 2)
-			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
-				args.Ec2MetadataHttpTokens = new("invalid")
-			}, "Expected a valid param. Options are [optional required]. Got invalid.")
-
-			reqBody := []map[string]string{
-				{
-					"create_value": "required",
-					"edit_value":   "optional",
-				},
-				{
-					"create_value": "optional",
-					"edit_value":   "required",
-				},
-			}
-
-			for _, imdsv2Value := range reqBody {
-				By("Create a machinepool with --ec2-metadata-http-tokens = " + imdsv2Value["create_value"])
-				mpName := helper.GenerateRandomName("np-75393", 2)
-				mpArgs := getDefaultMPArgs(mpName)
-				mpArgs.Ec2MetadataHttpTokens = new(imdsv2Value["create_value"])
-				_, err := mpService.Apply(mpArgs)
-				Expect(err).ToNot(HaveOccurred())
-
-				By("Try to edit nodepool with ec2_metadata_http_tokens = " + imdsv2Value["edit_value"])
-				errMsg := fmt.Sprintf(
-					`Attribute aws_node_pool.ec2_metadata_http_tokens, cannot be changed from "%s" to "%s"`,
-					imdsv2Value["create_value"], imdsv2Value["edit_value"])
-				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
-					args.Ec2MetadataHttpTokens = new(imdsv2Value["edit_value"])
-				}, errMsg)
-
-				mpService.Destroy()
-			}
-		})
 	})
 
 	It("can import - [id:72960]", ci.Day2, ci.Medium, ci.FeatureImport,
@@ -1422,7 +1385,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 	})
 })
 
-var _ = Describe("Shared nodepool replica workflow", ci.Day2, ci.FeatureMachinepool, func() {
+var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, func() {
 	It("updates fixed replicas through the selected backend", ci.High, ci.HyperfleetValidated, func(ctx SpecContext) {
 		profile, err := profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).NotTo(HaveOccurred())
@@ -1446,4 +1409,59 @@ var _ = Describe("Shared nodepool replica workflow", ci.Day2, ci.FeatureMachinep
 
 		Expect(exec.ScaleNodePool(ctx, nodePool, 2, 3)).To(Succeed())
 	})
+
+	It(
+		"sets IMDSv2 per nodepool through the selected backend - [id:75373]",
+		ci.Medium,
+		ci.FeatureMachinepoolImds,
+		ci.HyperfleetValidated,
+		func(ctx SpecContext) {
+			profile, err := profilehandler.NewProfileHandlerFromYamlFile()
+			Expect(err).NotTo(HaveOccurred())
+			if clusterID == "" {
+				Skip("an existing cluster ID is required for the nodepool day-2 workflow")
+			}
+
+			type imdsNodePool struct {
+				tokenRequirement string
+				lifecycle        exec.NodePoolReplicaLifecycle
+			}
+			var nodePools []imdsNodePool
+
+			// Start both pools before waiting, so their provisioning overlaps.
+			for _, tokenRequirement := range []string{
+				constants.OptionalEc2MetadataHttpTokens,
+				constants.RequiredEc2MetadataHttpTokens,
+			} {
+				By("Create a nodepool with EC2 metadata HTTP tokens = " + tokenRequirement)
+				nodePoolName := helper.GenerateRandomName("np-imds", 2)
+				nodePool, err := clusterworkflow.NewNodePoolReplica(profile, clusterID, nodePoolName)
+				Expect(err).NotTo(HaveOccurred())
+				nodePool.SetEC2InstanceMetadataHttpTokens(tokenRequirement)
+
+				nodePoolForCleanup := nodePool
+				DeferCleanup(func(cleanupCtx SpecContext) {
+					Expect(nodePoolForCleanup.Destroy()).To(Succeed())
+					if config.IsWaitForNodePoolDeletion() {
+						Expect(nodePoolForCleanup.WaitDeleted(cleanupCtx)).To(Succeed())
+					}
+				})
+
+				Expect(nodePool.Create(1)).To(Succeed())
+				nodePools = append(nodePools, imdsNodePool{
+					tokenRequirement: tokenRequirement,
+					lifecycle:        nodePool,
+				})
+			}
+
+			// Wait and verify after both NodePools have started provisioning.
+			for _, nodePool := range nodePools {
+				Expect(nodePool.lifecycle.WaitReady(ctx)).To(Succeed())
+				By("Verify the nodepool metadata token requirement")
+				actual, err := nodePool.lifecycle.EC2InstanceMetadataHttpTokens(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(actual).To(Equal(nodePool.tokenRequirement))
+			}
+		},
+	)
 })

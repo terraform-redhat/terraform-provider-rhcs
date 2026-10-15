@@ -157,8 +157,57 @@ This feature allows for running tests through a case filter to simulate CI. Anyo
     * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
   * Set up the OCM URL (if different from staging)
     * `export RHCS_URL="https://api.openshift.com"`
-  * Run ginkgo run command
-    * `ginkgo run --label-filter destroy tests/e2e`
+   * Run ginkgo run command
+     * `ginkgo run --label-filter destroy tests/e2e`
+
+### Shared HCP/HyperFleet resource E2E workflow
+
+Shared resource E2E tests use `CLUSTER_PROFILE` to select the HCP or HyperFleet
+backend. The shared NodePool IMDSv2 test is one example: it configures the
+metadata-token requirement on each NodePool and verifies both `optional` and
+`required` values.
+
+For HyperFleet, use the same API URL for cluster setup, the test, and teardown.
+Set the release image for cluster creation, and make AWS credentials available
+to Terraform. `RHCS_TOKEN` is only needed for HCP/OCM workflows. The
+`hyperfleet-basic` profile is defined in
+`tests/ci/profiles/tf_hyperfleet_cluster_profiles.yml`.
+The AWS region can come from the profile or be inferred from the region in the
+execute-api URL; set `REGION` explicitly only if neither supplies it.
+`hyperfleet-basic` is no-proxy; use `hyperfleet-explicit-proxy` for the explicit
+HTTP(S) proxy profile. `hyperfleet-hcp-ad` remains proxy-enabled. Destroy a
+cluster created with an older proxy-enabled `hyperfleet-basic` definition before
+using the updated no-proxy profile, so its proxy Terraform state is cleaned up.
+`hyperfleet-basic` is no-proxy; use `hyperfleet-explicit-proxy` to exercise the
+explicit HTTP(S) proxy configuration (not transparent proxying). The
+`hyperfleet-hcp-ad` profile remains proxy-enabled. Tear down a cluster created
+with a proxy-enabled profile before changing that profile's proxy setting, so
+the matching proxy Terraform state is cleaned up.
+
+Create the cluster from the selected profile:
+
+```bash
+TF_EXEC_STREAM_OUTPUT=true CLUSTER_PROFILE=hyperfleet-basic HYPERFLEET_URL=https://<api-id>.execute-api.<api-region>.amazonaws.com/prod HYPERFLEET_RELEASE_IMAGE=<release-image> make e2e_test LabelFilter=day1-prepare
+```
+
+Run only the shared IMDSv2 test:
+
+```bash
+TF_EXEC_STREAM_OUTPUT=true CLUSTER_PROFILE=hyperfleet-basic HYPERFLEET_URL=https://<api-id>.execute-api.<api-region>.amazonaws.com/prod go run github.com/onsi/ginkgo/v2/ginkgo run --focus='sets IMDSv2 per nodepool through the selected backend' --focus-file='tests/e2e/hcp_machine_pool_test.go' --label-filter='day2 && feature-machinepool && hyperfleet-validated' --timeout=5h tests/e2e
+```
+
+The test deletes its NodePools after verification. Tear down the profile-managed
+cluster resources afterward. Set `WAIT_FOR_NODEPOOL_DELETION=true` in the
+environment if you want the test to wait for each asynchronous NodePool deletion;
+it defaults to false.
+
+```bash
+TF_EXEC_STREAM_OUTPUT=true CLUSTER_PROFILE=hyperfleet-basic HYPERFLEET_URL=https://<api-id>.execute-api.<api-region>.amazonaws.com/prod make e2e_test LabelFilter=destroy
+```
+
+For an already provisioned cluster, skip the setup command. The suite reads the
+cluster ID from profile Terraform state; provide `CLUSTER_ID=<cluster-id>` on
+the test and teardown commands if the cluster is not recorded in that workspace.
 
 ### Set log level
 

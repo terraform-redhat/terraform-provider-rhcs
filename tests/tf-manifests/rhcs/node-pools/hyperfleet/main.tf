@@ -34,6 +34,7 @@ resource "rhcs_nodepool_hyperfleet" "nodepool" {
   auto_repair   = var.auto_repair
   replicas      = var.replicas
   instance_type = var.instance_type
+  ec2_instance_metadata_http_tokens = var.ec2_instance_metadata_http_tokens
   labels        = var.labels
   autoscaling   = var.autoscaling
 }

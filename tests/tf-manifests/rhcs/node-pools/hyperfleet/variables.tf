@@ -40,6 +40,17 @@ variable "auto_repair" {
 variable "replicas" {
   type        = number
   description = "Fixed replica count"
+  default     = null
+}
+
+variable "autoscaling" {
+  type = object({
+    enabled      = bool
+    min_replicas = optional(number)
+    max_replicas = optional(number)
+  })
+  description = "Optional NodePool autoscaling configuration"
+  default     = null
 }
 
 variable "instance_type" {

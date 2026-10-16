@@ -58,8 +58,14 @@ func mergeResponseNodePool(plan, response *NodePoolState) {
 	}
 	// Only copy computed and required fields from response, skip optional fields
 	// to avoid overwriting user inputs with API-generated default values
+	if !response.Name.IsNull() {
+		plan.Name = response.Name
+	}
 	if !response.Id.IsNull() {
 		plan.Id = response.Id
+	}
+	if !response.ClusterName.IsNull() {
+		plan.ClusterName = response.ClusterName
 	}
 	if !response.Platform_type.IsNull() {
 		plan.Platform_type = response.Platform_type

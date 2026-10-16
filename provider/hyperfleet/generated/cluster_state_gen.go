@@ -21,8 +21,8 @@ type ClusterState struct {
 	RoleARN                        types.String `tfsdk:"role_arn"`
 	Platform                       types.String `tfsdk:"platform"`
 	ProvisionerConfigName          types.String `tfsdk:"provisioner_config_name"`
-	BalancingIgnoredLabels         types.String `tfsdk:"balancing_ignored_labels"`
-	Expanders                      types.String `tfsdk:"expanders"`
+	BalancingIgnoredLabels         types.List   `tfsdk:"balancing_ignored_labels"`
+	Expanders                      types.List   `tfsdk:"expanders"`
 	MaxFreeDifferenceRatioPercent  types.Int64  `tfsdk:"max_free_difference_ratio_percent"`
 	AutoscalerMaxNodeProvisionTime types.String `tfsdk:"autoscaler_max_node_provision_time"`
 	AutoscalerMaxNodesTotal        types.Int64  `tfsdk:"autoscaler_max_nodes_total"`

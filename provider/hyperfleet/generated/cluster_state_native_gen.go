@@ -17,8 +17,8 @@ type ClusterStateNative struct {
 	RoleARN                        string            `hfsdk:"spec.hostedCluster.autoNode.provisionerConfig.karpenter.aws.roleARN"`
 	Platform                       string            `hfsdk:"spec.hostedCluster.autoNode.provisionerConfig.karpenter.platform"`
 	ProvisionerConfigName          string            `hfsdk:"spec.hostedCluster.autoNode.provisionerConfig.name"`
-	BalancingIgnoredLabels         string            `hfsdk:"spec.hostedCluster.autoscaling.balancingIgnoredLabels"`
-	Expanders                      string            `hfsdk:"spec.hostedCluster.autoscaling.expanders"`
+	BalancingIgnoredLabels         []string          `hfsdk:"spec.hostedCluster.autoscaling.balancingIgnoredLabels"`
+	Expanders                      []string          `hfsdk:"spec.hostedCluster.autoscaling.expanders"`
 	MaxFreeDifferenceRatioPercent  *int32            `hfsdk:"spec.hostedCluster.autoscaling.maxFreeDifferenceRatioPercent"`
 	AutoscalerMaxNodeProvisionTime string            `hfsdk:"spec.hostedCluster.autoscaling.maxNodeProvisionTime"`
 	AutoscalerMaxNodesTotal        *int32            `hfsdk:"spec.hostedCluster.autoscaling.maxNodesTotal"`

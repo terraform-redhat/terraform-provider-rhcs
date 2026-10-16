@@ -43,6 +43,7 @@ var gitlabSchema = map[string]schema.Attribute{
 	"ca": schema.StringAttribute{
 		Description: "Optional trusted certificate authority bundle.",
 		Optional:    true,
+		Sensitive:   true,
 	},
 }
 

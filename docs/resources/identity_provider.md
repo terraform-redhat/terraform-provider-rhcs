@@ -118,7 +118,7 @@ Required:
 
 Optional:
 
-- `ca` (String) Path to PEM-encoded certificate file to use when making requests to the server.
+- `ca` (String, Sensitive) Path to PEM-encoded certificate file to use when making requests to the server.
 - `hostname` (String) Optional domain to use with a hosted instance of GitHub Enterprise.
 - `organizations` (List of String) Only users that are members of at least one of the listed organizations will be allowed to log in.
 - `teams` (List of String) Only users that are members of at least one of the listed teams will be allowed to log in. The format is `<org>`/`<team>`.
@@ -135,7 +135,7 @@ Required:
 
 Optional:
 
-- `ca` (String) Optional trusted certificate authority bundle.
+- `ca` (String, Sensitive) Optional trusted certificate authority bundle.
 
 
 <a id="nestedatt--google"></a>
@@ -180,7 +180,7 @@ Optional:
 
 - `bind_dn` (String) DN to bind with during the search phase.
 - `bind_password` (String, Sensitive) Password to bind with during the search phase.
-- `ca` (String) Optional trusted certificate authority bundle.
+- `ca` (String, Sensitive) Optional trusted certificate authority bundle.
 - `insecure` (Boolean) Do not make TLS connections to the server.
 
 <a id="nestedatt--ldap--attributes"></a>
@@ -207,7 +207,7 @@ Required:
 
 Optional:
 
-- `ca` (String) Optional trusted certificate authority bundle.
+- `ca` (String, Sensitive) Optional trusted certificate authority bundle.
 - `extra_authorize_parameters` (Map of String)
 - `extra_scopes` (List of String) List of scopes to request, in addition to the 'openid' scope, during the authorization token request.
 

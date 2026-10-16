@@ -109,9 +109,9 @@ Read-Only:
 
 Read-Only:
 
-- `additional_trust_bundle` (String) A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.
-- `http_proxy` (String) HTTP proxy.
-- `https_proxy` (String) HTTPS proxy.
+- `additional_trust_bundle` (String, Sensitive) A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.
+- `http_proxy` (String, Sensitive) HTTP proxy.
+- `https_proxy` (String, Sensitive) HTTPS proxy.
 - `no_proxy` (String) No proxy.
 
 

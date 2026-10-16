@@ -228,9 +228,9 @@ Optional:
 
 Optional:
 
-- `additional_trust_bundle` (String) A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store. To reset please provide '' (empty string)
-- `http_proxy` (String) HTTP proxy. To reset please provide '' (empty string)
-- `https_proxy` (String) HTTPS proxy. To reset please provide '' (empty string)
+- `additional_trust_bundle` (String, Sensitive) A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store. To reset please provide '' (empty string)
+- `http_proxy` (String, Sensitive) HTTP proxy. To reset please provide '' (empty string)
+- `https_proxy` (String, Sensitive) HTTPS proxy. To reset please provide '' (empty string)
 - `no_proxy` (String) No proxy. To reset please provide '' (empty string)
 
 

@@ -129,7 +129,8 @@ func (p *Provider) Schema(ctx context.Context, req tfprovider.SchemaRequest, res
 					"be trusted. If this is not explicitly specified, then " +
 					"the provider will trust the certificate authorities " +
 					"trusted by default by the system.",
-				Optional: true,
+				Optional:  true,
+				Sensitive: true,
 			},
 			"insecure": tfpschema.BoolAttribute{
 				Description: "When set to 'true' enables insecure communication " +

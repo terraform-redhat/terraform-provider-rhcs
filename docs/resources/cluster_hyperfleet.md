@@ -62,6 +62,7 @@ Manages Cluster resources.
 - `max_pods` (Number) MaxPods.
 - `network` (Attributes) (see [below for nested schema](#nestedatt--network))
 - `network_arn` (String) NetworkARN.
+- `no_cni` (Boolean) No_cni.
 - `no_proxy` (String) NoProxy.
 - `node_pool_management_arn` (String) NodePoolManagementARN.
 - `oidc_config_id` (String) OidcConfigId.

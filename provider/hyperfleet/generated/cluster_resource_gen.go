@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -414,6 +415,14 @@ func (r *ClusterResource) Schema(
 					stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"no_cni": schema.BoolAttribute{
+				MarkdownDescription: "No_cni.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+					boolplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"api_url": schema.StringAttribute{
 				MarkdownDescription: "Api_url.",
 				Computed:            true,
@@ -445,6 +454,7 @@ func (r *ClusterResource) Schema(
 					"network_type": schema.StringAttribute{
 						MarkdownDescription: "Network_type.",
 						Optional:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 					},
 					"service_cidr": schema.StringAttribute{
 						MarkdownDescription: "Service_cidr.",
@@ -1150,6 +1160,9 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.Cloud_region.IsNull() && !tf.Cloud_region.IsUnknown() {
 		native.Cloud_region = tf.Cloud_region.ValueString()
 	}
+	if !tf.No_cni.IsNull() && !tf.No_cni.IsUnknown() {
+		native.No_cni = tf.No_cni.ValueBool()
+	}
 	if !tf.Api_url.IsNull() && !tf.Api_url.IsUnknown() {
 		native.Api_url = tf.Api_url.ValueString()
 	}
@@ -1261,6 +1274,7 @@ func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.D
 	tf.Tags = toTerraformMap(native.Tags)
 	tf.Operator_roles_prefix = toTerraformString(native.Operator_roles_prefix)
 	tf.Cloud_region = toTerraformString(native.Cloud_region)
+	tf.No_cni = toTerraformBool(native.No_cni)
 	tf.Api_url = toTerraformString(native.Api_url)
 	tf.Phase = toTerraformString(native.Phase)
 	{

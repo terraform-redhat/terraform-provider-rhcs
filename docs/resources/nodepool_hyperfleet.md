@@ -30,6 +30,7 @@ Manages NodePool resources.
 - `capacity_reservation_id` (String) CapacityReservationId.
 - `capacity_reservation_market_type` (String) CapacityReservationMarketType.
 - `config` (Attributes List) ConfigMap references containing serialized nodepool configuration. (see [below for nested schema](#nestedatt--config))
+- `ec2_instance_metadata_http_tokens` (String) Ec2InstanceMetadataHttpTokens.
 - `filters` (String) Filters.
 - `image` (String) Image.
 - `image_type` (String) ImageType.

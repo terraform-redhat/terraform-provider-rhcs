@@ -23,8 +23,8 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/openshift-online/ocm-common v0.0.45
 	github.com/openshift-online/ocm-sdk-go v0.1.509
-	github.com/openshift-online/rosa-hyperfleet-api/api v0.1.20
-	github.com/openshift-online/rosa-hyperfleet-api/clientset v0.1.19
+	github.com/openshift-online/rosa-hyperfleet-api/api v0.1.21-ec.1
+	github.com/openshift-online/rosa-hyperfleet-api/clientset v0.1.20-ec.1
 	github.com/openshift/hypershift/api v0.0.0-20260803100438-deb947936de7
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
@@ -186,4 +186,9 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260401024825-9d38bb4040a9 // indirect
 	google.golang.org/grpc v1.80.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
+)
+
+replace (
+	github.com/openshift-online/rosa-hyperfleet-api/api => github.com/gdbranco/rosa-hyperfleet-api/api v0.1.21-ec.1
+	github.com/openshift-online/rosa-hyperfleet-api/clientset => github.com/gdbranco/rosa-hyperfleet-api/clientset v0.1.20-ec.1
 )

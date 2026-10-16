@@ -74,10 +74,6 @@ func newHyperFleetNodePoolReplica(
 	if subnetID == "" {
 		return nil, fmt.Errorf("no subnet available for HyperFleet nodepool")
 	}
-	service, err := exec.NewHyperfleetNodePoolService(workspace + "-nodepool-replicas")
-	if err != nil {
-		return nil, err
-	}
 	client, err := buildHyperFleetClient(hyperfleetURL, region)
 	if err != nil {
 		return nil, err
@@ -89,6 +85,11 @@ func newHyperFleetNodePoolReplica(
 	name := nodePoolName
 	if !strings.HasPrefix(name, clusterName+".") {
 		name = clusterName + "." + name
+	}
+	childName := strings.TrimPrefix(name, clusterName+".")
+	service, err := exec.NewHyperfleetNodePoolService(workspace + "-nodepool-" + childName)
+	if err != nil {
+		return nil, err
 	}
 	return &hyperFleetNodePoolReplica{
 		service: service,
@@ -144,6 +145,18 @@ func (n *hyperFleetNodePoolReplica) Replicas(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("nodepool %q returned no replicas", n.name)
 	}
 	return int(*nodePool.Spec.NodePool.Replicas), nil
+}
+
+func (n *hyperFleetNodePoolReplica) SetEC2InstanceMetadataHttpTokens(value string) {
+	n.args.EC2InstanceMetadataHttpTokens = &value
+}
+
+func (n *hyperFleetNodePoolReplica) EC2InstanceMetadataHttpTokens(ctx context.Context) (string, error) {
+	nodePool, err := n.client.HyperfleetV1alpha1().NodePools().Get(ctx, n.name, hfplatform.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	return string(nodePool.Spec.EC2InstanceMetadataHttpTokens), nil
 }
 
 func (n *hyperFleetNodePoolReplica) Destroy() error {

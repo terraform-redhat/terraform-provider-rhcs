@@ -15,6 +15,8 @@ type NodePoolReplicaLifecycle interface {
 	WaitReady(ctx context.Context) error
 	UpdateReplicas(replicas int) error
 	Replicas(ctx context.Context) (int, error)
+	SetEC2InstanceMetadataHttpTokens(value string)
+	EC2InstanceMetadataHttpTokens(ctx context.Context) (string, error)
 	Destroy() error
 	WaitDeleted(ctx context.Context) error
 }

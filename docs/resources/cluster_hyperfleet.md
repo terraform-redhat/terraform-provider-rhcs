@@ -28,6 +28,10 @@ Manages Cluster resources.
 - `allocate_node_cidrs` (String) AllocateNodeCIDRs.
 - `allowed_kernel_arguments` (String) AllowedKernelArguments.
 - `authentication_type` (String) AuthenticationType.
+- `autoscaler_max_node_provision_time` (String) AutoscalerMaxNodeProvisionTime.
+- `autoscaler_max_nodes_total` (Number) AutoscalerMaxNodesTotal.
+- `autoscaler_max_pod_grace_period` (Number) AutoscalerMaxPodGracePeriod.
+- `autoscaler_pod_priority_threshold` (Number) AutoscalerPodPriorityThreshold.
 - `aws_roles_ref_ingress_arn` (String) AwsRolesRefIngressARN.
 - `balancing_ignored_labels` (List of String) BalancingIgnoredLabels.
 - `channel` (String) Channel.
@@ -55,9 +59,6 @@ Manages Cluster resources.
 - `kube_reserved` (Map of String) KubeReserved.
 - `local_zone_id` (String) LocalZoneID.
 - `max_free_difference_ratio_percent` (Number) MaxFreeDifferenceRatioPercent.
-- `max_node_provision_time` (String) MaxNodeProvisionTime.
-- `max_nodes_total` (Number) MaxNodesTotal.
-- `max_pod_grace_period` (Number) MaxPodGracePeriod.
 - `max_pods` (Number) MaxPods.
 - `network` (Attributes) (see [below for nested schema](#nestedatt--network))
 - `network_arn` (String) NetworkARN.
@@ -68,7 +69,6 @@ Manages Cluster resources.
 - `platform` (String) Platform.
 - `platform_type` (String) PlatformType.
 - `pod_pids_limit` (Number) PodPidsLimit.
-- `pod_priority_threshold` (Number) PodPriorityThreshold.
 - `port` (Number) Port.
 - `properties` (Map of String) Properties.
 - `provisioner_config_name` (String) ProvisionerConfigName.

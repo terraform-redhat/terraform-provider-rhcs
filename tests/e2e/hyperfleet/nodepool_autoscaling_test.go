@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hfplatform "github.com/openshift-online/rosa-hyperfleet-api/clientset/platform"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
@@ -98,7 +99,7 @@ var _ = Describe("HyperFleet NodePool autoscaling", ci.HyperfleetValidated, func
 		Expect(nodePoolTFOut.MaxReplicas).NotTo(BeNil())
 		Expect(*nodePoolTFOut.MaxReplicas).To(Equal(initialMax))
 
-		nodePools := hfClient.HyperfleetV1alpha1().NodePools(clusterID)
+		nodePools := hfClient.HyperfleetV1alpha1().NodePools()
 		assertAutoscaling := func(wantMin, wantMax int) func(*v1alpha1.NodePool) bool {
 			return func(nodePool *v1alpha1.NodePool) bool {
 				if nodePool == nil || nodePool.Spec.NodePool.AutoScaling == nil ||
@@ -111,7 +112,15 @@ var _ = Describe("HyperFleet NodePool autoscaling", ci.HyperfleetValidated, func
 			}
 		}
 
-		Expect(nodePools.WaitUntil(ctx, nodePoolName, assertAutoscaling(initialMin, initialMax), pollInterval, nodepoolReadyTimeout)).To(Succeed())
+		Expect(
+			nodePools.WaitUntil(
+				ctx,
+				nodePoolName,
+				assertAutoscaling(initialMin, initialMax),
+				pollInterval,
+				nodepoolReadyTimeout,
+			),
+		).To(Succeed())
 
 		updatedMin := initialMin + 1
 		updatedMax := initialMax + 2
@@ -136,6 +145,14 @@ var _ = Describe("HyperFleet NodePool autoscaling", ci.HyperfleetValidated, func
 		Expect(*nodePoolTFOut.MinReplicas).To(Equal(updatedMin))
 		Expect(nodePoolTFOut.MaxReplicas).NotTo(BeNil())
 		Expect(*nodePoolTFOut.MaxReplicas).To(Equal(updatedMax))
-		Expect(nodePools.WaitUntil(ctx, nodePoolName, assertAutoscaling(updatedMin, updatedMax), pollInterval, nodepoolReadyTimeout)).To(Succeed())
+		Expect(
+			nodePools.WaitUntil(
+				ctx,
+				nodePoolName,
+				assertAutoscaling(updatedMin, updatedMax),
+				pollInterval,
+				nodepoolReadyTimeout,
+			),
+		).To(Succeed())
 	})
 })

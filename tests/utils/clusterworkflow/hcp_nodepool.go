@@ -26,7 +26,10 @@ type hcpNodePoolReplica struct {
 func newHCPNodePoolReplica(
 	profile profilehandler.ProfileHandler, clusterID, nodePoolName string,
 ) (exec.NodePoolReplicaLifecycle, error) {
-	service, err := profile.Services().GetMachinePoolsService()
+	// Keep each nodepool's Terraform state separate so shared workflows can
+	// create multiple pools before waiting for them to become ready.
+	serviceProfile := profile.DuplicateRandom()
+	service, err := serviceProfile.Services().GetMachinePoolsService()
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +100,21 @@ func (n *hcpNodePoolReplica) Replicas(_ context.Context) (int, error) {
 		return 0, err
 	}
 	return nodePool.Replicas(), nil
+}
+
+func (n *hcpNodePoolReplica) SetEC2InstanceMetadataHttpTokens(value string) {
+	n.args.Ec2MetadataHttpTokens = &value
+}
+
+func (n *hcpNodePoolReplica) EC2InstanceMetadataHttpTokens(_ context.Context) (string, error) {
+	nodePool, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, n.clusterID, n.name)
+	if err != nil {
+		return "", err
+	}
+	if nodePool.AWSNodePool() == nil {
+		return "", fmt.Errorf("nodepool %q returned no AWS configuration", n.name)
+	}
+	return string(nodePool.AWSNodePool().Ec2MetadataHttpTokens()), nil
 }
 
 func (n *hcpNodePoolReplica) Destroy() error {

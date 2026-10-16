@@ -78,6 +78,7 @@ type ClusterStateNative struct {
 	Tags                           map[string]string `hfsdk:"spec.tags"`
 	Operator_roles_prefix          string            `hfsdk:"-"`
 	Cloud_region                   string            `hfsdk:"-"`
+	No_cni                         bool              `hfsdk:"-"`
 	Api_url                        string            `hfsdk:"-"`
 	Phase                          string            `hfsdk:"-"`
 	Network                        ClusterNetworkNative

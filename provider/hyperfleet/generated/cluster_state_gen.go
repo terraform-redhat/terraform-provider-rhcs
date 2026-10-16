@@ -82,6 +82,7 @@ type ClusterState struct {
 	Tags                           types.Map    `tfsdk:"tags"`
 	Operator_roles_prefix          types.String `tfsdk:"operator_roles_prefix"`
 	Cloud_region                   types.String `tfsdk:"cloud_region"`
+	No_cni                         types.Bool   `tfsdk:"no_cni"`
 	Api_url                        types.String `tfsdk:"api_url"`
 	Phase                          types.String `tfsdk:"phase"`
 	Network                        types.Object `tfsdk:"network"`
@@ -113,6 +114,9 @@ func mergeResponseCluster(plan, response *ClusterState) {
 	}
 	if !response.Cloud_region.IsNull() {
 		plan.Cloud_region = response.Cloud_region
+	}
+	if !response.No_cni.IsNull() {
+		plan.No_cni = response.No_cni
 	}
 	if !response.Api_url.IsNull() {
 		plan.Api_url = response.Api_url

@@ -73,6 +73,16 @@ resources:
           - create
         description: "AWS region identifier (e.g. `us-east-1`). Derived from `availability_zones` if not set. Immutable after creation."
 
+      # provider-only field — translated to HostedCluster.Networking.NetworkType=Other
+      - alias: no_cni
+        type: bool
+        immutable: true
+        computed: true
+        optional: true
+        operations:
+          - create
+        description: "Disable CNI creation to let users bring their own CNI. Cannot be changed after creation."
+
       # optional mutable fields
       - path: spec.expirationTimestamp
         alias: expiration_timestamp
@@ -137,6 +147,7 @@ resources:
         alias: network_type
         type: string
         bundle: network
+        immutable: true
       - path: spec.hostedCluster.networking.serviceNetwork
         alias: service_cidr
         type: string

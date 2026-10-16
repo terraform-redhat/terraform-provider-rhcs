@@ -67,6 +67,27 @@ func NewClusterHandler(accountID, callerARN string) ClusterHandler {
 func (h *ClusterHandlerImpl) PreExpand(ctx context.Context, input *ClusterState) diag.Diagnostics {
 	var diags diag.Diagnostics
 
+	networkType := clusterNetworkType(input.Network)
+	if networkType != "" && networkType != string(hypershiftv1beta1.OVNKubernetes) {
+		diags.AddAttributeError(
+			path.Root("network").AtName("network_type"),
+			"Invalid network configuration",
+			"network.network_type must be OVNKubernetes",
+		)
+		return diags
+	}
+
+	if input.No_cni.ValueBool() {
+		if networkType != "" {
+			diags.AddAttributeError(
+				path.Root("no_cni"),
+				"Conflicting network configuration",
+				"no_cni cannot be used together with network.network_type",
+			)
+			return diags
+		}
+	}
+
 	// Validate required consumer-only fields
 	if input.Operator_roles_prefix.IsNull() || input.Operator_roles_prefix.ValueString() == "" {
 		diags.AddError("operator_roles_prefix is required", "")
@@ -230,7 +251,22 @@ func (h *ClusterHandlerImpl) PostExpand(
 		AWS:  awsSpec,
 	}
 
+	if input.No_cni.ValueBool() {
+		obj.Spec.HostedCluster.Networking.NetworkType = hypershiftv1beta1.Other
+	}
+
 	return diags
+}
+
+func clusterNetworkType(network types.Object) string {
+	if network.IsNull() || network.IsUnknown() {
+		return ""
+	}
+	value, ok := network.Attributes()["network_type"].(types.String)
+	if !ok || value.IsNull() || value.IsUnknown() {
+		return ""
+	}
+	return value.ValueString()
 }
 
 func awsBundleStringValue(bundle types.Object, name string) string {
@@ -292,6 +328,12 @@ func (h *ClusterHandlerImpl) PostFlatten(ctx context.Context, state *ClusterStat
 		state.Api_url = types.StringValue(resp.Status.ControlPlaneEndpoint.Host)
 	} else {
 		state.Api_url = types.StringValue("")
+	}
+	state.No_cni = types.BoolValue(resp.Spec.HostedCluster.Networking.NetworkType == hypershiftv1beta1.Other)
+	if state.No_cni.ValueBool() && !state.Network.IsNull() && !state.Network.IsUnknown() {
+		attributes := state.Network.Attributes()
+		attributes["network_type"] = types.StringNull()
+		state.Network, _ = types.ObjectValue(state.Network.AttributeTypes(ctx), attributes)
 	}
 }
 

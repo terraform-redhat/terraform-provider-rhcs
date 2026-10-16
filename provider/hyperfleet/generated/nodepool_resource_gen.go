@@ -110,7 +110,10 @@ func (r *NodePoolResource) Schema(
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name.",
-				Optional:            true,
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"id": schema.StringAttribute{
 				MarkdownDescription: "Id.",
@@ -138,7 +141,10 @@ func (r *NodePoolResource) Schema(
 			},
 			"cluster_name": schema.StringAttribute{
 				MarkdownDescription: "ClusterName.",
-				Optional:            true,
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"config": schema.ListNestedAttribute{
 				MarkdownDescription: "ConfigMap references containing serialized nodepool configuration.",

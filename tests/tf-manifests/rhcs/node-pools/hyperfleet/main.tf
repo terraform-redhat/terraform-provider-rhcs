@@ -27,13 +27,14 @@ provider "rhcs" {
 }
 
 resource "rhcs_nodepool_hyperfleet" "nodepool" {
-  cluster_id    = var.cluster_id
-  cluster_name  = var.cluster_name
-  name          = var.name
-  subnet_id     = var.subnet_id
-  auto_repair   = var.auto_repair
-  replicas      = var.replicas
-  instance_type = var.instance_type
-  labels        = var.labels
-  autoscaling   = var.autoscaling
+  cluster_id      = var.cluster_id
+  cluster_name    = var.cluster_name
+  name            = var.name
+  subnet_id       = var.subnet_id
+  auto_repair     = var.auto_repair
+  replicas        = var.replicas
+  instance_type   = var.instance_type
+  labels          = var.labels
+  autoscaling     = var.autoscaling
+  max_unavailable = var.max_unavailable
 }

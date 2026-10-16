@@ -23,6 +23,10 @@ type HyperfleetNodePoolArgs struct {
 	DiskSize      *int                 `hcl:"disk_size"`
 	Tags          map[string]string    `hcl:"tags"`
 	Labels        map[string]string    `hcl:"labels"`
+
+	// MaxUnavailable is the upgrade disruption budget, as an absolute node
+	// count ("2"). Percentages are not supported by the provider yet.
+	MaxUnavailable *string `hcl:"max_unavailable"`
 }
 
 type NodePoolAutoscaling struct {

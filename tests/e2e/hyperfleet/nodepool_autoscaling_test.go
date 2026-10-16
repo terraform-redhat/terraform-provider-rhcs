@@ -98,7 +98,7 @@ var _ = Describe("HyperFleet NodePool autoscaling", ci.HyperfleetValidated, func
 		Expect(nodePoolTFOut.MaxReplicas).NotTo(BeNil())
 		Expect(*nodePoolTFOut.MaxReplicas).To(Equal(initialMax))
 
-		nodePools := hfClient.HyperfleetV1alpha1().NodePools(clusterID)
+		nodePools := hfClient.HyperfleetV1alpha1().NodePools()
 		assertAutoscaling := func(wantMin, wantMax int) func(*v1alpha1.NodePool) bool {
 			return func(nodePool *v1alpha1.NodePool) bool {
 				if nodePool == nil || nodePool.Spec.NodePool.AutoScaling == nil ||

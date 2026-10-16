@@ -23,6 +23,7 @@ import (
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
 	hfplatform "github.com/openshift-online/rosa-hyperfleet-api/clientset/platform"
 	hfrest "github.com/openshift-online/rosa-hyperfleet-api/clientset/rest"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -270,7 +271,8 @@ func (f *hyperFleetFetcher) FetchClusterID(ctx context.Context) (string, error) 
 		return "", err
 	}
 	if string(cluster.UID) != clusterID {
-		return "", fmt.Errorf("configured HyperFleet cluster ID %q does not match cluster %q UID %q", clusterID, f.clusterName, cluster.UID)
+		return "", fmt.Errorf("configured HyperFleet cluster ID %q does not match cluster %q UID %q",
+			clusterID, f.clusterName, cluster.UID)
 	}
 	return clusterID, nil
 }
@@ -505,7 +507,8 @@ func (b *hyperFleetBackend) FetchClusterID(ctx context.Context) (string, error) 
 		return "", err
 	}
 	if string(cluster.UID) != clusterID {
-		return "", fmt.Errorf("configured HyperFleet cluster ID %q does not match cluster %q UID %q", clusterID, clusterName, cluster.UID)
+		return "", fmt.Errorf("configured HyperFleet cluster ID %q does not match cluster %q UID %q",
+			clusterID, clusterName, cluster.UID)
 	}
 	return clusterID, nil
 }

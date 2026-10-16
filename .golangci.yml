@@ -40,6 +40,13 @@ linters:
       - std-error-handling
     paths:
       - '(.+)_test\.go'
+    rules:
+      # Profile is a declaration-only struct whose fields carry paired ini and
+      # json tags. Several field lines exceed the limit by construction and
+      # cannot be wrapped, since gofmt keeps a field and its tags on one line.
+      - path: 'tests/utils/profilehandler/profile\.go'
+        linters:
+          - lll
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

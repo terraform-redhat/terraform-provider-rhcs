@@ -158,6 +158,7 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 | `service_cidr` | `HostedCluster.Networking.ServiceCIDR` | Immutable after creation |
 | `machine_cidr` | `HostedCluster.Networking.MachineCIDR` | Immutable after creation |
 | `host_prefix` | `HostedCluster.Networking.HostPrefix` | Immutable after creation |
+| `no_cni` | `HostedCluster.Networking.NetworkType=Other` | Immutable after creation |
 | `aws_additional_compute_security_group_ids` | `HostedCluster.Platform.AWS.SecurityGroups` | Via `Platform` which is `write-mode=mutable` |
 | `aws_additional_allowed_principals` | `HostedCluster.Platform.AWS.AdditionalAllowedPrincipals` | Via `Platform` which is `write-mode=mutable` |
 
@@ -169,7 +170,6 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 | `channel` / `channel_group` | `HostedCluster.Channel` | service-set |
 | `etcd_encryption` / `kms_key_arn` / `etcd_kms_key_arn` | `HostedCluster.Etcd` / `SecretEncryption` | service-set |
 | `auto_node` | `HostedCluster.AutoNode` | service-set |
-| `no_cni` | `HostedCluster.Networking` sub-field | service-set |
 
 #### Fields that CANNOT be added — OCM-only concepts
 

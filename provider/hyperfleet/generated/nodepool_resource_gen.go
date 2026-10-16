@@ -174,6 +174,9 @@ func (r *NodePoolResource) Schema(
 			"image_type": schema.StringAttribute{
 				MarkdownDescription: "ImageType.",
 				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"instance_profile": schema.StringAttribute{
 				MarkdownDescription: "InstanceProfile.",

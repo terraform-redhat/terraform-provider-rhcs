@@ -118,6 +118,7 @@ type ProfileSpec interface {
 	IsFIPS() bool
 	IsLabeling() bool
 	IsTagging() bool
+	IsWindows() bool
 	IsKMSKey() bool
 	IsFullResources() bool
 	IsUseRegistryConfig() bool
@@ -309,6 +310,12 @@ func (ctx *profileContext) IsLabeling() bool {
 
 func (ctx *profileContext) IsTagging() bool {
 	return ctx.profile.Tagging
+}
+
+// IsWindows reports whether node pools should be created from a Windows
+// (License Included) image rather than the Linux default.
+func (ctx *profileContext) IsWindows() bool {
+	return ctx.profile.Windows
 }
 
 func (ctx *profileContext) IsKMSKey() bool {

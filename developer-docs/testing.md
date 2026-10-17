@@ -39,6 +39,13 @@ WHEN changing profile fields or skip conditions (e.g. `IsAdminEnabled()`):
 WHEN the change touches `tests/utils/exec` or tf-manifests:
 - MUST NOT: Treat subsystem coverage alone as sufficient — review e2e harness wiring.
 
+## E2E coverage and contracts
+
+WHEN changing Terraform provider behavior or E2E/harness behavior:
+- MUST: Add or update relevant coverage under `tests/e2e/`, or record a specific technical justification in the PR verification evidence that E2E coverage does not apply. The justification identifies the changed behavior, explains why E2E cannot exercise it, and names the narrower test layer that verifies it; unit or subsystem coverage alone is not sufficient justification.
+- MUST: Review related existing E2E tests and harness surfaces under `tests/e2e/`, `tests/tf-manifests/`, `tests/utils/exec/`, `tests/utils/profilehandler/`, and `tests/ci/profiles/`, even when they are unchanged.
+- MUST: Distinguish a needed E2E update from a broken user-facing E2E contract; update stale assertions, fixtures, manifest wiring, profile gates, diagnostics, or side-effect expectations, and follow [`breaking-changes.md`](breaking-changes.md) when the contract changes intentionally.
+
 ## Subsystem registry
 
 WHEN adding or registering a Terraform type:

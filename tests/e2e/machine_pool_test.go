@@ -49,7 +49,7 @@ var _ = Describe("Create Classic or HCP MachinePool", ci.Day2, ci.FeatureMachine
 
 	getDefaultMPArgs := func(name string, isHCP bool) *exec.MachinePoolArgs {
 		replicas := 3
-		machineType := "m5.2xlarge"
+		machineType := profileHandler.Profile().GetComputeMachineType()
 		mpArgs := &exec.MachinePoolArgs{
 			Cluster:     new(clusterID),
 			Replicas:    new(replicas),
@@ -119,12 +119,12 @@ var _ = Describe("Create Classic or HCP MachinePool", ci.Day2, ci.FeatureMachine
 			mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.AWSNodePool().RootVolume().Size()).To(Equal(300))
-			Expect(mpResponseBody.AWSNodePool().InstanceType()).To(Equal("m5.2xlarge"))
+			Expect(mpResponseBody.AWSNodePool().InstanceType()).To(Equal(profileHandler.Profile().GetComputeMachineType()))
 		} else {
 			mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(300))
-			Expect(mpResponseBody.InstanceType()).To(Equal("m5.2xlarge"))
+			Expect(mpResponseBody.InstanceType()).To(Equal(profileHandler.Profile().GetComputeMachineType()))
 		}
 	})
 

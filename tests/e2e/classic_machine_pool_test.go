@@ -650,7 +650,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		mpArgs = &exec.MachinePoolArgs{
 			Cluster:     new(clusterID),
 			Replicas:    new(replicas),
-			MachineType: new("m5.2xlarge"),
+			MachineType: new(profileHandler.Profile().GetComputeMachineType()),
 			Name:        new(name),
 		}
 
@@ -661,7 +661,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.AWS().AdditionalSecurityGroupIds()).To(BeNil())
-		Expect(mpResponseBody.InstanceType()).To(Equal("m5.2xlarge"))
+		Expect(mpResponseBody.InstanceType()).To(Equal(profileHandler.Profile().GetComputeMachineType()))
 	})
 
 	It("can create machinepool with customized tags - [id:73942]", ci.High, func() {

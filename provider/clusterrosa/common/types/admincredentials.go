@@ -5,6 +5,7 @@ package types
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -63,4 +64,13 @@ func AdminCredentialsEqual(state, plan types.Object) bool {
 		return true
 	}
 	return reflect.DeepEqual(state, plan)
+}
+
+// ValidateAdminCredentialsUnchanged adds an error to diagnostic if admin_credentials changed, without including the
+// attribute values, as formatting them would bypass the redaction of the sensitive password
+func ValidateAdminCredentialsUnchanged(state, plan types.Object, diags *diag.Diagnostics) {
+	if !AdminCredentialsEqual(state, plan) {
+		diags.AddError(common.AssertionErrorSummaryMessage,
+			fmt.Sprintf(common.AssertionErrorSensitiveDetailsMessage, "admin_credentials"))
+	}
 }

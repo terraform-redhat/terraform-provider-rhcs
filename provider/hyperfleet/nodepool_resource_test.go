@@ -5,12 +5,14 @@ package hyperfleet
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	"github.com/openshift-online/rosa-hyperfleet-api/clientset/pathbind"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
@@ -131,5 +133,49 @@ func TestNodePoolResourceSchema_EC2InstanceMetadataHttpTokens(t *testing.T) {
 	}
 	if len(attribute.PlanModifiers) == 0 {
 		t.Error("ec2_instance_metadata_http_tokens should require replacement when changed")
+	}
+}
+
+// ── validateImageType ─────────────────────────────────────────────────────────
+
+func TestValidateImageType_Valid(t *testing.T) {
+	cases := []struct {
+		name      string
+		imageType types.String
+	}{
+		{"null", types.StringNull()},
+		{"unknown", types.StringUnknown()},
+		{"linux", types.StringValue("Linux")},
+		{"windows", types.StringValue("Windows")},
+	}
+	for _, tc := range cases {
+		diags := validateImageType(&NodePoolState{ImageType: tc.imageType})
+		if diags.HasError() {
+			t.Errorf("%s: unexpected error: %v", tc.name, diags.Errors())
+		}
+	}
+}
+
+func TestValidateImageType_Invalid(t *testing.T) {
+	cases := []struct {
+		name      string
+		imageType string
+	}{
+		// The API enum is case-sensitive, so these are the common near misses.
+		{"lowercase windows", "windows"},
+		{"lowercase linux", "linux"},
+		{"rhcos", "RHCOS"},
+		{"empty string", ""},
+	}
+	for _, tc := range cases {
+		diags := validateImageType(&NodePoolState{ImageType: types.StringValue(tc.imageType)})
+		if !diags.HasError() {
+			t.Errorf("%s: expected an error, got none", tc.name)
+			continue
+		}
+		detail := diags.Errors()[0].Detail()
+		if !strings.Contains(detail, `must be "Linux" or "Windows"`) {
+			t.Errorf("%s: detail = %q, want it to name the valid values", tc.name, detail)
+		}
 	}
 }

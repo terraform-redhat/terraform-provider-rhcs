@@ -81,3 +81,9 @@ variable "labels" {
   description = "Node labels"
   default     = null
 }
+
+variable "image_type" {
+  type        = string
+  description = "Optional operating system image family for the nodes, \"Linux\" or \"Windows\""
+  default     = null
+}

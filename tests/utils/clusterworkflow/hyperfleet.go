@@ -271,7 +271,8 @@ func (f *hyperFleetFetcher) FetchClusterID(ctx context.Context) (string, error) 
 		return "", err
 	}
 	if string(cluster.UID) != clusterID {
-		return "", fmt.Errorf("configured HyperFleet cluster ID %q does not match cluster %q UID %q", clusterID, f.clusterName, cluster.UID)
+		return "", fmt.Errorf("configured HyperFleet cluster ID %q does not match cluster %q UID %q",
+			clusterID, f.clusterName, cluster.UID)
 	}
 	return clusterID, nil
 }
@@ -506,7 +507,8 @@ func (b *hyperFleetBackend) FetchClusterID(ctx context.Context) (string, error) 
 		return "", err
 	}
 	if string(cluster.UID) != clusterID {
-		return "", fmt.Errorf("configured HyperFleet cluster ID %q does not match cluster %q UID %q", clusterID, clusterName, cluster.UID)
+		return "", fmt.Errorf("configured HyperFleet cluster ID %q does not match cluster %q UID %q",
+			clusterID, clusterName, cluster.UID)
 	}
 	return clusterID, nil
 }

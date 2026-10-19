@@ -293,6 +293,11 @@ resources:
               type: string
               required: true
               description: "Name of the ConfigMap containing serialized tuning configuration."
+      - path: spec.nodePool.platform.aws.imageType
+        type: string
+        immutable: true
+        description: "Operating system image family for the nodes in this pool, either `Linux` (RHCOS, the default when unset) or `Windows`. Windows pools are License Included: a Windows AMI is resolved for the pool's region and OpenShift version and the license is billed through the EC2 instance cost. Setting `ami` overrides that selection. The image family is baked into every instance the pool launches and a node cannot be converted between Linux and Windows, so changing it replaces the node pool; add Windows capacity to an existing cluster with a second node pool."
+
       - path: spec.nodePool.platform.aws.resourceTags
         type: string
       - path: spec.nodePool.platform.aws.securityGroups

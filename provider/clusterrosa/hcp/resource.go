@@ -368,7 +368,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"channel_group": schema.StringAttribute{
 				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'. " +
-					"For ROSA, only 'stable' and 'eus' are supported. " +
+					"For ROSA, only 'stable', 'eus', and 'fast' are supported. " +
 					"Cannot be used together with 'channel'. " +
 					"Starting from 1.7.7, this attribute no longer has a default value and is computed by the API.",
 				Optional: true,

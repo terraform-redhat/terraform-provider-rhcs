@@ -25,20 +25,12 @@ type hyperFleetNodePoolReplica struct {
 	name    string
 }
 
-// NewHyperFleetNodePoolReplica creates the fixed-replica nodepool strategy for
-// a cluster created by the HyperFleet cluster strategy.
-func NewHyperFleetNodePoolReplica(
-	clusterName, nodePoolName, clusterID, workspace string,
-) (exec.NodePoolReplicaLifecycle, error) {
-	if clusterID == "" {
-		return nil, fmt.Errorf("cluster ID is required to create a HyperFleet nodepool")
-	}
-	return newHyperFleetNodePoolReplica(clusterName, nodePoolName, clusterID, workspace)
-}
-
 func newHyperFleetNodePoolReplica(
 	clusterName, nodePoolName, clusterID, workspace string,
 ) (*hyperFleetNodePoolReplica, error) {
+	if clusterID == "" {
+		return nil, fmt.Errorf("cluster ID is required to create a HyperFleet nodepool")
+	}
 	hyperfleetURL, err := requiredEnv("HYPERFLEET_URL")
 	if err != nil {
 		return nil, err
@@ -107,11 +99,7 @@ func newHyperFleetNodePoolReplica(
 	}, nil
 }
 
-func (n *hyperFleetNodePoolReplica) Create(replicas int) error {
-	n.args.Replicas = &replicas
-	_, err := n.service.Apply(n.args)
-	return err
-}
+func (n *hyperFleetNodePoolReplica) Create(spec exec.NodePoolSpec) error { return n.apply(spec) }
 
 func (n *hyperFleetNodePoolReplica) WaitReady(ctx context.Context) error {
 	return n.client.HyperfleetV1alpha1().NodePools().WaitUntil(
@@ -130,33 +118,44 @@ func (n *hyperFleetNodePoolReplica) WaitReady(ctx context.Context) error {
 	)
 }
 
-func (n *hyperFleetNodePoolReplica) UpdateReplicas(replicas int) error {
-	n.args.Replicas = &replicas
+func (n *hyperFleetNodePoolReplica) Update(spec exec.NodePoolSpec) error { return n.apply(spec) }
+
+func (n *hyperFleetNodePoolReplica) apply(spec exec.NodePoolSpec) error {
+	if spec.Replicas != nil && spec.Autoscaling != nil {
+		return fmt.Errorf("nodepool replicas and autoscaling are mutually exclusive")
+	}
+	if spec.Replicas != nil {
+		n.args.Replicas = spec.Replicas
+		n.args.Autoscaling = nil
+	}
+	if spec.Autoscaling != nil {
+		n.args.Replicas = nil
+		n.args.Autoscaling = spec.Autoscaling
+	}
+	if spec.EC2InstanceMetadataHttpTokens != nil {
+		n.args.EC2InstanceMetadataHttpTokens = spec.EC2InstanceMetadataHttpTokens
+	}
 	_, err := n.service.Apply(n.args)
 	return err
 }
 
-func (n *hyperFleetNodePoolReplica) Replicas(ctx context.Context) (int, error) {
+func (n *hyperFleetNodePoolReplica) Read(ctx context.Context) (exec.NodePoolState, error) {
 	nodePool, err := n.client.HyperfleetV1alpha1().NodePools().Get(ctx, n.name, hfplatform.GetOptions{})
 	if err != nil {
-		return 0, err
+		return exec.NodePoolState{}, err
 	}
-	if nodePool.Spec.NodePool.Replicas == nil {
-		return 0, fmt.Errorf("nodepool %q returned no replicas", n.name)
+	state := exec.NodePoolState{EC2InstanceMetadataHttpTokens: string(nodePool.Spec.EC2InstanceMetadataHttpTokens)}
+	if nodePool.Spec.NodePool.Replicas != nil {
+		state.Replicas = new(int(*nodePool.Spec.NodePool.Replicas))
 	}
-	return int(*nodePool.Spec.NodePool.Replicas), nil
-}
-
-func (n *hyperFleetNodePoolReplica) SetEC2InstanceMetadataHttpTokens(value string) {
-	n.args.EC2InstanceMetadataHttpTokens = &value
-}
-
-func (n *hyperFleetNodePoolReplica) EC2InstanceMetadataHttpTokens(ctx context.Context) (string, error) {
-	nodePool, err := n.client.HyperfleetV1alpha1().NodePools().Get(ctx, n.name, hfplatform.GetOptions{})
-	if err != nil {
-		return "", err
+	if autoscaling := nodePool.Spec.NodePool.AutoScaling; autoscaling != nil && autoscaling.Min != nil {
+		state.Autoscaling = &exec.NodePoolAutoscalingState{
+			Enabled:     true,
+			MinReplicas: int(*autoscaling.Min),
+			MaxReplicas: int(autoscaling.Max),
+		}
 	}
-	return string(nodePool.Spec.EC2InstanceMetadataHttpTokens), nil
+	return state, nil
 }
 
 func (n *hyperFleetNodePoolReplica) Destroy() error {
@@ -181,4 +180,4 @@ func (n *hyperFleetNodePoolReplica) WaitDeleted(ctx context.Context) error {
 	)
 }
 
-var _ exec.NodePoolReplicaLifecycle = (*hyperFleetNodePoolReplica)(nil)
+var _ exec.NodePoolLifecycle = (*hyperFleetNodePoolReplica)(nil)

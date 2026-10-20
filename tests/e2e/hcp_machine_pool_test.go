@@ -1281,7 +1281,7 @@ var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, fun
 			clusterName = profile.Profile().GetName()
 		}
 		nodePoolName := fmt.Sprintf("%s-np-%d", clusterName, time.Now().Unix())
-		nodePool, err := clusterworkflow.NewNodePoolReplica(profile, clusterID, nodePoolName)
+		nodePool, err := clusterworkflow.NewNodePool(profile, clusterID, nodePoolName)
 		Expect(err).NotTo(HaveOccurred())
 		DeferCleanup(func(cleanupCtx SpecContext) {
 			Expect(nodePool.Destroy()).To(Succeed())
@@ -1307,7 +1307,7 @@ var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, fun
 
 			type imdsNodePool struct {
 				tokenRequirement string
-				lifecycle        exec.NodePoolReplicaLifecycle
+				lifecycle        exec.NodePoolLifecycle
 			}
 			var nodePools []imdsNodePool
 
@@ -1318,10 +1318,8 @@ var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, fun
 			} {
 				By("Create a nodepool with EC2 metadata HTTP tokens = " + tokenRequirement)
 				nodePoolName := helper.GenerateRandomName("np-imds", 2)
-				nodePool, err := clusterworkflow.NewNodePoolReplica(profile, clusterID, nodePoolName)
+				nodePool, err := clusterworkflow.NewNodePool(profile, clusterID, nodePoolName)
 				Expect(err).NotTo(HaveOccurred())
-				nodePool.SetEC2InstanceMetadataHttpTokens(tokenRequirement)
-
 				nodePoolForCleanup := nodePool
 				DeferCleanup(func(cleanupCtx SpecContext) {
 					Expect(nodePoolForCleanup.Destroy()).To(Succeed())
@@ -1330,7 +1328,12 @@ var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, fun
 					}
 				})
 
-				Expect(nodePool.Create(1)).To(Succeed())
+				token := tokenRequirement
+				replicas := 1
+				Expect(nodePool.Create(exec.NodePoolSpec{
+					Replicas:                      &replicas,
+					EC2InstanceMetadataHttpTokens: &token,
+				})).To(Succeed())
 				nodePools = append(nodePools, imdsNodePool{
 					tokenRequirement: tokenRequirement,
 					lifecycle:        nodePool,
@@ -1341,10 +1344,71 @@ var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, fun
 			for _, nodePool := range nodePools {
 				Expect(nodePool.lifecycle.WaitReady(ctx)).To(Succeed())
 				By("Verify the nodepool metadata token requirement")
-				actual, err := nodePool.lifecycle.EC2InstanceMetadataHttpTokens(ctx)
+				state, err := nodePool.lifecycle.Read(ctx)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(actual).To(Equal(nodePool.tokenRequirement))
+				Expect(state.EC2InstanceMetadataHttpTokens).To(Equal(nodePool.tokenRequirement))
 			}
 		},
 	)
+
+	It("creates and updates nodepool autoscaling through the selected backend", ci.High, func(ctx SpecContext) {
+		profile, err := profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).NotTo(HaveOccurred())
+		if clusterID == "" {
+			Skip("an existing cluster ID is required for the nodepool day-2 workflow")
+		}
+
+		initialMin := 1
+		initialMax := 2
+
+		nodePool, err := clusterworkflow.NewNodePool(
+			profile,
+			clusterID,
+			helper.GenerateRandomName("np-autoscaling", 2),
+		)
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(func(cleanupCtx SpecContext) {
+			Expect(nodePool.Destroy()).To(Succeed())
+			if config.IsWaitForNodePoolDeletion() {
+				Expect(nodePool.WaitDeleted(cleanupCtx)).To(Succeed())
+			}
+		}, GracePeriod(90*time.Minute))
+
+		enabled := true
+		Expect(nodePool.Create(exec.NodePoolSpec{
+			Autoscaling: &exec.NodePoolAutoscaling{
+				Enabled:     &enabled,
+				MinReplicas: &initialMin,
+				MaxReplicas: &initialMax,
+			},
+		})).To(Succeed())
+		Expect(nodePool.WaitReady(ctx)).To(Succeed())
+
+		assertAutoscaling := func(wantMin, wantMax int) bool {
+			state, readErr := nodePool.Read(ctx)
+			return readErr == nil && state.Autoscaling != nil &&
+				state.Autoscaling.Enabled &&
+				state.Autoscaling.MinReplicas == wantMin &&
+				state.Autoscaling.MaxReplicas == wantMax
+		}
+		Eventually(func() bool {
+			return assertAutoscaling(initialMin, initialMax)
+		}).WithContext(ctx).WithTimeout(5 * time.Minute).WithPolling(30 * time.Second).
+			Should(BeTrue())
+
+		updatedMin := initialMin + 1
+		updatedMax := initialMax + 2
+		Expect(nodePool.Update(exec.NodePoolSpec{
+			Autoscaling: &exec.NodePoolAutoscaling{
+				Enabled:     &enabled,
+				MinReplicas: &updatedMin,
+				MaxReplicas: &updatedMax,
+			},
+		})).To(Succeed())
+		Expect(nodePool.WaitReady(ctx)).To(Succeed())
+		Eventually(func() bool {
+			return assertAutoscaling(updatedMin, updatedMax)
+		}).WithContext(ctx).WithTimeout(5 * time.Minute).WithPolling(30 * time.Second).
+			Should(BeTrue())
+	})
 })

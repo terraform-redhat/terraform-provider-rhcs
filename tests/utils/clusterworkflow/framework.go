@@ -77,12 +77,12 @@ func NewDestroyer(profile profilehandler.ProfileHandler, token, workspace string
 	}
 }
 
-// NewNodePoolReplica creates the fixed-replica day-2 strategy for the selected
-// profile backend.
-func NewNodePoolReplica(
+// NewNodePool creates the backend-neutral node-pool lifecycle for the selected
+// profile.
+func NewNodePool(
 	profile profilehandler.ProfileHandler,
 	clusterID, nodePoolName string,
-) (exec.NodePoolReplicaLifecycle, error) {
+) (exec.NodePoolLifecycle, error) {
 	clusterType := profile.Profile().GetClusterType()
 	switch clusterType.String() {
 	case constants.ROSA_HCP.String():
@@ -92,8 +92,8 @@ func NewNodePoolReplica(
 		if clusterName == "" {
 			clusterName = profile.Profile().GetName()
 		}
-		return NewHyperFleetNodePoolReplica(clusterName, nodePoolName, clusterID, profile.Profile().GetName())
+		return newHyperFleetNodePoolReplica(clusterName, nodePoolName, clusterID, profile.Profile().GetName())
 	default:
-		return nil, fmt.Errorf("unsupported cluster type %q for nodepool replica workflow", clusterType.String())
+		return nil, fmt.Errorf("unsupported cluster type %q for nodepool workflow", clusterType.String())
 	}
 }

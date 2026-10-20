@@ -13,8 +13,11 @@ provider "rhcs" {
 resource "rhcs_cluster_seaplane" "cluster" {
   name                  = var.cluster_name
   operator_roles_prefix = var.operator_roles_prefix
-  subnet_id             = data.aws_subnet.worker.id
-  vpc_id                = data.aws_subnet.worker.vpc_id
-  availability_zone     = data.aws_subnet.worker.availability_zone
-  release_image         = var.release_image
+  aws = {
+    aws_subnet_ids                = [data.aws_subnet.worker.id]
+    vpc_id                        = data.aws_subnet.worker.vpc_id
+    availability_zones            = [data.aws_subnet.worker.availability_zone]
+    additional_allowed_principals = ["arn:aws:iam::123456789012:role/example-consumer"]
+  }
+  version = var.release_image
 }

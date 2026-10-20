@@ -30,6 +30,7 @@ Manages NodePool resources.
 - `capacity_reservation_id` (String) CapacityReservationId.
 - `capacity_reservation_market_type` (String) CapacityReservationMarketType.
 - `config` (Attributes List) ConfigMap references containing serialized nodepool configuration. (see [below for nested schema](#nestedatt--config))
+- `disk_size` (Number) DiskSize.
 - `ec2_instance_metadata_http_tokens` (String) EC2 instance metadata HTTP token requirement. `required` enforces IMDSv2; `optional` permits IMDSv1. Defaults to `required` and is immutable after creation.
 - `filters` (String) Filters.
 - `image` (String) Image.
@@ -46,7 +47,6 @@ Manages NodePool resources.
 - `placement_market_type` (String) PlacementMarketType.
 - `preference` (String) Preference.
 - `replicas` (Number) Replicas.
-- `size` (Number) Size.
 - `subnet_id` (String) SubnetId.
 - `tags` (Map of String) Customer AWS tags applied to resources for this NodePool. They combine with Cluster tags and use the shared AWS tag budget after reserved system tags.
 - `taints` (Attributes List) Node taints applied to nodes in this pool. (see [below for nested schema](#nestedatt--taints))

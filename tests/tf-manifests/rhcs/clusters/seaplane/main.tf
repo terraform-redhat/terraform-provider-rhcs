@@ -36,9 +36,10 @@ resource "rhcs_cluster_seaplane" "cluster" {
     service_cidr = var.service_cidr
   }
   aws = {
-    aws_subnet_ids     = [var.subnet_id]
-    vpc_id             = var.vpc_id
-    availability_zones = [var.availability_zone]
+    aws_subnet_ids                = [var.subnet_id]
+    vpc_id                        = var.vpc_id
+    availability_zones            = [var.availability_zone]
+    additional_allowed_principals = var.additional_allowed_principals
   }
   expiration_timestamp               = var.expiration_timestamp
   oidc_config_id                     = var.oidc_config_id != "" ? var.oidc_config_id : null

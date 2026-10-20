@@ -97,7 +97,7 @@ type ClusterNetworkNative struct {
 
 // ClusterAwsNative is the native representation of the aws bundle.
 type ClusterAwsNative struct {
-	Additional_allowed_principals string   `hfsdk:"spec.hostedCluster.platform.aws.additionalAllowedPrincipals"`
+	Additional_allowed_principals []string `hfsdk:"spec.hostedCluster.platform.aws.additionalAllowedPrincipals"`
 	Vpc_id                        string   `hfsdk:"spec.hostedCluster.platform.aws.cloudProviderConfig.vpc"`
 	Availability_zone             string   `hfsdk:"spec.hostedCluster.platform.aws.cloudProviderConfig.zone"`
 	Endpoint_access               string   `hfsdk:"spec.hostedCluster.platform.aws.endpointAccess"`

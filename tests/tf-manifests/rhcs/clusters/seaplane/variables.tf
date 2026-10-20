@@ -125,3 +125,9 @@ variable "service_cidr" {
   description = "JSON-encoded service network entries; changing them requires cluster replacement"
   default     = null
 }
+
+variable "additional_allowed_principals" {
+  type        = list(string)
+  description = "Optional principal ARNs allowed to connect to the hosted control plane VPC Endpoint Service"
+  default     = null
+}

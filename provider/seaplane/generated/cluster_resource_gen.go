@@ -471,9 +471,10 @@ func (r *ClusterResource) Schema(
 			},
 			"aws": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
-					"additional_allowed_principals": schema.StringAttribute{
-						MarkdownDescription: "Additional_allowed_principals.",
+					"additional_allowed_principals": schema.ListAttribute{
+						MarkdownDescription: "Additional principal ARNs allowed to connect to the hosted control plane VPC Endpoint Service.",
 						Optional:            true,
+						ElementType:         types.StringType,
 					},
 					"vpc_id": schema.StringAttribute{
 						MarkdownDescription: "Vpc_id.",
@@ -1320,7 +1321,7 @@ func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.D
 			"aws_partition":                 "Aws_partition",
 		})
 		tf.Aws, _ = types.ObjectValue(map[string]attr.Type{
-			"additional_allowed_principals": types.StringType,
+			"additional_allowed_principals": types.ListType{ElemType: types.StringType},
 			"vpc_id":                        types.StringType,
 			"availability_zone":             types.StringType,
 			"endpoint_access":               types.StringType,

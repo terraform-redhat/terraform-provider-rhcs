@@ -31,10 +31,11 @@ type SeaplaneClusterArgs struct {
 	ServiceCIDR                    *string `hcl:"service_cidr"`
 	// Tags are customer AWS tags applied to resources for this cluster. Changes
 	// are propagated to the HostedCluster and NodePools in place.
-	Tags       *map[string]string `hcl:"tags"`
-	HTTPProxy  *string            `hcl:"http_proxy"`
-	HTTPSProxy *string            `hcl:"https_proxy"`
-	NoProxy    *string            `hcl:"no_proxy"`
+	Tags                        *map[string]string `hcl:"tags"`
+	HTTPProxy                   *string            `hcl:"http_proxy"`
+	HTTPSProxy                  *string            `hcl:"https_proxy"`
+	NoProxy                     *string            `hcl:"no_proxy"`
+	AdditionalAllowedPrincipals *[]string          `hcl:"additional_allowed_principals"`
 }
 
 // SeaplaneClusterOutput holds the Terraform output values from the Seaplane

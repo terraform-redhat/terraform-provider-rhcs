@@ -112,6 +112,78 @@ func TestPrefixAndPartitionFromRolesRef_Empty(t *testing.T) {
 	}
 }
 
+func TestClusterPostFlattenRefreshesAdditionalAllowedPrincipals(t *testing.T) {
+	cases := []struct {
+		name       string
+		principals []string
+	}{
+		{name: "absent", principals: nil},
+		{name: "empty", principals: []string{}},
+		{name: "present", principals: []string{"arn:aws:iam::123456789012:role/example-consumer"}},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			stalePrincipals := stringList(t, []string{
+				"arn:aws:iam::123456789012:role/stale-consumer",
+			})
+			state := ClusterState{
+				Aws: awsObjectWithPrincipals(t, stalePrincipals),
+			}
+			response := &v1alpha1.Cluster{
+				Spec: v1alpha1.ClusterSpec{
+					HostedCluster: v1alpha1.HostedClusterSpecPassthrough{
+						Platform: v1alpha1.PlatformSpec{
+							AWS: &hypershiftv1beta1.AWSPlatformSpec{
+								AdditionalAllowedPrincipals: testCase.principals,
+							},
+						},
+					},
+				},
+			}
+
+			(&ClusterHandlerImpl{}).PostFlatten(context.Background(), &state, response)
+
+			refreshed, ok := state.Aws.Attributes()["additional_allowed_principals"].(types.List)
+			if !ok {
+				t.Fatalf("additional_allowed_principals is %T, want types.List", state.Aws.Attributes()["additional_allowed_principals"])
+			}
+			want := types.ListNull(types.StringType)
+			if len(testCase.principals) > 0 {
+				want = stringList(t, testCase.principals)
+			}
+			if !refreshed.Equal(want) {
+				t.Fatalf("additional_allowed_principals = %s, want %s", refreshed, want)
+			}
+		})
+	}
+}
+
+func stringList(t *testing.T, values []string) types.List {
+	t.Helper()
+	elements := make([]attr.Value, len(values))
+	for index, value := range values {
+		elements[index] = types.StringValue(value)
+	}
+	list, diags := types.ListValue(types.StringType, elements)
+	if diags.HasError() {
+		t.Fatalf("building string list: %v", diags)
+	}
+	return list
+}
+
+func awsObjectWithPrincipals(t *testing.T, principals types.List) types.Object {
+	t.Helper()
+	object, diags := types.ObjectValue(
+		map[string]attr.Type{"additional_allowed_principals": types.ListType{ElemType: types.StringType}},
+		map[string]attr.Value{"additional_allowed_principals": principals},
+	)
+	if diags.HasError() {
+		t.Fatalf("building AWS object: %v", diags)
+	}
+	return object
+}
+
 // ── validateClusterTags ───────────────────────────────────────────────────────
 
 // tagsMap builds the types.Map the generated schema produces for the `tags`

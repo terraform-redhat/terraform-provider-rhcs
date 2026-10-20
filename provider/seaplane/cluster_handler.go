@@ -224,6 +224,16 @@ func (h *ClusterHandlerImpl) PostExpand(
 		return diags
 	}
 
+	var allowedPrincipals []string
+	var allowedPrincipalsDiags diag.Diagnostics
+	allowedPrincipals, allowedPrincipalsDiags = awsBundleStringList(
+		ctx, input.Aws, "additional_allowed_principals",
+	)
+	diags.Append(allowedPrincipalsDiags...)
+	if diags.HasError() {
+		return diags
+	}
+
 	az := azs[0]
 	subnetID := subnetIDs[0]
 	vpcID := awsBundleStringValue(input.Aws, "vpc_id")
@@ -233,8 +243,9 @@ func (h *ClusterHandlerImpl) PostExpand(
 	rolesRef := computeRolesRef(prefix, h.accountID, partition)
 	// Build Platform spec with AWS configuration
 	awsSpec := &hypershiftv1beta1.AWSPlatformSpec{
-		Region:   region,
-		RolesRef: rolesRef,
+		Region:                      region,
+		RolesRef:                    rolesRef,
+		AdditionalAllowedPrincipals: allowedPrincipals,
 		CloudProviderConfig: &hypershiftv1beta1.AWSCloudProviderConfig{
 			VPC:  vpcID,
 			Zone: az,
@@ -304,6 +315,30 @@ func awsBundleWithString(bundle types.Object, name, value string) (types.Object,
 	return types.ObjectValue(typesByName, attributes)
 }
 
+func awsBundleWithStringList(bundle types.Object, name string, values []string) types.Object {
+	if bundle.IsNull() || bundle.IsUnknown() {
+		return bundle
+	}
+
+	attributes := bundle.Attributes()
+	if len(values) == 0 {
+		attributes[name] = types.ListNull(types.StringType)
+	} else {
+		elements := make([]attr.Value, len(values))
+		for index, value := range values {
+			elements[index] = types.StringValue(value)
+		}
+		attributes[name], _ = types.ListValue(types.StringType, elements)
+	}
+
+	typesByName := make(map[string]attr.Type, len(attributes))
+	for attributeName, attributeValue := range attributes {
+		typesByName[attributeName] = attributeValue.Type(context.Background())
+	}
+	merged, _ := types.ObjectValue(typesByName, attributes)
+	return merged
+}
+
 // PostResponse is called after API operations
 func (h *ClusterHandlerImpl) PostResponse(ctx context.Context, resp *v1alpha1.Cluster) diag.Diagnostics {
 	return diag.Diagnostics{}
@@ -334,6 +369,12 @@ func (h *ClusterHandlerImpl) PostFlatten(ctx context.Context, state *ClusterStat
 		attributes["network_type"] = types.StringNull()
 		state.Network, _ = types.ObjectValue(state.Network.AttributeTypes(ctx), attributes)
 	}
+
+	var principals []string
+	if resp.Spec.HostedCluster.Platform.AWS != nil {
+		principals = resp.Spec.HostedCluster.Platform.AWS.AdditionalAllowedPrincipals
+	}
+	state.Aws = awsBundleWithStringList(state.Aws, "additional_allowed_principals", principals)
 }
 
 // computeRolesRef builds the RolesRef from operator prefix and account ID

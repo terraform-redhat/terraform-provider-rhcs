@@ -28,10 +28,11 @@ type SeaplaneClusterArgs struct {
 	ComponentRoutes                *string `hcl:"component_routes"`
 	// Tags are customer AWS tags applied to the AWS resources created for the
 	// cluster. Immutable once the cluster exists.
-	Tags       *map[string]string `hcl:"tags"`
-	HTTPProxy  *string            `hcl:"http_proxy"`
-	HTTPSProxy *string            `hcl:"https_proxy"`
-	NoProxy    *string            `hcl:"no_proxy"`
+	Tags                        *map[string]string `hcl:"tags"`
+	HTTPProxy                   *string            `hcl:"http_proxy"`
+	HTTPSProxy                  *string            `hcl:"https_proxy"`
+	NoProxy                     *string            `hcl:"no_proxy"`
+	AdditionalAllowedPrincipals *[]string          `hcl:"additional_allowed_principals"`
 }
 
 // SeaplaneClusterOutput holds the Terraform output values from the Seaplane

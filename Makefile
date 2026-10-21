@@ -221,30 +221,30 @@ clean:
 generate: $(MOCKGEN)
 	PATH="$(LOCALBIN_ABS):$$PATH" go generate ./...
 
-.PHONY: generate-hyperfleet
-HYPERFLEET_REPO ?= https://github.com/openshift-online/rosa-hyperfleet-api.git
-HYPERFLEET_BRANCH ?= main
+.PHONY: generate-seaplane
+SEAPLANE_REPO ?= https://github.com/openshift-online/rosa-seaplane-api.git
+SEAPLANE_BRANCH ?= main
 
-generate-hyperfleet:
-	@echo "Generating Terraform resource code from hyperfleet pathbind configuration..."
-	@if [ ! -f "provider/hyperfleet/pathbind-overrides.yaml" ]; then \
-		echo "Error: provider/hyperfleet/pathbind-overrides.yaml not found"; \
+generate-seaplane:
+	@echo "Generating Terraform resource code from Seaplane pathbind configuration..."
+	@if [ ! -f "provider/seaplane/pathbind-overrides.yaml" ]; then \
+		echo "Error: provider/seaplane/pathbind-overrides.yaml not found"; \
 		exit 1; \
 	fi
-	@HYPERFLEET_TMPDIR=$$(mktemp -d); \
+	@SEAPLANE_TMPDIR=$$(mktemp -d); \
 	PATHBIND_GEN_BIN=$$(mktemp); \
-	OUTPUT_DIR=provider/hyperfleet/generated; \
-	trap 'rm -rf "$$HYPERFLEET_TMPDIR" "$$PATHBIND_GEN_BIN"' EXIT; \
-	echo "Cloning $(HYPERFLEET_REPO) ($(HYPERFLEET_BRANCH) branch) to $$HYPERFLEET_TMPDIR..."; \
-	git clone --depth=1 --branch "$(HYPERFLEET_BRANCH)" "$(HYPERFLEET_REPO)" "$$HYPERFLEET_TMPDIR" || exit 1; \
+	OUTPUT_DIR=provider/seaplane/generated; \
+	trap 'rm -rf "$$SEAPLANE_TMPDIR" "$$PATHBIND_GEN_BIN"' EXIT; \
+	echo "Cloning $(SEAPLANE_REPO) ($(SEAPLANE_BRANCH) branch) to $$SEAPLANE_TMPDIR..."; \
+	git clone --depth=1 --branch "$(SEAPLANE_BRANCH)" "$(SEAPLANE_REPO)" "$$SEAPLANE_TMPDIR" || exit 1; \
 	echo "Building pathbind-gen..."; \
-	cd "$$HYPERFLEET_TMPDIR/clientset" && go build -o "$$PATHBIND_GEN_BIN" ./cmd/pathbind-gen || exit 1; \
+	cd "$$SEAPLANE_TMPDIR/clientset" && go build -o "$$PATHBIND_GEN_BIN" ./cmd/pathbind-gen || exit 1; \
 	cd - > /dev/null; \
 	echo "Running pathbind-gen in TF mode..."; \
 	"$$PATHBIND_GEN_BIN" \
 		--mode=tf \
-		--draft="$$HYPERFLEET_TMPDIR/clientset/pathbind/pathbind-draft.yaml" \
-		--overrides=provider/hyperfleet/pathbind-overrides.yaml \
+		--draft="$$SEAPLANE_TMPDIR/clientset/pathbind/pathbind-draft.yaml" \
+		--overrides=provider/seaplane/pathbind-overrides.yaml \
 		--output-dir="$$OUTPUT_DIR" || exit 1; \
 	echo "Generated files written to $$OUTPUT_DIR"
 
@@ -329,11 +329,11 @@ e2e_test: $(GINKGO) install
         --focus-file tests/e2e/.* \
 		$(NULL)
 
-.PHONY: e2e-hyperfleet
-e2e-hyperfleet: $(GINKGO) install
+.PHONY: e2e-seaplane
+e2e-seaplane: $(GINKGO) install
 	$(GINKGO) run \
 		--timeout 3h \
-		./tests/e2e/hyperfleet/... \
+		./tests/e2e/seaplane/... \
 		$(NULL)
 
 # Optional local diagnostic (gocovdiff on changed provider/internal lines vs main).

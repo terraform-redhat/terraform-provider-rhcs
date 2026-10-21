@@ -16,7 +16,7 @@ import (
 )
 
 // Backend is a shared cluster workflow plus backend-specific teardown.
-// Cleanup is deliberately separate because HCP and HyperFleet have different
+// Cleanup is deliberately separate because HCP and Seaplane have different
 // dependency ordering and grace periods.
 type Backend struct {
 	Lifecycle exec.ClusterReadinessLifecycle
@@ -42,8 +42,8 @@ func New(profile profilehandler.ProfileHandler, token, workspace string) (*Backe
 	switch clusterType.String() {
 	case constants.ROSA_HCP.String():
 		return newHCPBackend(profile, token), nil
-	case constants.HYPERFLEET.String():
-		return newHyperFleetBackend(profile, workspace)
+	case constants.SEAPLANE.String():
+		return newSeaplaneBackend(profile, workspace)
 	default:
 		return nil, fmt.Errorf("unsupported cluster type %q for shared cluster workflow", clusterType.String())
 	}
@@ -56,8 +56,8 @@ func NewFetcher(profile profilehandler.ProfileHandler) (ClusterIDFetcher, error)
 	switch clusterType.String() {
 	case constants.ROSA_HCP.String():
 		return newHCPBackend(profile, "").Fetcher, nil
-	case constants.HYPERFLEET.String():
-		return newHyperFleetFetcher(profile)
+	case constants.SEAPLANE.String():
+		return newSeaplaneFetcher(profile)
 	default:
 		return nil, fmt.Errorf("unsupported cluster type %q for cluster ID lookup", clusterType.String())
 	}
@@ -70,8 +70,8 @@ func NewDestroyer(profile profilehandler.ProfileHandler, token, workspace string
 	switch clusterType.String() {
 	case constants.ROSA_HCP.String():
 		return hcpDestroyer{profile: profile, token: token}, nil
-	case constants.HYPERFLEET.String():
-		return newHyperFleetDestroyer(profile, workspace)
+	case constants.SEAPLANE.String():
+		return newSeaplaneDestroyer(profile, workspace)
 	default:
 		return nil, fmt.Errorf("unsupported cluster type %q for destroy workflow", clusterType.String())
 	}
@@ -87,12 +87,12 @@ func NewNodePoolReplica(
 	switch clusterType.String() {
 	case constants.ROSA_HCP.String():
 		return newHCPNodePoolReplica(profile, clusterID, nodePoolName)
-	case constants.HYPERFLEET.String():
+	case constants.SEAPLANE.String():
 		clusterName := config.GetRHCSClusterName()
 		if clusterName == "" {
 			clusterName = profile.Profile().GetName()
 		}
-		return NewHyperFleetNodePoolReplica(clusterName, nodePoolName, clusterID, profile.Profile().GetName())
+		return NewSeaplaneNodePoolReplica(clusterName, nodePoolName, clusterID, profile.Profile().GetName())
 	default:
 		return nil, fmt.Errorf("unsupported cluster type %q for nodepool replica workflow", clusterType.String())
 	}

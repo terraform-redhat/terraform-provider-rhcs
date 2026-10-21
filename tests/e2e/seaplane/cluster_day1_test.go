@@ -1,0 +1,88 @@
+// Copyright Red Hat
+// SPDX-License-Identifier: Apache-2.0
+
+package seaplane
+
+import (
+	"context"
+	"os"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
+)
+
+var _ = Describe("Seaplane cluster configuration", ci.SeaplaneValidated, func() {
+	It("creates a cluster with a scheduler profile", func(ctx SpecContext) {
+		profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(profileHandler.Profile().GetClusterType()).To(Equal(constants.SEAPLANE))
+		if profileHandler.Profile().GetSchedulerProfile() == "" {
+			Skip("Test requires the Seaplane scheduler profile")
+		}
+
+		workspace := seaplaneTestWorkspace(profileHandler.Profile().GetName(), "cluster-configuration")
+		backend, err := clusterworkflow.New(profileHandler, "", workspace)
+		Expect(err).NotTo(HaveOccurred())
+
+		DeferCleanup(func() {
+			destroyer, err := clusterworkflow.NewDestroyer(profileHandler, "", workspace)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(destroyer.Destroy(context.Background())).To(Succeed())
+		})
+
+		clusterID, err := exec.CreateAndWaitReady(ctx, backend.Lifecycle)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(clusterID).NotTo(BeEmpty())
+
+		clusterService, err := exec.NewSeaplaneClusterService(workspace)
+		Expect(err).NotTo(HaveOccurred())
+		output, err := clusterService.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(output.SchedulerProfile).To(Equal(profileHandler.Profile().GetSchedulerProfile()))
+	})
+
+	It("configures autoscaler during cluster creation", func(ctx SpecContext) {
+		profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(profileHandler.Profile().GetClusterType()).To(Equal(constants.SEAPLANE))
+		if profileHandler.Profile().GetAutoscalerMaxNodesTotal() == 0 {
+			Skip("Test requires the Seaplane optional configuration profile")
+		}
+
+		workspace := seaplaneTestWorkspace(profileHandler.Profile().GetName(), "cluster-configuration-autoscaler")
+		backend, err := clusterworkflow.New(profileHandler, "", workspace)
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(func() {
+			destroyer, err := clusterworkflow.NewDestroyer(profileHandler, "", workspace)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(destroyer.Destroy(context.Background())).To(Succeed())
+		})
+
+		clusterID, err := exec.CreateAndWaitReady(ctx, backend.Lifecycle)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(clusterID).NotTo(BeEmpty())
+
+		clusterService, err := exec.NewSeaplaneClusterService(workspace)
+		Expect(err).NotTo(HaveOccurred())
+		output, err := clusterService.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(output.AutoscalerMaxNodeProvisionTime).To(Equal(profileHandler.Profile().GetAutoscalerMaxNodeProvisionTime()))
+		Expect(output.AutoscalerMaxNodesTotal).To(Equal(profileHandler.Profile().GetAutoscalerMaxNodesTotal()))
+		Expect(output.AutoscalerMaxPodGracePeriod).To(Equal(profileHandler.Profile().GetAutoscalerMaxPodGracePeriod()))
+		Expect(output.AutoscalerPodPriorityThreshold).To(Equal(profileHandler.Profile().GetAutoscalerPodPriorityThreshold()))
+	})
+})
+
+func seaplaneTestWorkspace(profileName, suffix string) string {
+	clusterName := os.Getenv("RHCS_CLUSTER_NAME")
+	if clusterName == "" {
+		clusterName = profileName
+	}
+	return clusterName + "-" + suffix
+}

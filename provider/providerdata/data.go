@@ -20,27 +20,27 @@ package providerdata
 
 import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
+	seaplane "github.com/openshift-online/rosa-seaplane-api/clientset"
 )
 
 // ProviderSharedData is set as resp.ResourceData and resp.DataSourceData by the
 // provider Configure method. Resources extract the client they need from here.
 type ProviderSharedData struct {
 	// OCMConnection is the OCM API connection. Nil when no OCM credentials are
-	// configured (hyperfleet-only mode).
+	// configured (Seaplane-only mode).
 	OCMConnection *sdk.Connection
 
-	// HyperfleetClient is the Platform API v2 clientset. Nil when hyperfleet_url
+	// SeaplaneClient is the Platform API clientset. Nil when seaplane_url
 	// is not set in the provider configuration.
-	HyperfleetClient *hyperfleet.Clientset
+	SeaplaneClient *seaplane.Clientset
 
-	// HyperfleetAccountID is the AWS account ID used to namespace Platform API
+	// SeaplaneAccountID is the AWS account ID used to namespace Platform API
 	// calls (e.g. Clusters(accountID)).
-	HyperfleetAccountID string
+	SeaplaneAccountID string
 
-	// HyperfleetCallerARN is the ARN of the AWS caller identity forwarded to the
+	// SeaplaneCallerARN is the ARN of the AWS caller identity forwarded to the
 	// Platform API as the cluster CreatorARN.
-	HyperfleetCallerARN string
+	SeaplaneCallerARN string
 }
 
 // OCMConn extracts the OCM SDK connection from whatever value was stored as

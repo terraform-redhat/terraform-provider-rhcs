@@ -25,6 +25,7 @@ import (
 
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 )
 
 type NotificationContactsResource struct {
@@ -115,12 +116,12 @@ func (r *NotificationContactsResource) Configure(
 		return
 	}
 
-	connection, ok := req.ProviderData.(*sdk.Connection)
+	connection, ok := providerdata.OCMConn(req.ProviderData)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
 			fmt.Sprintf(
-				"Expected *sdk.Connection, got: %T. "+
+				"Expected *providerdata.ProviderSharedData, got: %T. "+
 					"Please report this issue to the provider developers.",
 				req.ProviderData,
 			),

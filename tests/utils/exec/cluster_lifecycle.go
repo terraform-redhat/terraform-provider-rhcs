@@ -9,7 +9,7 @@ import (
 )
 
 // ClusterReadinessLifecycle contains the provider-specific operations needed by
-// shared create/readiness e2e workflows. HCP and HyperFleet adapters can
+// shared create/readiness e2e workflows. HCP and Seaplane adapters can
 // implement this without sharing Terraform argument structs or API clients.
 type ClusterReadinessLifecycle interface {
 	Create() (clusterID string, err error)

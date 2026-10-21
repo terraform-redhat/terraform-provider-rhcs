@@ -111,22 +111,22 @@ func GetExternalAuthProviderManifestsDir(clusterType constants.ClusterType) stri
 	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "external-auth-providers", clusterType.String())
 }
 
-func GetHyperfleetClusterManifestsDir() string {
-	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "clusters", "hyperfleet")
+func GetSeaplaneClusterManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "clusters", "seaplane")
 }
 
-func GetHyperfleetNodePoolManifestsDir() string {
-	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "node-pools", "hyperfleet")
+func GetSeaplaneNodePoolManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "node-pools", "seaplane")
 }
 
-func GetHyperfleetVPCManifestsDir() string {
-	return path.Join(config.GetManifestsDir(), awsProviderDir, "vpc", "hyperfleet")
+func GetSeaplaneVPCManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "vpc", "seaplane")
 }
 
-func GetHyperfleetIAMManifestsDir() string {
-	return path.Join(config.GetManifestsDir(), awsProviderDir, "iam-roles", "hyperfleet")
+func GetSeaplaneIAMManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "iam-roles", "seaplane")
 }
 
-func GetHyperfleetOidcConfigManifestsDir() string {
-	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "oidcconfigs", "hyperfleet")
+func GetSeaplaneOidcConfigManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "oidcconfigs", "seaplane")
 }

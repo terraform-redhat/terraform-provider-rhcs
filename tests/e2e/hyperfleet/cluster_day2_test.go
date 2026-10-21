@@ -33,28 +33,25 @@ var _ = Describe("HyperFleet cluster Day 2 operations", ci.HyperfleetValidated, 
 		})
 		_, err = exec.CreateAndWaitReady(ctx, backend.Lifecycle)
 		Expect(err).NotTo(HaveOccurred())
-		updater, ok := backend.Lifecycle.(interface {
-			Update(*exec.HyperfleetClusterArgs) error
-		})
-		Expect(ok).To(BeTrue())
 		routes := `[{"namespace":"openshift-console","name":"console","hostname":"console-day2.example.com","servingCertKeyPairSecret":{"name":"console-tls"}}]`
 		provisionTime := "20m"
 		maxNodes, maxGrace, priority := int64(12), int64(700), int64(-5)
-		Expect(updater.Update(&exec.HyperfleetClusterArgs{
-			AutoscalerMaxNodeProvisionTime: &provisionTime,
-			AutoscalerMaxNodesTotal:        &maxNodes,
-			AutoscalerMaxPodGracePeriod:    &maxGrace,
-			AutoscalerPodPriorityThreshold: &priority,
-			ComponentRoutes:                &routes,
+		Expect(backend.Lifecycle.Update(exec.ClusterSpec{
+			Autoscaler: &exec.ClusterAutoscalerSpec{
+				MaxNodeProvisionTime: &provisionTime,
+				MaxNodesTotal:        &maxNodes,
+				MaxPodGracePeriod:    &maxGrace,
+				PodPriorityThreshold: &priority,
+			},
+			ComponentRoutes: &routes,
 		})).To(Succeed())
-		service, err := exec.NewHyperfleetClusterService(workspace)
+		state, err := backend.Lifecycle.Read(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		output, err := service.Output()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(output.AutoscalerMaxNodesTotal).To(Equal(int64(12)))
-		Expect(output.AutoscalerMaxPodGracePeriod).To(Equal(int64(700)))
-		Expect(output.AutoscalerPodPriorityThreshold).To(Equal(int64(-5)))
-		Expect(output.AutoscalerMaxNodeProvisionTime).To(Equal("20m"))
-		Expect(output.ComponentRoutes).To(ContainSubstring("console-day2.example.com"))
+		Expect(state.Autoscaler).NotTo(BeNil())
+		Expect(state.Autoscaler.MaxNodesTotal).To(Equal(int64(12)))
+		Expect(state.Autoscaler.MaxPodGracePeriod).To(Equal(int64(700)))
+		Expect(state.Autoscaler.PodPriorityThreshold).To(Equal(int64(-5)))
+		Expect(state.Autoscaler.MaxNodeProvisionTime).To(Equal("20m"))
+		Expect(state.ComponentRoutes).To(ContainSubstring("console-day2.example.com"))
 	})
 })

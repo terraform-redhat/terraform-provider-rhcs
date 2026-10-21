@@ -19,7 +19,7 @@ import (
 // Cleanup is deliberately separate because HCP and HyperFleet have different
 // dependency ordering and grace periods.
 type Backend struct {
-	Lifecycle exec.ClusterReadinessLifecycle
+	Lifecycle exec.ClusterLifecycle
 	Fetcher   ClusterIDFetcher
 }
 
@@ -60,6 +60,22 @@ func NewFetcher(profile profilehandler.ProfileHandler) (ClusterIDFetcher, error)
 		return newHyperFleetFetcher(profile)
 	default:
 		return nil, fmt.Errorf("unsupported cluster type %q for cluster ID lookup", clusterType.String())
+	}
+}
+
+// NewExisting creates a backend-neutral lifecycle for an already-provisioned
+// cluster. Unlike New, it does not create or apply any supporting resources.
+// It is intended for day-2 workflows which operate on the cluster selected by
+// the shared test-suite CLUSTER_ID.
+func NewExisting(profile profilehandler.ProfileHandler) (*Backend, error) {
+	clusterType := profile.Profile().GetClusterType()
+	switch clusterType.String() {
+	case constants.ROSA_HCP.String():
+		return newHCPBackend(profile, ""), nil
+	case constants.HYPERFLEET.String():
+		return newExistingHyperFleetBackend(profile)
+	default:
+		return nil, fmt.Errorf("unsupported cluster type %q for existing cluster workflow", clusterType.String())
 	}
 }
 

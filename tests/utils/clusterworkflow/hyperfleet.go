@@ -253,6 +253,42 @@ func newHyperFleetFetcher(profile profilehandler.ProfileHandler) (*hyperFleetFet
 	return &hyperFleetFetcher{client: client, service: service, clusterName: clusterName}, nil
 }
 
+func newExistingHyperFleetBackend(profile profilehandler.ProfileHandler) (*Backend, error) {
+	hyperfleetURL, err := requiredEnv("HYPERFLEET_URL")
+	if err != nil {
+		return nil, err
+	}
+	region := config.GetRegion()
+	if region == "" {
+		region = hyperFleetAWSRegionRE.FindString(hyperfleetURL)
+	}
+	if region == "" {
+		return nil, fmt.Errorf("cannot derive AWS region from HYPERFLEET_URL %q", hyperfleetURL)
+	}
+	clusterName := config.GetRHCSClusterName()
+	if clusterName == "" {
+		clusterName = profile.Profile().GetName()
+	}
+	hyperfleetService, err := exec.NewHyperfleetClusterService(clusterName)
+	if err != nil {
+		return nil, err
+	}
+	args, err := hyperfleetService.ReadTFVars()
+	if err != nil {
+		return nil, err
+	}
+	client, err := buildHyperFleetClient(hyperfleetURL, region)
+	if err != nil {
+		return nil, err
+	}
+	backend := &hyperFleetBackend{
+		service: hyperfleetService,
+		client:  client,
+		args:    args,
+	}
+	return &Backend{Lifecycle: backend}, nil
+}
+
 func (f *hyperFleetFetcher) FetchClusterID(ctx context.Context) (string, error) {
 	clusterID := os.Getenv(config.EnvClusterID)
 	if clusterID == "" {
@@ -541,9 +577,25 @@ func cleanupHyperFleetProxyOnError(proxy exec.ProxyService, cause error) error {
 	return cause
 }
 
-// Update merges the supplied non-nil fields into the existing cluster
-// arguments and reapplies the Terraform-managed HyperFleet cluster.
-func (b *hyperFleetBackend) Update(args *exec.HyperfleetClusterArgs) error {
+// Update applies the backend-neutral cluster settings to the Terraform-managed
+// HyperFleet cluster.
+func (b *hyperFleetBackend) Update(spec exec.ClusterSpec) error {
+	args := &exec.HyperfleetClusterArgs{}
+	if spec.Autoscaler != nil {
+		args.AutoscalerMaxNodeProvisionTime = spec.Autoscaler.MaxNodeProvisionTime
+		args.AutoscalerMaxNodesTotal = spec.Autoscaler.MaxNodesTotal
+		args.AutoscalerMaxPodGracePeriod = spec.Autoscaler.MaxPodGracePeriod
+		args.AutoscalerPodPriorityThreshold = spec.Autoscaler.PodPriorityThreshold
+	}
+	args.ComponentRoutes = spec.ComponentRoutes
+	args.SchedulerProfile = spec.SchedulerProfile
+	return b.update(args)
+}
+
+// update merges the supplied non-nil backend-specific fields into the
+// existing cluster arguments and reapplies the Terraform-managed HyperFleet
+// cluster.
+func (b *hyperFleetBackend) update(args *exec.HyperfleetClusterArgs) error {
 	if args.HyperfleetURL != nil {
 		b.args.HyperfleetURL = args.HyperfleetURL
 	}
@@ -594,6 +646,26 @@ func (b *hyperFleetBackend) Update(args *exec.HyperfleetClusterArgs) error {
 	}
 	_, err := b.service.Apply(b.args)
 	return err
+}
+
+func (b *hyperFleetBackend) Read(_ context.Context) (exec.ClusterState, error) {
+	output, err := b.service.Output()
+	if err != nil {
+		return exec.ClusterState{}, err
+	}
+	return exec.ClusterState{
+		ClusterID:        output.ClusterID,
+		ClusterName:      output.ClusterName,
+		Phase:            output.Phase,
+		SchedulerProfile: output.SchedulerProfile,
+		ComponentRoutes:  output.ComponentRoutes,
+		Autoscaler: &exec.ClusterAutoscalerState{
+			MaxNodeProvisionTime: output.AutoscalerMaxNodeProvisionTime,
+			MaxNodesTotal:        output.AutoscalerMaxNodesTotal,
+			MaxPodGracePeriod:    output.AutoscalerMaxPodGracePeriod,
+			PodPriorityThreshold: output.AutoscalerPodPriorityThreshold,
+		},
+	}, nil
 }
 
 func (b *hyperFleetBackend) WaitReady(ctx context.Context, _ string) error {
@@ -758,3 +830,4 @@ func envOrDefault(name, fallback string) string {
 }
 
 var _ exec.ClusterReadinessLifecycle = (*hyperFleetBackend)(nil)
+var _ exec.ClusterLifecycle = (*hyperFleetBackend)(nil)

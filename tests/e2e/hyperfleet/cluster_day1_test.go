@@ -40,11 +40,9 @@ var _ = Describe("HyperFleet cluster configuration", ci.HyperfleetValidated, fun
 		Expect(err).NotTo(HaveOccurred())
 		Expect(clusterID).NotTo(BeEmpty())
 
-		clusterService, err := exec.NewHyperfleetClusterService(workspace)
+		state, err := backend.Lifecycle.Read(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		output, err := clusterService.Output()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(output.SchedulerProfile).To(Equal(profileHandler.Profile().GetSchedulerProfile()))
+		Expect(state.SchedulerProfile).To(Equal(profileHandler.Profile().GetSchedulerProfile()))
 	})
 
 	It("configures autoscaler during cluster creation", func(ctx SpecContext) {
@@ -68,14 +66,13 @@ var _ = Describe("HyperFleet cluster configuration", ci.HyperfleetValidated, fun
 		Expect(err).NotTo(HaveOccurred())
 		Expect(clusterID).NotTo(BeEmpty())
 
-		clusterService, err := exec.NewHyperfleetClusterService(workspace)
+		state, err := backend.Lifecycle.Read(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		output, err := clusterService.Output()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(output.AutoscalerMaxNodeProvisionTime).To(Equal(profileHandler.Profile().GetAutoscalerMaxNodeProvisionTime()))
-		Expect(output.AutoscalerMaxNodesTotal).To(Equal(profileHandler.Profile().GetAutoscalerMaxNodesTotal()))
-		Expect(output.AutoscalerMaxPodGracePeriod).To(Equal(profileHandler.Profile().GetAutoscalerMaxPodGracePeriod()))
-		Expect(output.AutoscalerPodPriorityThreshold).To(Equal(profileHandler.Profile().GetAutoscalerPodPriorityThreshold()))
+		Expect(state.Autoscaler).NotTo(BeNil())
+		Expect(state.Autoscaler.MaxNodeProvisionTime).To(Equal(profileHandler.Profile().GetAutoscalerMaxNodeProvisionTime()))
+		Expect(state.Autoscaler.MaxNodesTotal).To(Equal(profileHandler.Profile().GetAutoscalerMaxNodesTotal()))
+		Expect(state.Autoscaler.MaxPodGracePeriod).To(Equal(profileHandler.Profile().GetAutoscalerMaxPodGracePeriod()))
+		Expect(state.Autoscaler.PodPriorityThreshold).To(Equal(profileHandler.Profile().GetAutoscalerPodPriorityThreshold()))
 	})
 })
 

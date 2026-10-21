@@ -22,7 +22,7 @@ type NodePoolReplicaLifecycle interface {
 }
 
 // ScaleNodePool verifies the mutable fixed-replica operation shared by HCP and
-// HyperFleet. Destruction is intentionally caller-owned so tests can register
+// Seaplane. Destruction is intentionally caller-owned so tests can register
 // it with DeferCleanup and apply backend-specific deletion-wait policy.
 func ScaleNodePool(ctx context.Context, lifecycle NodePoolReplicaLifecycle, initial, updated int) error {
 	if err := lifecycle.Create(initial); err != nil {

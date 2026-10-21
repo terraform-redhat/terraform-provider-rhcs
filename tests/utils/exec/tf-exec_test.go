@@ -11,7 +11,7 @@ import (
 
 func TestCleanupWorkspace_RemovesStateAndVarsDirs(t *testing.T) {
 	manifestsDir := t.TempDir()
-	const ws = "hf-e2e-1786714361"
+	const ws = "sp-e2e-1786714361"
 
 	stateDir := path.Join(manifestsDir, "terraform.tfstate.d", ws)
 	varsDir := path.Join(manifestsDir, "terraform.tfvars.d", ws)

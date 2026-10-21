@@ -15,7 +15,7 @@ func TestProvider(t *testing.T) {
 	RunSpecs(t, "Provider Suite")
 }
 
-func TestRegionFromHyperfleetURL(t *testing.T) {
+func TestRegionFromSeaplaneURL(t *testing.T) {
 	cases := []struct {
 		url  string
 		want string
@@ -32,9 +32,9 @@ func TestRegionFromHyperfleetURL(t *testing.T) {
 		{"", ""},
 	}
 	for _, tc := range cases {
-		got := regionFromHyperfleetURL(tc.url)
+		got := regionFromSeaplaneURL(tc.url)
 		if got != tc.want {
-			t.Errorf("regionFromHyperfleetURL(%q) = %q, want %q", tc.url, got, tc.want)
+			t.Errorf("regionFromSeaplaneURL(%q) = %q, want %q", tc.url, got, tc.want)
 		}
 	}
 }

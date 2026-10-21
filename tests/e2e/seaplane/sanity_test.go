@@ -1,0 +1,549 @@
+// Copyright Red Hat
+// SPDX-License-Identifier: Apache-2.0
+
+package seaplane
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"regexp"
+	"time"
+
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck
+	. "github.com/onsi/gomega"
+	v1alpha1 "github.com/openshift-online/rosa-seaplane-api/api/v1alpha1/public"
+	seaplane "github.com/openshift-online/rosa-seaplane-api/clientset"
+	spplatform "github.com/openshift-online/rosa-seaplane-api/clientset/platform"
+	sprest "github.com/openshift-online/rosa-seaplane-api/clientset/rest"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+)
+
+const (
+	clusterReadyTimeout    = 90 * time.Minute
+	clusterDeletedTimeout  = 60 * time.Minute
+	nodepoolReadyTimeout   = 45 * time.Minute
+	oidcConfigReadyTimeout = 15 * time.Minute
+	pollInterval           = 30 * time.Second
+
+	// teardownGracePeriod bounds how long Ginkgo lets a cleanup node keep running
+	// after an interrupt (Ctrl-C) before force-aborting it. Without an override,
+	// Ginkgo aborts each cleanup node at the default 30s grace period — far too
+	// short for cluster/nodepool/VPC deletion, so teardown is killed mid-wait
+	// with [TIMEDOUT] and AWS resources are orphaned. This is sized to the
+	// longest teardown wait (cluster deletion) plus the terraform destroy
+	// latency that precedes it. A grace period this large is harmless: a node
+	// still returns as soon as its own work completes — the value only caps how
+	// long Ginkgo waits before force-aborting. A second interrupt still
+	// force-skips all remaining cleanup.
+	teardownGracePeriod = clusterDeletedTimeout + 30*time.Minute
+)
+
+var awsRegionRE = regexp.MustCompile(`[a-z]+-(?:[a-z]+-)+\d+`)
+
+var _ = Describe("Seaplane sanity", func() {
+	It("creates and destroys a Seaplane cluster end-to-end", func() {
+		seaplaneURL := requireEnv("SEAPLANE_URL")
+		releaseImage := requireEnv(config.EnvSeaplaneReleaseImage)
+		clusterName := requireEnvWithDefault("SEAPLANE_CLUSTER_NAME", fmt.Sprintf("sp-e2e-%d", time.Now().Unix()))
+		oidcConfigName := clusterName + ".oidc"
+		operatorRolesPrefix := requireEnvWithDefault("SEAPLANE_OPERATOR_ROLES_PREFIX", clusterName)
+		vpcCIDR := requireEnvWithDefault("SEAPLANE_VPC_CIDR", "10.0.0.0/16")
+		instanceType := requireEnvWithDefault("SEAPLANE_NODEPOOL_INSTANCE_TYPE", "m5.xlarge")
+
+		awsRegion := awsRegionRE.FindString(seaplaneURL)
+		Expect(awsRegion).NotTo(BeEmpty(), fmt.Sprintf("cannot derive AWS region from SEAPLANE_URL %q", seaplaneURL))
+		availabilityZone := awsRegion + "a"
+
+		// np1: blocked in Deleting phase by a PDB on the cluster. The Seaplane
+		// API accepts the delete request (Terraform state is cleared immediately),
+		// but the underlying nodepool stays in Deleting until the cluster itself
+		// is deleted — at which point the operator cascades the cleanup.
+		// np2: no PDB constraint; deletion completes and is confirmed via SDK.
+		np1Name := clusterName + ".np1"
+		np2Name := clusterName + ".np2"
+
+		workspace := clusterName
+
+		seaplaneClient := mustBuildSeaplaneClient(seaplaneURL, awsRegion)
+		clusters := seaplaneClient.SeaplaneV1alpha1().Clusters()
+
+		// ── Create all services upfront so DeferCleanups can be registered in
+		// reverse teardown order before any apply runs.
+		// LIFO execution: np2 → np1 → cluster → IAM → OidcConfig → VPC.
+		vpcSvc, err := exec.NewSeaplaneVPCService(workspace)
+		Expect(err).NotTo(HaveOccurred())
+
+		oidcSvc, err := exec.NewSeaplaneOidcConfigService(workspace)
+		Expect(err).NotTo(HaveOccurred())
+
+		iamSvc, err := exec.NewSeaplaneIAMService(workspace)
+		Expect(err).NotTo(HaveOccurred())
+
+		clusterSvc, err := exec.NewSeaplaneClusterService(workspace)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Each nodepool uses its own workspace so their Terraform states are isolated.
+		np1Svc, err := exec.NewSeaplaneNodePoolService(workspace + "-np1")
+		Expect(err).NotTo(HaveOccurred())
+
+		np2Svc, err := exec.NewSeaplaneNodePoolService(workspace + "-np2")
+		Expect(err).NotTo(HaveOccurred())
+
+		// VPC destroy — registered 1st, runs last.
+		var vpcOut *exec.SeaplaneVPCOutput
+		DeferCleanup(func(ctx SpecContext) {
+			By("Teardown: destroy VPC")
+			Expect(clusterworkflow.DestroySeaplaneVPC(ctx, vpcSvc, vpcOut, awsRegion)).To(Succeed())
+		}, GracePeriod(teardownGracePeriod))
+
+		// OidcConfig destroy — registered 2nd, runs 4th.
+		// OidcConfig is independent of cluster and can be deleted at any time.
+		DeferCleanup(func(_ SpecContext) {
+			By("Teardown: destroy OIDC config")
+			_, err := oidcSvc.Destroy()
+			Expect(err).NotTo(HaveOccurred())
+		}, GracePeriod(teardownGracePeriod))
+
+		// IAM destroy — registered 3rd, runs 5th.
+		// Accepts SpecContext (unused) because GracePeriod requires a
+		// context-accepting callback, even though this teardown does not wait.
+		DeferCleanup(func(_ SpecContext) {
+			By("Teardown: destroy IAM roles")
+			_, err := iamSvc.Destroy()
+			Expect(err).NotTo(HaveOccurred())
+		}, GracePeriod(teardownGracePeriod))
+
+		// Cluster destroy — registered 4th, runs 3rd.
+		// The operator cascades deletion to any nodepool still in Deleting phase
+		// (e.g. np1), so no extra handling is needed here.
+		var clusterID string
+		DeferCleanup(func(ctx SpecContext) {
+			By("Teardown: destroy cluster and wait for deletion")
+			if clusterID == "" {
+				return
+			}
+			_, destroyErr := clusterSvc.Destroy()
+			Expect(destroyErr).NotTo(HaveOccurred())
+
+			waitErr := clusters.WaitUntil(
+				ctx, clusterName,
+				func(c *v1alpha1.Cluster) bool {
+					if c == nil {
+						Logger.Infof("[wait] cluster %s: deleted", clusterName)
+						return true
+					}
+					Logger.Infof("[wait] cluster %s phase: %s (waiting for deletion)", clusterName, c.Status.Phase)
+					return false
+				},
+				pollInterval, clusterDeletedTimeout,
+			)
+			Expect(waitErr).NotTo(HaveOccurred())
+			Logger.Infof("[teardown] cluster %s deletion confirmed — proceeding with IAM/VPC teardown", clusterID)
+		}, GracePeriod(teardownGracePeriod))
+
+		// np1 destroy — registered 5th, runs 2nd.
+		// The API accepts the delete and the Terraform state is cleared immediately.
+		// The underlying nodepool remains in Deleting phase (PDB prevents eviction)
+		// until the cluster deletion cascades through it.
+		DeferCleanup(func(ctx SpecContext) {
+			By("Teardown: destroy node pool 1 (PDB-blocked; no SDK wait)")
+			if clusterID == "" {
+				return
+			}
+			_, err := np1Svc.Destroy()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Log the observed phase for diagnostics without blocking on completion.
+			nodepools := seaplaneClient.SeaplaneV1alpha1().NodePools()
+			_ = nodepools.WaitUntil(
+				ctx, np1Name,
+				func(np *v1alpha1.NodePool) bool {
+					if np == nil {
+						return true
+					}
+					Logger.Infof(
+						"[verify] nodepool %s phase after delete request: %s (expected Deleting)",
+						np1Name,
+						np.Status.Phase,
+					)
+					return np.Status.Phase == v1alpha1.NodePoolPhaseDeleting
+				},
+				pollInterval, 2*pollInterval,
+			)
+		}, GracePeriod(teardownGracePeriod))
+
+		// np2 destroy — registered 6th, runs 1st.
+		// No PDB constraint; we confirm deletion via SDK before moving on.
+		DeferCleanup(func(ctx SpecContext) {
+			By("Teardown: destroy node pool 2 and wait for deletion")
+			if clusterID == "" {
+				return
+			}
+			_, err := np2Svc.Destroy()
+			Expect(err).NotTo(HaveOccurred())
+			waitErr := seaplaneClient.SeaplaneV1alpha1().NodePools().WaitUntil(
+				ctx, np2Name,
+				func(np *v1alpha1.NodePool) bool {
+					if np == nil {
+						Logger.Infof("[wait] nodepool %s: deleted", np2Name)
+						return true
+					}
+					Logger.Infof("[wait] nodepool %s phase: %s (waiting for deletion)", np2Name, np.Status.Phase)
+					return false
+				},
+				pollInterval, nodepoolReadyTimeout,
+			)
+			Expect(waitErr).NotTo(HaveOccurred())
+		}, GracePeriod(teardownGracePeriod))
+
+		// ── Phase 1: VPC ───────────────────────────────────────────────────
+		By("Phase 1: apply VPC")
+		_, err = vpcSvc.Apply(&exec.SeaplaneVPCArgs{
+			AWSRegion:        &awsRegion,
+			NamePrefix:       &clusterName,
+			VPCCIDR:          &vpcCIDR,
+			AvailabilityZone: &availabilityZone,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		vpcOut, err = vpcSvc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(vpcOut.VPCID).NotTo(BeEmpty())
+		Expect(vpcOut.PrivateSubnetID).NotTo(BeEmpty())
+		Expect(vpcOut.PublicSubnetID).NotTo(BeEmpty())
+
+		// ── Phase 2: OidcConfig ─────────────────────────────────────────────
+		// OidcConfig (managed mode) computes its own issuer URL.
+		By("Phase 2: apply OidcConfig (managed mode)")
+		_, err = oidcSvc.Apply(&exec.SeaplaneOidcConfigArgs{
+			SeaplaneURL: &seaplaneURL,
+			Name:        &oidcConfigName,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		oidcOut, err := oidcSvc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(oidcOut.OidcConfigID).NotTo(BeEmpty(), "OidcConfig should have an ID after creation")
+		Expect(oidcOut.IssuerURL).NotTo(BeEmpty(), "OidcConfig should compute issuer URL in managed mode")
+		// Phase will be Pending until cluster is created and associated
+		Logger.Infof(
+			"[verify] OidcConfig %s created: issuer_url=%s, phase=%s",
+			oidcOut.OidcConfigID,
+			oidcOut.IssuerURL,
+			oidcOut.Phase,
+		)
+
+		// ── Phase 3: IAM roles + OIDC provider ────────────────────────────
+		// Use the OidcConfig issuer URL to create IAM resources
+		// Thumbprint will be available once OidcConfig reaches Ready after cluster association
+		By("Phase 3: apply IAM roles")
+		_, err = iamSvc.Apply(&exec.SeaplaneIAMArgs{
+			AWSRegion:           &awsRegion,
+			OperatorRolesPrefix: &operatorRolesPrefix,
+			OIDCIssuerURL:       &oidcOut.IssuerURL, // Use OidcConfig computed issuer URL
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		iamOut, err := iamSvc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(iamOut.OIDCProviderARN).NotTo(BeEmpty())
+		Expect(iamOut.WorkerRoleARN).NotTo(BeEmpty())
+
+		// ── Phase 4: cluster ───────────────────────────────────────────────
+		// Cluster references the OidcConfig by ID
+		By("Phase 4: apply cluster")
+		expiresAt := time.Now().UTC().Add(4 * time.Hour).Format(time.RFC3339)
+		// Customer AWS tags are applied when the cluster's AWS resources are
+		// provisioned and cannot be changed afterwards, so they are set on create
+		// and repeated verbatim on every later apply — a changed value would plan
+		// a cluster replacement.
+		clusterTags := map[string]string{"cost-center": "cc-1234", "qe-managed": "true"}
+		_, err = clusterSvc.Apply(&exec.SeaplaneClusterArgs{
+			SeaplaneURL:         &seaplaneURL,
+			ReleaseImage:        &releaseImage,
+			AWSRegion:           &awsRegion,
+			ClusterName:         &clusterName,
+			OperatorRolesPrefix: &operatorRolesPrefix,
+			SubnetID:            &vpcOut.PrivateSubnetID,
+			VPCID:               &vpcOut.VPCID,
+			AvailabilityZone:    &availabilityZone,
+			ExpirationTimestamp: &expiresAt,
+			OIDCConfigID:        &oidcOut.OidcConfigID, // Reference the OidcConfig
+			Tags:                &clusterTags,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		clusterTFOut, err := clusterSvc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(clusterTFOut.ClusterID).NotTo(BeEmpty())
+
+		clusterID = clusterTFOut.ClusterID
+		clustersCli := seaplaneClient.SeaplaneV1alpha1().Clusters()
+
+		// ── Wait for OidcConfig Ready (after cluster association) ─────────
+		// OidcConfig only reaches Ready once associated with the cluster
+		By("Waiting for OidcConfig to reach Ready phase after cluster association")
+		oidcConfigs := seaplaneClient.SeaplaneV1alpha1().OidcConfigs()
+		ctx := context.Background()
+		err = oidcConfigs.WaitUntil(
+			ctx, oidcOut.Name,
+			func(oc *v1alpha1.OidcConfig) bool {
+				if oc == nil {
+					Logger.Infof("[wait] oidcconfig %s: not found", oidcOut.Name)
+					return false
+				}
+				Logger.Infof("[wait] oidcconfig %s phase: %s", oidcOut.Name, oc.Status.Phase)
+				return oc.Status.Phase == v1alpha1.OidcConfigPhaseReady
+			},
+			pollInterval, oidcConfigReadyTimeout,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Refresh OidcConfig state to get computed thumbprint
+		_, err = oidcSvc.Apply(&exec.SeaplaneOidcConfigArgs{
+			SeaplaneURL: &seaplaneURL,
+			Name:        &oidcConfigName,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		oidcRefreshed, err := oidcSvc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(
+			oidcRefreshed.Phase,
+		).To(Equal(string(v1alpha1.OidcConfigPhaseReady)), "OidcConfig phase should be Ready after cluster association")
+		Expect(
+			oidcRefreshed.Thumbprint,
+		).NotTo(BeEmpty(), "OidcConfig thumbprint should be computed after phase is Ready")
+		Logger.Infof(
+			"[verify] OidcConfig %s Ready: thumbprint=%s",
+			oidcRefreshed.OidcConfigID,
+			oidcRefreshed.Thumbprint,
+		)
+
+		// ── Wait for cluster Ready ─────────────────────────────────────────
+		By("Waiting for cluster to reach Ready phase")
+		err = clustersCli.WaitUntil(
+			ctx, clusterName,
+			func(c *v1alpha1.Cluster) bool {
+				if c == nil {
+					Logger.Infof("[wait] cluster %s: not found", clusterName)
+					return false
+				}
+				Logger.Infof("[wait] cluster %s phase: %s", clusterName, c.Status.Phase)
+				return c.Status.Phase == v1alpha1.ClusterPhaseReady
+			},
+			pollInterval, clusterReadyTimeout,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		// ── Verify cluster via Terraform refresh ───────────────────────────
+		By("Verifying cluster Ready phase via Terraform state refresh")
+		_, err = clusterSvc.Apply(&exec.SeaplaneClusterArgs{
+			SeaplaneURL:         &seaplaneURL,
+			ReleaseImage:        &releaseImage,
+			AWSRegion:           &awsRegion,
+			ClusterName:         &clusterName,
+			OperatorRolesPrefix: &operatorRolesPrefix,
+			SubnetID:            &vpcOut.PrivateSubnetID,
+			VPCID:               &vpcOut.VPCID,
+			AvailabilityZone:    &availabilityZone,
+			ExpirationTimestamp: &expiresAt,
+			OIDCConfigID:        &oidcRefreshed.OidcConfigID, // Reference the OidcConfig
+			Tags:                &clusterTags,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		refreshedOut, err := clusterSvc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(refreshedOut.Phase).To(Equal(string(v1alpha1.ClusterPhaseReady)))
+		Expect(refreshedOut.APIURL).NotTo(BeEmpty())
+
+		By("Verifying the customer AWS tags reached the Platform API")
+		createdCluster, err := clustersCli.Get(ctx, clusterName, spplatform.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(createdCluster.Spec.Tags).To(Equal(clusterTags))
+
+		// ── Phase 5: node pools ────────────────────────────────────────────
+		By("Phase 5a: apply node pool 1")
+		np1Replicas := 2
+		np2Replicas := 1
+		_, err = np1Svc.Apply(&exec.SeaplaneNodePoolArgs{
+			SeaplaneURL:  &seaplaneURL,
+			AWSRegion:    &awsRegion,
+			ClusterID:    &clusterID,
+			ClusterName:  &clusterName,
+			Name:         &np1Name,
+			SubnetID:     &vpcOut.PrivateSubnetID,
+			InstanceType: &instanceType,
+			Replicas:     &np1Replicas,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		np1TFOut, err := np1Svc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(np1TFOut.NodePoolID).NotTo(BeEmpty())
+
+		By("Phase 5b: apply node pool 2")
+		_, err = np2Svc.Apply(&exec.SeaplaneNodePoolArgs{
+			SeaplaneURL:  &seaplaneURL,
+			AWSRegion:    &awsRegion,
+			ClusterID:    &clusterID,
+			ClusterName:  &clusterName,
+			Name:         &np2Name,
+			SubnetID:     &vpcOut.PrivateSubnetID,
+			InstanceType: &instanceType,
+			Replicas:     &np2Replicas,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		np2TFOut, err := np2Svc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(np2TFOut.NodePoolID).NotTo(BeEmpty())
+
+		// ── Wait for both node pools to reach Ready ────────────────────────
+		By("Waiting for node pool 1 to reach Ready phase")
+		nodepools := seaplaneClient.SeaplaneV1alpha1().NodePools()
+		err = nodepools.WaitUntil(
+			ctx, np1Name,
+			func(np *v1alpha1.NodePool) bool {
+				if np == nil {
+					Logger.Infof("[wait] nodepool %s: not found", np1Name)
+					return false
+				}
+				Logger.Infof("[wait] nodepool %s phase: %s", np1Name, np.Status.Phase)
+				return np.Status.Phase == v1alpha1.NodePoolPhaseReady
+			},
+			pollInterval, nodepoolReadyTimeout,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Waiting for node pool 2 to reach Ready phase")
+		err = nodepools.WaitUntil(
+			ctx, np2Name,
+			func(np *v1alpha1.NodePool) bool {
+				if np == nil {
+					Logger.Infof("[wait] nodepool %s: not found", np2Name)
+					return false
+				}
+				Logger.Infof("[wait] nodepool %s phase: %s", np2Name, np.Status.Phase)
+				return np.Status.Phase == v1alpha1.NodePoolPhaseReady
+			},
+			pollInterval, nodepoolReadyTimeout,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		// ── Verify node pools via Terraform refresh ────────────────────────
+		By("Verifying node pool 1 Ready phase via Terraform state refresh")
+		_, err = np1Svc.Apply(&exec.SeaplaneNodePoolArgs{
+			SeaplaneURL:  &seaplaneURL,
+			AWSRegion:    &awsRegion,
+			ClusterID:    &clusterID,
+			ClusterName:  &clusterName,
+			Name:         &np1Name,
+			SubnetID:     &vpcOut.PrivateSubnetID,
+			InstanceType: &instanceType,
+			Replicas:     &np1Replicas,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		np1Refreshed, err := np1Svc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(np1Refreshed.Phase).To(Equal(string(v1alpha1.NodePoolPhaseReady)))
+
+		By("Verifying node pool 2 Ready phase via Terraform state refresh")
+		_, err = np2Svc.Apply(&exec.SeaplaneNodePoolArgs{
+			SeaplaneURL:  &seaplaneURL,
+			AWSRegion:    &awsRegion,
+			ClusterID:    &clusterID,
+			ClusterName:  &clusterName,
+			Name:         &np2Name,
+			SubnetID:     &vpcOut.PrivateSubnetID,
+			InstanceType: &instanceType,
+			Replicas:     &np2Replicas,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		np2Refreshed, err := np2Svc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(np2Refreshed.Phase).To(Equal(string(v1alpha1.NodePoolPhaseReady)))
+
+		// ── Phase 5: scale np2 replicas ────────────────────────────────────
+		By("Phase 5: scale node pool 2 from 1 to 2 replicas")
+		scaledReplicas := 2
+		_, err = np2Svc.Apply(&exec.SeaplaneNodePoolArgs{
+			SeaplaneURL:  &seaplaneURL,
+			AWSRegion:    &awsRegion,
+			ClusterID:    &clusterID,
+			ClusterName:  &clusterName,
+			Name:         &np2Name,
+			SubnetID:     &vpcOut.PrivateSubnetID,
+			InstanceType: &instanceType,
+			Replicas:     &scaledReplicas,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		np2Scaled, err := np2Svc.Output()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(np2Scaled.Replicas).NotTo(BeNil())
+		Expect(*np2Scaled.Replicas).To(Equal(scaledReplicas))
+
+		By("Verifying node pool 2 scaled replicas through the Platform API")
+		err = nodepools.WaitUntil(
+			ctx, np2Name,
+			func(np *v1alpha1.NodePool) bool {
+				if np == nil || np.Spec.NodePool.Replicas == nil {
+					return false
+				}
+				Logger.Infof(
+					"[wait] nodepool %s phase: %s, replicas: %d",
+					np2Name,
+					np.Status.Phase,
+					*np.Spec.NodePool.Replicas,
+				)
+				return np.Status.Phase == v1alpha1.NodePoolPhaseReady &&
+					*np.Spec.NodePool.Replicas == int32(scaledReplicas)
+			},
+			pollInterval, nodepoolReadyTimeout,
+		)
+		Expect(err).NotTo(HaveOccurred())
+	})
+})
+
+func mustBuildSeaplaneClient(seaplaneURL, region string) *seaplane.Clientset {
+	ctx := context.Background()
+	awsCfg, err := awsconfig.LoadDefaultConfig(ctx)
+	Expect(err).NotTo(HaveOccurred())
+
+	identity, err := sts.NewFromConfig(awsCfg).GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	Expect(err).NotTo(HaveOccurred())
+
+	client, err := seaplane.NewForConfig(&sprest.Config{
+		Host:      seaplaneURL,
+		Region:    region,
+		AccountID: *identity.Account,
+		CallerARN: *identity.Arn,
+		AWSConfig: awsCfg,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	return client
+}
+
+func requireEnv(key string) string {
+	val := os.Getenv(key)
+	Expect(val).NotTo(BeEmpty(), fmt.Sprintf("required env var %s is not set", key))
+	return val
+}
+
+func requireEnvWithDefault(key, defaultVal string) string {
+	if val := os.Getenv(key); val != "" {
+		return val
+	}
+	return defaultVal
+}

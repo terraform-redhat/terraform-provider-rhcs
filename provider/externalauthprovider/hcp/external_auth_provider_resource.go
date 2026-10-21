@@ -22,8 +22,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 )
 
 type ExternalAuthProviderResource struct {
@@ -70,7 +71,10 @@ func (r *ExternalAuthProviderResource) Schema(
 				Description: "ID of the ROSA HCP cluster. The cluster must have external authentication enabled.",
 				Required:    true,
 				Validators: []validator.String{
-					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "cluster ID may not be empty/blank string"),
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`.*\S.*`),
+						"cluster ID may not be empty/blank string",
+					),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -101,7 +105,10 @@ func (r *ExternalAuthProviderResource) Schema(
 					setvalidator.SizeBetween(1, 10),
 					setvalidator.NoNullValues(),
 					setvalidator.ValueStringsAre(
-						stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "issuer audience may not be empty/blank string"),
+						stringvalidator.RegexMatches(
+							regexp.MustCompile(`.*\S.*`),
+							"issuer audience may not be empty/blank string",
+						),
 					),
 				},
 			},
@@ -209,12 +216,12 @@ func (r *ExternalAuthProviderResource) Configure(
 	if req.ProviderData == nil {
 		return
 	}
-	connection, ok := req.ProviderData.(*sdk.Connection)
+	connection, ok := providerdata.OCMConn(req.ProviderData)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
 			fmt.Sprintf(
-				"Expected *sdk.Connection, got %T. Please report this issue to the provider developers.",
+				"Expected *providerdata.ProviderSharedData, got %T. Please report this issue to the provider developers.",
 				req.ProviderData,
 			),
 		)
@@ -449,10 +456,16 @@ func (r *ExternalAuthProviderResource) Update(
 		return
 	}
 	if changed {
-		response, err := retryPendingDeletionPatch(ctx, func(ctx context.Context) (*cmv1.ExternalAuthUpdateResponse, error) {
-			return r.clustersClient.Cluster(clusterID).ExternalAuthConfig().ExternalAuths().
-				ExternalAuth(name).Update().Body(body).SendContext(ctx)
-		}, pendingDeletionRetryInterval, pendingDeletionRetryTimeout, pendingDeletionMaxRetries)
+		response, err := retryPendingDeletionPatch(
+			ctx,
+			func(ctx context.Context) (*cmv1.ExternalAuthUpdateResponse, error) {
+				return r.clustersClient.Cluster(clusterID).ExternalAuthConfig().ExternalAuths().
+					ExternalAuth(name).Update().Body(body).SendContext(ctx)
+			},
+			pendingDeletionRetryInterval,
+			pendingDeletionRetryTimeout,
+			pendingDeletionMaxRetries,
+		)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Cannot update external authentication provider",

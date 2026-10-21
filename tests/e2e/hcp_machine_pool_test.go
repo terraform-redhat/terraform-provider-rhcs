@@ -1386,7 +1386,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 })
 
 var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, func() {
-	It("updates fixed replicas through the selected backend", ci.High, ci.HyperfleetValidated, func(ctx SpecContext) {
+	It("updates fixed replicas through the selected backend", ci.High, ci.SeaplaneValidated, func(ctx SpecContext) {
 		profile, err := profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).NotTo(HaveOccurred())
 		if clusterID == "" {
@@ -1414,7 +1414,7 @@ var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, fun
 		"sets IMDSv2 per nodepool through the selected backend - [id:75373]",
 		ci.Medium,
 		ci.FeatureMachinepoolImds,
-		ci.HyperfleetValidated,
+		ci.SeaplaneValidated,
 		func(ctx SpecContext) {
 			profile, err := profilehandler.NewProfileHandlerFromYamlFile()
 			Expect(err).NotTo(HaveOccurred())

@@ -330,7 +330,7 @@ type ec2VPCEndpointAPI interface {
 	) (*ec2.DeleteVpcEndpointsOutput, error)
 }
 
-// DeleteVPCEndpoints deletes every VPC endpoint in vpcID. The Hyperfleet cluster
+// DeleteVPCEndpoints deletes every VPC endpoint in vpcID. The Seaplane cluster
 // operator creates interface endpoints (e.g. the `<infra-id>-vpce-private-router`
 // endpoint) whose managed ENIs pin a security group of the same name. Terraform
 // does not track these endpoints, so their ENIs keep that security group attached
@@ -438,7 +438,7 @@ type route53RecordsAPI interface {
 }
 
 // PurgeHostedZoneRecords deletes every non-NS/non-SOA record from the given
-// Route53 hosted zone. The Hyperfleet cluster operator writes CNAME records
+// Route53 hosted zone. The Seaplane cluster operator writes CNAME records
 // (api.*, *.apps.*) into the cluster's private `<name>.hypershift.local` zone;
 // terraform destroy of the zone fails with HostedZoneNotEmpty while those
 // records remain, so the e2e VPC teardown purges them first. NS and SOA records

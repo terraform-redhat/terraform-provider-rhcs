@@ -11,7 +11,7 @@ ARG OCM_VERSION=0.1.66
 # When bumping, pick a version under .../clients/ocp/<version>/; build verifies sha256sum.txt.
 ARG OC_VERSION=4.22.3
 
-FROM registry.access.redhat.com/ubi9/go-toolset:1.26.7-1792010711 AS builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.26.10-1792592174 AS builder
 ENV GOTOOLCHAIN=auto
 ARG TERRAFORM_VERSION
 USER root
@@ -36,12 +36,8 @@ RUN go env -w GO111MODULE=on && \
     go install -mod=readonly go.uber.org/mock/mockgen && \
     make install
 
-<<<<<<< HEAD
-FROM registry.access.redhat.com/ubi9/go-toolset:1.26.7-1790174511
-=======
-FROM registry.access.redhat.com/ubi9/go-toolset:1.26.7-1792010711
+FROM registry.access.redhat.com/ubi9/go-toolset:1.26.10-1792592174
 ENV GOTOOLCHAIN=auto
->>>>>>> 3a065b38 (ROSAENG-00000 | build: enable automatic Go toolchain selection)
 ARG TERRAFORM_VERSION
 ARG OCM_VERSION
 ARG OC_VERSION

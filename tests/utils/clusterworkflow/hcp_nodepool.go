@@ -109,6 +109,9 @@ func (n *hcpNodePoolReplica) apply(spec exec.NodePoolSpec) error {
 	if spec.Tags != nil {
 		n.args.Tags = spec.Tags
 	}
+	if spec.DiskSize != nil {
+		n.args.DiskSize = spec.DiskSize
+	}
 	_, err := n.service.Apply(n.args)
 	return err
 }
@@ -128,6 +131,10 @@ func (n *hcpNodePoolReplica) Read(_ context.Context) (exec.NodePoolState, error)
 		}
 	}
 	if nodePool.AWSNodePool() != nil {
+		if volume := nodePool.AWSNodePool().RootVolume(); volume != nil {
+			diskSize := volume.Size()
+			state.DiskSize = &diskSize
+		}
 		state.EC2InstanceMetadataHttpTokens = string(nodePool.AWSNodePool().Ec2MetadataHttpTokens())
 		state.Tags = nodePool.AWSNodePool().Tags()
 	}

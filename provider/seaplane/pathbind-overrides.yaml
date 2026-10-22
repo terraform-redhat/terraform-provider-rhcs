@@ -294,6 +294,10 @@ resources:
         type: string
         immutable: true
         description: "Operating system image family for the nodes in this pool, either `Linux` (RHCOS, the default when unset) or `Windows`. Windows pools are License Included: the hourly instance cost covers both the Windows Server OS and the Red Hat support subscription. This is baked into every instance the pool launches, so changing it replaces the node pool; add Windows capacity to an existing cluster with a second node pool."
+      - path: spec.nodePool.platform.aws.rootVolume.size
+        alias: disk_size
+        goName: DiskSize
+        immutable: true
       - path: spec.nodePool.platform.aws.securityGroups
         alias: additional_security_group_ids
         description: "Additional AWS security group IDs to attach to node pool instances."

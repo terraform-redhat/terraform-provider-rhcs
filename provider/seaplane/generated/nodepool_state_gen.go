@@ -34,7 +34,7 @@ type NodePoolState struct {
 	PlacementMarketType           types.String `tfsdk:"placement_market_type"`
 	MaxPrice                      types.String `tfsdk:"max_price"`
 	Tenancy                       types.String `tfsdk:"tenancy"`
-	Size                          types.Int64  `tfsdk:"size"`
+	DiskSize                      types.Int64  `tfsdk:"disk_size"`
 	Additional_security_group_ids types.List   `tfsdk:"additional_security_group_ids"`
 	Filters                       types.String `tfsdk:"filters"`
 	SubnetId                      types.String `tfsdk:"subnet_id"`

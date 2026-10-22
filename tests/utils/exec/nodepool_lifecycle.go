@@ -12,6 +12,7 @@ import (
 // create/update workflow. Nil fields are omitted during Update and therefore
 // preserve their current value.
 type NodePoolSpec struct {
+	DiskSize                      *int
 	Replicas                      *int
 	Autoscaling                   *NodePoolAutoscaling
 	EC2InstanceMetadataHttpTokens *string
@@ -20,6 +21,7 @@ type NodePoolSpec struct {
 
 // NodePoolState is the backend-neutral representation returned by Read.
 type NodePoolState struct {
+	DiskSize                      *int
 	Replicas                      *int
 	Autoscaling                   *NodePoolAutoscalingState
 	EC2InstanceMetadataHttpTokens string

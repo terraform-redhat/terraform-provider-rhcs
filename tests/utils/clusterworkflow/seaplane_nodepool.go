@@ -156,6 +156,9 @@ func (n *seaplaneNodePoolReplica) apply(spec exec.NodePoolSpec) error {
 	if spec.Tags != nil {
 		n.args.Tags = *spec.Tags
 	}
+	if spec.DiskSize != nil {
+		n.args.DiskSize = spec.DiskSize
+	}
 	_, err := n.service.Apply(n.args)
 	return err
 }
@@ -168,6 +171,10 @@ func (n *seaplaneNodePoolReplica) Read(ctx context.Context) (exec.NodePoolState,
 	state := exec.NodePoolState{
 		EC2InstanceMetadataHttpTokens: string(nodePool.Spec.EC2InstanceMetadataHttpTokens),
 		Tags:                          nodePool.Spec.Tags,
+	}
+	if aws := nodePool.Spec.NodePool.Platform.AWS; aws != nil && aws.RootVolume != nil {
+		diskSize := int(aws.RootVolume.Size)
+		state.DiskSize = &diskSize
 	}
 	if nodePool.Spec.NodePool.Replicas != nil {
 		replicas := int(*nodePool.Spec.NodePool.Replicas)

@@ -22,8 +22,15 @@ type SeaplaneNodePoolArgs struct {
 	InstanceType                  *string              `hcl:"instance_type"`
 	DiskSize                      *int                 `hcl:"disk_size"`
 	EC2InstanceMetadataHttpTokens *string              `hcl:"ec2_instance_metadata_http_tokens"`
-	Tags                          map[string]string    `hcl:"tags"`
-	Labels                        map[string]string    `hcl:"labels"`
+
+	// Operating system image family for the nodes in this pool. The image family
+	// is baked into every instance the pool launches, so it can only be set on
+	// create; changing it would replace the pool. Valid values: "Linux" (RHCOS)
+	// and "Windows" (Windows Server, License Included).
+	ImageType *string `hcl:"image_type"`
+
+	Tags   map[string]string `hcl:"tags"`
+	Labels map[string]string `hcl:"labels"`
 }
 
 type NodePoolAutoscaling struct {

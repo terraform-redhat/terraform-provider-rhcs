@@ -123,6 +123,7 @@ type ProfileSpec interface {
 	IsFullResources() bool
 	IsUseRegistryConfig() bool
 	IsExternalAuthEnabled() bool
+	IsWindows() bool
 }
 
 type profileContext struct {
@@ -362,6 +363,13 @@ func (ctx *profileContext) GetMaxReplicas() int {
 
 func (ctx *profileContext) IsExternalAuthEnabled() bool {
 	return ctx.profile.ExternalAuthEnabled
+}
+
+// IsWindows returns true when the profile indicates that node pools should be
+// created with a Windows (License Included) image instead of the default Linux
+// RHCOS image.
+func (ctx *profileContext) IsWindows() bool {
+	return ctx.profile.Windows
 }
 
 func (ctx *profileContext) PrepareVPC(multiZone bool, azIDs []string, name string, sharedVpcAWSSharedCredentialsFile string) (*exec.VPCOutput, error) {

@@ -12,10 +12,12 @@ import (
 	v1alpha1 "github.com/openshift-online/rosa-seaplane-api/api/v1alpha1/public"
 	seaplane "github.com/openshift-online/rosa-seaplane-api/clientset"
 	spplatform "github.com/openshift-online/rosa-seaplane-api/clientset/platform"
+	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 type seaplaneNodePoolReplica struct {
@@ -26,18 +28,19 @@ type seaplaneNodePoolReplica struct {
 }
 
 // NewSeaplaneNodePoolReplica creates the fixed-replica nodepool strategy for
-// a cluster created by the Seaplane cluster strategy.
+// a cluster created by the Seaplane cluster strategy. The optional profile
+// parameter supplies platform-specific defaults (like Windows image type).
 func NewSeaplaneNodePoolReplica(
-	clusterName, nodePoolName, clusterID, workspace string,
+	profile profilehandler.ProfileHandler, clusterName, nodePoolName, clusterID, workspace string,
 ) (exec.NodePoolReplicaLifecycle, error) {
 	if clusterID == "" {
 		return nil, fmt.Errorf("cluster ID is required to create a Seaplane nodepool")
 	}
-	return newSeaplaneNodePoolReplica(clusterName, nodePoolName, clusterID, workspace)
+	return newSeaplaneNodePoolReplica(profile, clusterName, nodePoolName, clusterID, workspace)
 }
 
 func newSeaplaneNodePoolReplica(
-	clusterName, nodePoolName, clusterID, workspace string,
+	profile profilehandler.ProfileHandler, clusterName, nodePoolName, clusterID, workspace string,
 ) (*seaplaneNodePoolReplica, error) {
 	seaplaneURL, err := requiredEnv("SEAPLANE_URL")
 	if err != nil {
@@ -91,19 +94,29 @@ func newSeaplaneNodePoolReplica(
 	if err != nil {
 		return nil, err
 	}
+
+	args := &exec.SeaplaneNodePoolArgs{
+		SeaplaneURL:  &seaplaneURL,
+		AWSRegion:    &region,
+		ClusterID:    &clusterID,
+		ClusterName:  &clusterName,
+		Name:         &name,
+		SubnetID:     &subnetID,
+		InstanceType: &instanceType,
+	}
+
+	// The image family is baked into every instance the pool launches, so it
+	// can only be set on create; changing it would replace the pool.
+	if profile != nil && profile.Profile().IsWindows() {
+		imageType := string(hypershiftv1beta1.ImageTypeWindows)
+		args.ImageType = &imageType
+	}
+
 	return &seaplaneNodePoolReplica{
 		service: service,
 		client:  client,
 		name:    name,
-		args: &exec.SeaplaneNodePoolArgs{
-			SeaplaneURL:  &seaplaneURL,
-			AWSRegion:    &region,
-			ClusterID:    &clusterID,
-			ClusterName:  &clusterName,
-			Name:         &name,
-			SubnetID:     &subnetID,
-			InstanceType: &instanceType,
-		},
+		args:    args,
 	}, nil
 }
 

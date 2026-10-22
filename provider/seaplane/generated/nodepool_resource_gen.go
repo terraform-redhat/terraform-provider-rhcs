@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -218,9 +219,12 @@ func (r *NodePoolResource) Schema(
 				MarkdownDescription: "ResourceTags.",
 				Optional:            true,
 			},
-			"size": schema.Int64Attribute{
-				MarkdownDescription: "Size.",
+			"disk_size": schema.Int64Attribute{
+				MarkdownDescription: "DiskSize.",
 				Optional:            true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
 			},
 			"additional_security_group_ids": schema.ListNestedAttribute{
 				MarkdownDescription: "Additional AWS security group IDs to attach to node pool instances.",
@@ -724,9 +728,9 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 	if !tf.ResourceTags.IsNull() && !tf.ResourceTags.IsUnknown() {
 		native.ResourceTags = tf.ResourceTags.ValueString()
 	}
-	if !tf.Size.IsNull() && !tf.Size.IsUnknown() {
-		i := tf.Size.ValueInt64()
-		native.Size = &i
+	if !tf.DiskSize.IsNull() && !tf.DiskSize.IsUnknown() {
+		i := tf.DiskSize.ValueInt64()
+		native.DiskSize = &i
 	}
 	if !tf.Additional_security_group_ids.IsNull() && !tf.Additional_security_group_ids.IsUnknown() {
 		encoded, collectionDiags := terraformObjectListToJSON(tf.Additional_security_group_ids)
@@ -817,7 +821,7 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 	tf.MaxPrice = toTerraformString(native.MaxPrice)
 	tf.Tenancy = toTerraformString(native.Tenancy)
 	tf.ResourceTags = toTerraformString(native.ResourceTags)
-	tf.Size = toTerraformInt64Ptr(normalizeOptionalInt64(native.Size))
+	tf.DiskSize = toTerraformInt64Ptr(normalizeOptionalInt64(native.DiskSize))
 	{
 		var collectionDiags diag.Diagnostics
 		tf.Additional_security_group_ids, collectionDiags = terraformJSONToObjectList(native.Additional_security_group_ids, map[string]attr.Type{

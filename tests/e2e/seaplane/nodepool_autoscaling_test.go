@@ -21,7 +21,7 @@ import (
 )
 
 var _ = Describe("Seaplane NodePool autoscaling", ci.SeaplaneValidated, func() {
-	It("creates a nodepool with autoscaling and updates its min/max replicas", func(ctx SpecContext) {
+	It("creates a nodepool with autoscaling and custom root volume size, then updates min/max replicas", func(ctx SpecContext) {
 		profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(profileHandler.Profile().GetClusterType()).To(Equal(constants.SEAPLANE))
@@ -77,6 +77,7 @@ var _ = Describe("Seaplane NodePool autoscaling", ci.SeaplaneValidated, func() {
 			instanceType = "m5.xlarge"
 		}
 		autoscalingEnabled := true
+		diskSize := 500
 		_, err = nodePoolService.Apply(&exec.SeaplaneNodePoolArgs{
 			SeaplaneURL:  &seaplaneURL,
 			AWSRegion:    &region,
@@ -85,6 +86,7 @@ var _ = Describe("Seaplane NodePool autoscaling", ci.SeaplaneValidated, func() {
 			Name:         &nodePoolName,
 			SubnetID:     subnetID,
 			InstanceType: &instanceType,
+			DiskSize:     &diskSize,
 			Autoscaling: &exec.NodePoolAutoscaling{
 				Enabled:     &autoscalingEnabled,
 				MinReplicas: &initialMin,
@@ -102,7 +104,10 @@ var _ = Describe("Seaplane NodePool autoscaling", ci.SeaplaneValidated, func() {
 		nodePools := seaplaneClient.SeaplaneV1alpha1().NodePools()
 		assertAutoscaling := func(wantMin, wantMax int) func(*v1alpha1.NodePool) bool {
 			return func(nodePool *v1alpha1.NodePool) bool {
-				if nodePool == nil || nodePool.Spec.NodePool.AutoScaling == nil ||
+				if nodePool == nil || nodePool.Spec.NodePool.Platform.AWS == nil ||
+					nodePool.Spec.NodePool.Platform.AWS.RootVolume == nil ||
+					nodePool.Spec.NodePool.Platform.AWS.RootVolume.Size != int64(diskSize) ||
+					nodePool.Spec.NodePool.AutoScaling == nil ||
 					nodePool.Spec.NodePool.AutoScaling.Min == nil {
 					return false
 				}
@@ -132,6 +137,7 @@ var _ = Describe("Seaplane NodePool autoscaling", ci.SeaplaneValidated, func() {
 			Name:         &nodePoolName,
 			SubnetID:     subnetID,
 			InstanceType: &instanceType,
+			DiskSize:     &diskSize,
 			Autoscaling: &exec.NodePoolAutoscaling{
 				Enabled:     &autoscalingEnabled,
 				MinReplicas: &updatedMin,

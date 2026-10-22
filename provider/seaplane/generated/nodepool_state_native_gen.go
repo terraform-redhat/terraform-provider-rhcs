@@ -30,7 +30,7 @@ type NodePoolStateNative struct {
 	MaxPrice                      string            `hfsdk:"spec.nodePool.platform.aws.placement.spot.maxPrice"`
 	Tenancy                       string            `hfsdk:"spec.nodePool.platform.aws.placement.tenancy"`
 	ResourceTags                  string            `hfsdk:"spec.nodePool.platform.aws.resourceTags"`
-	Size                          *int64            `hfsdk:"spec.nodePool.platform.aws.rootVolume.size"`
+	DiskSize                      *int64            `hfsdk:"spec.nodePool.platform.aws.rootVolume.size"`
 	Additional_security_group_ids string            `hfsdk:"spec.nodePool.platform.aws.securityGroups"`
 	Filters                       string            `hfsdk:"spec.nodePool.platform.aws.subnet.filters"`
 	SubnetId                      string            `hfsdk:"spec.nodePool.platform.aws.subnet.id"`

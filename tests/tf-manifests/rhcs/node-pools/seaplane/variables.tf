@@ -53,6 +53,12 @@ variable "autoscaling" {
   default     = null
 }
 
+variable "max_unavailable" {
+  type        = string
+  description = "Largest number of nodes that may be unavailable during an upgrade, as an absolute count"
+  default     = null
+}
+
 variable "instance_type" {
   type        = string
   description = "EC2 instance type (e.g. m5.xlarge)"

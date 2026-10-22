@@ -19,10 +19,13 @@ package seaplane
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-seaplane-api/api/v1alpha1/public"
 	seaplane "github.com/openshift-online/rosa-seaplane-api/clientset"
@@ -102,6 +105,70 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 			} else if config.MaxReplicas.ValueInt64() < config.MinReplicas.ValueInt64() {
 				diags.AddError("invalid autoscaling configuration", "max_replicas must be greater than or equal to min_replicas")
 			}
+		}
+	}
+
+	diags.Append(validateMaxUnavailable(input)...)
+
+	return diags
+}
+
+var maxUnavailableCountRE = regexp.MustCompile(`^(0|[1-9][0-9]*)$`)
+
+// validateMaxUnavailable checks that max_unavailable is either null, unknown,
+// or a non-negative integer node count (not a percentage). Percentages are
+// rejected early (the draft accepts "N%" but the provider doesn't send it yet).
+// If a count is given and replicas is known, it must not exceed replicas.
+// Drop this validator once the clientset pathbind handles intstr round-trips.
+func validateMaxUnavailable(input *NodePoolState) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if input.MaxUnavailable.IsNull() || input.MaxUnavailable.IsUnknown() {
+		return diags
+	}
+
+	value := input.MaxUnavailable.ValueString()
+
+	if strings.HasSuffix(value, "%") {
+		diags.AddAttributeError(
+			path.Root("max_unavailable"),
+			"max_unavailable percentages are not supported yet",
+			fmt.Sprintf(
+				"max_unavailable percentages are not supported yet, got %q; "+
+					"use an absolute number of nodes (for example \"2\")",
+				value,
+			),
+		)
+		return diags
+	}
+
+	if !maxUnavailableCountRE.MatchString(value) {
+		diags.AddAttributeError(
+			path.Root("max_unavailable"),
+			"Invalid max_unavailable",
+			fmt.Sprintf("max_unavailable must be a non-negative whole number of nodes (for example \"2\"), got %q", value),
+		)
+		return diags
+	}
+
+	count, err := strconv.ParseInt(value, 10, 32)
+	if err != nil {
+		diags.AddAttributeError(
+			path.Root("max_unavailable"),
+			"Invalid max_unavailable",
+			fmt.Sprintf("max_unavailable value is too large to be a number of nodes: %v", err),
+		)
+		return diags
+	}
+
+	if !input.Replicas.IsNull() && !input.Replicas.IsUnknown() {
+		replicas := input.Replicas.ValueInt64()
+		if count > replicas {
+			diags.AddAttributeError(
+				path.Root("max_unavailable"),
+				"max_unavailable exceeds replicas",
+				fmt.Sprintf("max_unavailable %d cannot exceed replicas %d", count, replicas),
+			)
 		}
 	}
 

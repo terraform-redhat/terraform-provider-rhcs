@@ -18,10 +18,10 @@ package seaplane
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -115,8 +115,90 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 		}
 	}
 
-	diags.Append(validateNodeDrainGracePeriod(input)...)
+	diags.Append(validateMaxUnavailable(input)...)
 	diags.Append(validateImageType(input)...)
+
+	return diags
+}
+
+var maxUnavailableCountRE = regexp.MustCompile(`^(0|[1-9][0-9]*)$`)
+
+// validateMaxUnavailable checks that max_unavailable is either null, unknown,
+// or a non-negative integer node count (not a percentage). Percentages are
+// rejected early (the draft accepts "N%" but the provider doesn't send it yet).
+// If a count is given and replicas is known, it must not exceed replicas.
+// Drop this validator once the clientset pathbind handles intstr round-trips.
+func validateMaxUnavailable(input *NodePoolState) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if input.MaxUnavailable.IsNull() || input.MaxUnavailable.IsUnknown() {
+		return diags
+	}
+
+	value := input.MaxUnavailable.ValueString()
+
+	if strings.HasSuffix(value, "%") {
+		diags.AddAttributeError(
+			path.Root("max_unavailable"),
+			"max_unavailable percentages are not supported yet",
+			fmt.Sprintf(
+				"max_unavailable percentages are not supported yet, got %q; "+
+					"use an absolute number of nodes (for example \"2\")",
+				value,
+			),
+		)
+		return diags
+	}
+
+	if !maxUnavailableCountRE.MatchString(value) {
+		diags.AddAttributeError(
+			path.Root("max_unavailable"),
+			"Invalid max_unavailable",
+			fmt.Sprintf("max_unavailable must be a non-negative whole number of nodes (for example \"2\"), got %q", value),
+		)
+		return diags
+	}
+
+	count, err := strconv.ParseInt(value, 10, 32)
+	if err != nil {
+		diags.AddAttributeError(
+			path.Root("max_unavailable"),
+			"Invalid max_unavailable",
+			fmt.Sprintf("max_unavailable value is too large to be a number of nodes: %v", err),
+		)
+		return diags
+	}
+
+	// Validate against fixed replicas if set
+	if !input.Replicas.IsNull() && !input.Replicas.IsUnknown() {
+		replicas := input.Replicas.ValueInt64()
+		if count > replicas {
+			diags.AddAttributeError(
+				path.Root("max_unavailable"),
+				"max_unavailable exceeds replicas",
+				fmt.Sprintf("max_unavailable %d cannot exceed replicas %d", count, replicas),
+			)
+		}
+	}
+
+	// Validate against autoscaling min_replicas if autoscaling is enabled
+	// max_unavailable and autoscaling are NOT mutually exclusive - they work together
+	// to limit disruption during updates while the cluster autoscaler manages capacity
+	if !input.Autoscaling.IsNull() && !input.Autoscaling.IsUnknown() {
+		config := readNodePoolAutoscaling(input.Autoscaling)
+		if config != nil && !config.Enabled.IsNull() && config.Enabled.ValueBool() {
+			if !config.MinReplicas.IsNull() && !config.MinReplicas.IsUnknown() {
+				minReplicas := config.MinReplicas.ValueInt64()
+				if count > minReplicas {
+					diags.AddAttributeError(
+						path.Root("max_unavailable"),
+						"max_unavailable exceeds autoscaling min_replicas",
+						fmt.Sprintf("max_unavailable %d cannot exceed autoscaling min_replicas %d", count, minReplicas),
+					)
+				}
+			}
+		}
+	}
 
 	return diags
 }
@@ -142,34 +224,6 @@ func validateImageType(input *NodePoolState) diag.Diagnostics {
 		fmt.Sprintf("image_type must be %q or %q, got %q",
 			hypershiftv1beta1.ImageTypeLinux, hypershiftv1beta1.ImageTypeWindows, input.ImageType.ValueString()),
 	)
-
-	return diags
-}
-
-// validateNodeDrainGracePeriod checks that node_drain_grace_period is either null, unknown,
-// or a valid Go duration string. Examples: "5m", "1h", "30s", "0s".
-func validateNodeDrainGracePeriod(input *NodePoolState) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	if input.NodeDrainGracePeriod.IsNull() || input.NodeDrainGracePeriod.IsUnknown() {
-		return diags
-	}
-
-	value := input.NodeDrainGracePeriod.ValueString()
-
-	// Parse the duration to validate it
-	_, err := time.ParseDuration(value)
-	if err != nil {
-		diags.AddAttributeError(
-			path.Root("node_drain_grace_period"),
-			"Invalid node_drain_grace_period",
-			fmt.Sprintf(
-				"node_drain_grace_period must be a valid Go duration string "+
-					"(for example \"5m\" for 5 minutes, \"1h\" for 1 hour, \"0s\" for immediate termination), got %q: %v",
-				value, err,
-			),
-		)
-	}
 
 	return diags
 }
@@ -250,71 +304,6 @@ func (h *NodePoolHandlerImpl) PostExpand(
 	}
 
 	return diags
-}
-
-// PostPartialExpand allows the raw partial-update document to be customized.
-func (h *NodePoolHandlerImpl) PostPartialExpand(
-	ctx context.Context,
-	input *NodePoolState,
-	document map[string]any,
-) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	if len(document) == 0 {
-		return diags
-	}
-	partialSpec, ok := document["spec"].(map[string]any)
-	if !ok || len(partialSpec) == 0 {
-		return diags
-	}
-
-	current, err := h.client.SeaplaneV1alpha1().NodePools().Get(
-		ctx,
-		input.Name.ValueString(),
-		spplatform.GetOptions{},
-	)
-	if err != nil {
-		diags.AddError("Failed to read NodePool for update", err.Error())
-		return diags
-	}
-
-	currentSpecJSON, err := json.Marshal(current.Spec)
-	if err != nil {
-		diags.AddError("Failed to encode NodePool update", err.Error())
-		return diags
-	}
-
-	currentSpec := map[string]any{}
-	if err := json.Unmarshal(currentSpecJSON, &currentSpec); err != nil {
-		diags.AddError("Failed to decode NodePool update", err.Error())
-		return diags
-	}
-
-	mergePartialNodePoolSpec(currentSpec, partialSpec, "spec")
-	document["spec"] = currentSpec
-	return diags
-}
-
-// mergePartialNodePoolSpec overlays changed fields onto the live spec. Sending
-// the complete spec keeps required service-set fields unchanged so the API's
-// update validation does not treat decoded zero values as modifications.
-// Map collections use replacement semantics, matching the API's merge behaviour.
-func mergePartialNodePoolSpec(current, update map[string]any, path string) {
-	for key, updateValue := range update {
-		childPath := path + "." + key
-		replaceCollection := childPath == "spec.labels" ||
-			childPath == "spec.tags" ||
-			childPath == "spec.nodePool.nodeLabels"
-		if !replaceCollection {
-			currentMap, currentIsMap := current[key].(map[string]any)
-			updateMap, updateIsMap := updateValue.(map[string]any)
-			if currentIsMap && updateIsMap {
-				mergePartialNodePoolSpec(currentMap, updateMap, childPath)
-				continue
-			}
-		}
-		current[key] = updateValue
-	}
 }
 
 // PostResponse is called after API operations

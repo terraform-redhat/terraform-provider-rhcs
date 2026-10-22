@@ -150,7 +150,7 @@ func (r *NodePoolResource) Schema(
 				Optional:            true,
 			},
 			"max_unavailable": schema.StringAttribute{
-				MarkdownDescription: "MaxUnavailable.",
+				MarkdownDescription: "Largest number of nodes in this pool that may be unavailable at the same time while the pool is upgrading, as an absolute node count (for example `2`). It may not exceed `replicas`. Defaults to 0 when unset: no node is taken out of service until its replacement is ready. The Platform API also accepts a percentage, which this provider cannot send yet.",
 				Optional:            true,
 			},
 			"cluster_name": schema.StringAttribute{

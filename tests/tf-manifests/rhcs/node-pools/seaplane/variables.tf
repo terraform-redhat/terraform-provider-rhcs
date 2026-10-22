@@ -53,6 +53,12 @@ variable "autoscaling" {
   default     = null
 }
 
+variable "max_unavailable" {
+  type        = string
+  description = "Largest number of nodes that may be unavailable during an upgrade, as an absolute count"
+  default     = null
+}
+
 variable "image_type" {
   type        = string
   description = "Operating system image family (Linux or Windows)"

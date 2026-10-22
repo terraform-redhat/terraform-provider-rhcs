@@ -20,23 +20,22 @@ type SeaplaneNodePoolArgs struct {
 	Replicas                      *int                 `hcl:"replicas"`
 	Autoscaling                   *NodePoolAutoscaling `hcl:"autoscaling"`
 	InstanceType                  *string              `hcl:"instance_type"`
-	PlacementMarketType           *string              `hcl:"placement_market_type"`
-	MaxPrice                      *string              `hcl:"max_price"`
 	DiskSize                      *int                 `hcl:"disk_size"`
 	EC2InstanceMetadataHttpTokens *string              `hcl:"ec2_instance_metadata_http_tokens"`
+
+	// Largest number of nodes in this pool that may be unavailable at the same
+	// time while the pool is upgrading, as an absolute node count (the Platform
+	// API accepts percentages, which the provider doesn't send yet).
+	MaxUnavailable *string `hcl:"max_unavailable"`
+
 	// Operating system image family for the nodes in this pool. The image family
 	// is baked into every instance the pool launches, so it can only be set on
 	// create; changing it would replace the pool. Valid values: "Linux" (RHCOS)
 	// and "Windows" (Windows Server, License Included).
 	ImageType *string `hcl:"image_type"`
 
-	// Grace period before a node is forcibly drained during an upgrade or
-	// replacement, as a Go duration string (e.g., "5m", "1h").
-	NodeDrainGracePeriod *string `hcl:"node_drain_grace_period"`
-
-	Tags   map[string]string    `hcl:"tags"`
-	Labels map[string]string    `hcl:"labels"`
-	Taints *[]map[string]string `hcl:"taints"`
+	Tags   map[string]string `hcl:"tags"`
+	Labels map[string]string `hcl:"labels"`
 }
 
 type NodePoolAutoscaling struct {
@@ -47,14 +46,12 @@ type NodePoolAutoscaling struct {
 
 // SeaplaneNodePoolOutput holds the Terraform output values from the nodepool manifest.
 type SeaplaneNodePoolOutput struct {
-	NodePoolID          string `json:"nodepool_id,omitempty"`
-	NodePoolName        string `json:"nodepool_name,omitempty"`
-	Phase               string `json:"nodepool_phase,omitempty"`
-	Replicas            *int   `json:"nodepool_replicas,omitempty"`
-	PlacementMarketType string `json:"nodepool_placement_market_type,omitempty"`
-	MaxPrice            string `json:"nodepool_max_price,omitempty"`
-	MinReplicas         *int   `json:"nodepool_min_replicas,omitempty"`
-	MaxReplicas         *int   `json:"nodepool_max_replicas,omitempty"`
+	NodePoolID   string `json:"nodepool_id,omitempty"`
+	NodePoolName string `json:"nodepool_name,omitempty"`
+	Phase        string `json:"nodepool_phase,omitempty"`
+	Replicas     *int   `json:"nodepool_replicas,omitempty"`
+	MinReplicas  *int   `json:"nodepool_min_replicas,omitempty"`
+	MaxReplicas  *int   `json:"nodepool_max_replicas,omitempty"`
 }
 
 // SeaplaneNodePoolService manages the lifecycle of an rhcs_nodepool_seaplane

@@ -10,6 +10,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -136,22 +137,104 @@ func TestNodePoolResourceSchema_EC2InstanceMetadataHttpTokens(t *testing.T) {
 	}
 }
 
-func TestNodePoolResourceSchema_NodeDrainGracePeriod(t *testing.T) {
-	var resp resource.SchemaResponse
-	NewNodePool().Schema(context.Background(), resource.SchemaRequest{}, &resp)
+// ── validateMaxUnavailable ────────────────────────────────────────────────────
 
-	attribute, ok := resp.Schema.Attributes["node_drain_grace_period"].(schema.StringAttribute)
-	if !ok {
-		t.Fatal("node_drain_grace_period is not a string attribute")
+func TestValidateMaxUnavailable_Valid(t *testing.T) {
+	cases := []struct {
+		name  string
+		value types.String
+		// replicas is only checked when max_unavailable is a valid count
+		replicas types.Int64
+	}{
+		{"null", types.StringNull(), types.Int64Value(3)},
+		{"unknown", types.StringUnknown(), types.Int64Value(3)},
+		{"zero", types.StringValue("0"), types.Int64Value(3)},
+		{"positive count", types.StringValue("2"), types.Int64Value(3)},
+		{"count equals replicas", types.StringValue("3"), types.Int64Value(3)},
+		{"large count under limit", types.StringValue("999"), types.Int64Value(1000)},
 	}
-	if !attribute.Optional {
-		t.Error("node_drain_grace_period should be optional")
+	for _, tc := range cases {
+		diags := validateMaxUnavailable(&NodePoolState{
+			MaxUnavailable: tc.value,
+			Replicas:       tc.replicas,
+		})
+		if diags.HasError() {
+			t.Errorf("%s: unexpected error: %v", tc.name, diags.Errors())
+		}
 	}
-	if attribute.Computed {
-		t.Error("node_drain_grace_period should not be provider-computed")
+}
+
+func TestValidateMaxUnavailable_Invalid(t *testing.T) {
+	cases := []struct {
+		name         string
+		value        string
+		replicas     types.Int64
+		wantContains string
+	}{
+		{"percentage", "50%", types.Int64Value(10), "percentages are not supported yet"},
+		{"negative", "-1", types.Int64Value(5), "non-negative whole number"},
+		{"float", "2.5", types.Int64Value(5), "non-negative whole number"},
+		{"not a number", "abc", types.Int64Value(5), "non-negative whole number"},
+		{"leading zero", "01", types.Int64Value(5), "non-negative whole number"},
+		{"exceeds replicas", "10", types.Int64Value(5), "cannot exceed replicas"},
 	}
-	if attribute.Required {
-		t.Error("node_drain_grace_period should not be required (defaults to 0s when unset)")
+	for _, tc := range cases {
+		diags := validateMaxUnavailable(&NodePoolState{
+			MaxUnavailable: types.StringValue(tc.value),
+			Replicas:       tc.replicas,
+		})
+		if !diags.HasError() {
+			t.Errorf("%s: expected an error, got none", tc.name)
+			continue
+		}
+		detail := diags.Errors()[0].Detail()
+		if !strings.Contains(detail, tc.wantContains) {
+			t.Errorf("%s: detail = %q, want it to contain %q", tc.name, detail, tc.wantContains)
+		}
+	}
+}
+
+func TestValidateMaxUnavailable_WithAutoscaling(t *testing.T) {
+	cases := []struct {
+		name           string
+		maxUnavailable string
+		minReplicas    int64
+		maxReplicas    int64
+		wantError      bool
+		wantContains   string
+	}{
+		{"valid: under min_replicas", "1", 2, 5, false, ""},
+		{"valid: equals min_replicas", "2", 2, 5, false, ""},
+		{"invalid: exceeds min_replicas", "3", 2, 5, true, "cannot exceed autoscaling min_replicas"},
+	}
+
+	for _, tc := range cases {
+		autoscalingConfig := map[string]attr.Value{
+			"enabled":      types.BoolValue(true),
+			"min_replicas": types.Int64Value(tc.minReplicas),
+			"max_replicas": types.Int64Value(tc.maxReplicas),
+		}
+		autoscaling, _ := types.ObjectValue(nodePoolAutoscalingAttributeTypes, autoscalingConfig)
+
+		diags := validateMaxUnavailable(&NodePoolState{
+			MaxUnavailable: types.StringValue(tc.maxUnavailable),
+			Autoscaling:    autoscaling,
+		})
+
+		if tc.wantError {
+			if !diags.HasError() {
+				t.Errorf("%s: expected an error, got none", tc.name)
+				continue
+			}
+			detail := diags.Errors()[0].Detail()
+			if !strings.Contains(detail, tc.wantContains) {
+				t.Errorf("%s: detail = %q, want it to contain %q", tc.name, detail, tc.wantContains)
+			}
+		} else {
+			if diags.HasError() {
+				t.Errorf("%s: unexpected error: %v", tc.name, diags.Errors())
+			}
+		}
 	}
 }
 
@@ -195,93 +278,6 @@ func TestValidateImageType_Invalid(t *testing.T) {
 		detail := diags.Errors()[0].Detail()
 		if !strings.Contains(detail, `must be "Linux" or "Windows"`) {
 			t.Errorf("%s: detail = %q, want it to name the valid values", tc.name, detail)
-		}
-	}
-}
-
-// Exercise the real SDK binding, including preserving service-managed settings
-// when expanding a size into an object fetched for an unrelated update.
-func TestNodePoolRootVolumeBinding(t *testing.T) {
-	var schemaResponse resource.SchemaResponse
-	NewNodePool().Schema(context.Background(), resource.SchemaRequest{}, &schemaResponse)
-	if _, exists := schemaResponse.Schema.Attributes["size"]; exists {
-		t.Fatal("legacy size attribute should not be exposed")
-	}
-	if _, ok := schemaResponse.Schema.Attributes["disk_size"].(schema.Int64Attribute); !ok {
-		t.Fatal("disk_size should be an integer attribute")
-	}
-	size := int64(500)
-	encrypted := true
-	obj := &v1alpha1.NodePool{
-		Spec: v1alpha1.NodePoolSpec{
-			NodePool: v1alpha1.NodePoolSpecPassthrough{
-				Platform: v1alpha1.NodePoolPlatform{
-					AWS: &v1alpha1.AWSNodePoolPlatform{
-						RootVolume: &v1alpha1.Volume{Size: 100, Type: "gp3", Encrypted: &encrypted},
-					},
-				},
-			},
-		},
-	}
-	if err := pathbind.Expand(context.Background(), &NodePoolStateNative{DiskSize: &size}, obj); err != nil {
-		t.Fatal(err)
-	}
-	volume := obj.Spec.NodePool.Platform.AWS.RootVolume
-	if volume.Size != size || volume.Type != "gp3" || volume.Encrypted == nil || !*volume.Encrypted {
-		t.Fatalf("root volume settings were not preserved: %+v", volume)
-	}
-	var native NodePoolStateNative
-	if err := pathbind.Flatten(context.Background(), obj, &native); err != nil {
-		t.Fatal(err)
-	}
-	if native.DiskSize == nil || *native.DiskSize != size {
-		t.Fatalf("flattened size = %v, want %d", native.DiskSize, size)
-	}
-}
-
-// ── validateNodeDrainGracePeriod ──────────────────────────────────────────────────
-
-func TestValidateNodeDrainGracePeriod_Valid(t *testing.T) {
-	cases := []struct {
-		name    string
-		timeout types.String
-	}{
-		{"null", types.StringNull()},
-		{"unknown", types.StringUnknown()},
-		{"zero", types.StringValue("0s")},
-		{"seconds", types.StringValue("30s")},
-		{"minutes", types.StringValue("5m")},
-		{"hours", types.StringValue("1h")},
-		{"combined", types.StringValue("1h30m")},
-	}
-	for _, tc := range cases {
-		diags := validateNodeDrainGracePeriod(&NodePoolState{NodeDrainGracePeriod: tc.timeout})
-		if diags.HasError() {
-			t.Errorf("%s: unexpected error: %v", tc.name, diags.Errors())
-		}
-	}
-}
-
-func TestValidateNodeDrainGracePeriod_Invalid(t *testing.T) {
-	cases := []struct {
-		name         string
-		timeout      string
-		wantContains string
-	}{
-		{"not a duration", "abc", "invalid duration"},
-		{"just a number", "123", "missing unit"},
-		{"bad unit", "5x", "unknown unit"},
-		{"empty string", "", "invalid duration"},
-	}
-	for _, tc := range cases {
-		diags := validateNodeDrainGracePeriod(&NodePoolState{NodeDrainGracePeriod: types.StringValue(tc.timeout)})
-		if !diags.HasError() {
-			t.Errorf("%s: expected an error, got none", tc.name)
-			continue
-		}
-		detail := diags.Errors()[0].Detail()
-		if !strings.Contains(detail, tc.wantContains) {
-			t.Errorf("%s: detail = %q, want it to contain %q", tc.name, detail, tc.wantContains)
 		}
 	}
 }

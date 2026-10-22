@@ -1723,6 +1723,298 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 			})
 		})
 	})
+
+Context("Upgrade disruption budget", func() {
+	var seaplaneServer *Server
+
+	BeforeEach(func() {
+		seaplaneServer = NewServer()
+	})
+
+	AfterEach(func() {
+		seaplaneServer.Close()
+	})
+
+	It("sets max_unavailable as an absolute count on create", func() {
+		clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"prefix": "roles-prefix"}}}}}}`
+		createResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"maxUnavailable": "2", "autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+
+		seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.workers", CombineHandlers(
+			RespondWith(http.StatusOK, createResponse, http.Header{"Content-Type": []string{"application/json"}}),
+		))
+		seaplaneServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
+				RespondWith(http.StatusOK, clusterResponse, http.Header{"Content-Type": []string{"application/json"}}),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+				VerifyJSONRepresenting(map[string]interface{}{
+					"metadata": map[string]interface{}{"name": "test-cluster.workers"},
+					"spec": map[string]interface{}{
+						"maxUnavailable": "2",
+						"autoRepair":     true,
+						"nodePool": map[string]interface{}{
+							"clusterName": "test-cluster",
+							"replicas":    float64(5),
+							"platform": map[string]interface{}{
+								"aws": map[string]interface{}{
+									"instanceType": "m5.xlarge",
+									"subnet":       map[string]interface{}{"id": "subnet-0abc123"},
+								},
+							},
+						},
+					},
+				}),
+				RespondWith(http.StatusCreated, createResponse, http.Header{"Content-Type": []string{"application/json"}}),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.workers"),
+				RespondWith(http.StatusNoContent, ""),
+			),
+		)
+
+		Terraform.Source(fmt.Sprintf(`
+			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			resource "rhcs_nodepool_seaplane" "test" {
+				cluster_id       = "c-123"
+				cluster_name     = "test-cluster"
+				name             = "test-cluster.workers"
+				replicas         = 5
+				max_unavailable  = "2"
+				auto_repair      = true
+				subnet_id        = "subnet-0abc123"
+				instance_type    = "m5.xlarge"
+			}
+		`, seaplaneServer.URL()))
+
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		planOutput := Terraform.Run("plan", "-detailed-exitcode")
+		Expect(planOutput.ExitCode).To(BeZero(), "expected no-op plan after create")
+
+		runOutput = Terraform.Destroy()
+		Expect(runOutput.ExitCode).To(BeZero())
+	})
+
+	It("updates max_unavailable in place", func() {
+		clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"prefix": "roles-prefix"}}}}}}`
+		createResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"maxUnavailable": "1", "autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+		updateResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"maxUnavailable": "2", "autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+
+		seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.workers", CombineHandlers(
+			RespondWith(http.StatusOK, createResponse, http.Header{"Content-Type": []string{"application/json"}}),
+		))
+		seaplaneServer.AppendHandlers(
+			CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse)),
+			CombineHandlers(VerifyRequest(http.MethodPost, "/api/v0/nodepools"), RespondWith(http.StatusCreated, createResponse)),
+		)
+
+		Terraform.Source(fmt.Sprintf(`
+			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			resource "rhcs_nodepool_seaplane" "test" {
+				cluster_id       = "c-123"
+				cluster_name     = "test-cluster"
+				name             = "test-cluster.workers"
+				replicas         = 5
+				max_unavailable  = "1"
+				auto_repair      = true
+				subnet_id        = "subnet-0abc123"
+				instance_type    = "m5.xlarge"
+			}
+		`, seaplaneServer.URL()))
+
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.workers", CombineHandlers(
+			RespondWith(http.StatusOK, updateResponse, http.Header{"Content-Type": []string{"application/json"}}),
+		))
+		seaplaneServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-cluster.workers"),
+				VerifyJSONRepresenting(map[string]interface{}{
+					"metadata": map[string]interface{}{"uid": "np-456", "name": "test-cluster.workers"},
+					"spec": map[string]interface{}{
+						"maxUnavailable": "2",
+						"autoRepair":     true,
+						"nodePool": map[string]interface{}{
+							"clusterName": "test-cluster",
+							"replicas":    float64(5),
+							"platform": map[string]interface{}{
+								"aws": map[string]interface{}{
+									"instanceType":    "m5.xlarge",
+									"instanceProfile": "roles-prefix-ROSA-Worker-Role",
+									"subnet":          map[string]interface{}{"id": "subnet-0abc123"},
+								},
+							},
+						},
+					},
+				}),
+				RespondWith(http.StatusOK, updateResponse, http.Header{"Content-Type": []string{"application/json"}}),
+			),
+			CombineHandlers(VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.workers"), RespondWith(http.StatusNoContent, "")),
+		)
+
+		Terraform.Source(fmt.Sprintf(`
+			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			resource "rhcs_nodepool_seaplane" "test" {
+				cluster_id       = "c-123"
+				cluster_name     = "test-cluster"
+				name             = "test-cluster.workers"
+				replicas         = 5
+				max_unavailable  = "2"
+				auto_repair      = true
+				subnet_id        = "subnet-0abc123"
+				instance_type    = "m5.xlarge"
+			}
+		`, seaplaneServer.URL()))
+
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		runOutput = Terraform.Destroy()
+		Expect(runOutput.ExitCode).To(BeZero())
+	})
+
+	It("rejects non-integer max_unavailable", func() {
+		Terraform.Source(fmt.Sprintf(`
+			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			resource "rhcs_nodepool_seaplane" "test" {
+				cluster_id       = "c-123"
+				cluster_name     = "test-cluster"
+				name             = "test-cluster.workers"
+				replicas         = 5
+				max_unavailable  = "abc"
+				auto_repair      = true
+				subnet_id        = "subnet-0abc123"
+				instance_type    = "m5.xlarge"
+			}
+		`, seaplaneServer.URL()))
+
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("non-negative whole number")
+	})
+
+	It("rejects percentage max_unavailable with explanation", func() {
+		Terraform.Source(fmt.Sprintf(`
+			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			resource "rhcs_nodepool_seaplane" "test" {
+				cluster_id       = "c-123"
+				cluster_name     = "test-cluster"
+				name             = "test-cluster.workers"
+				replicas         = 5
+				max_unavailable  = "50%%"
+				auto_repair      = true
+				subnet_id        = "subnet-0abc123"
+				instance_type    = "m5.xlarge"
+			}
+		`, seaplaneServer.URL()))
+
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("percentages are not supported yet")
+	})
+
+	It("rejects max_unavailable exceeding replicas", func() {
+		Terraform.Source(fmt.Sprintf(`
+			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			resource "rhcs_nodepool_seaplane" "test" {
+				cluster_id       = "c-123"
+				cluster_name     = "test-cluster"
+				name             = "test-cluster.workers"
+				replicas         = 5
+				max_unavailable  = "10"
+				auto_repair      = true
+				subnet_id        = "subnet-0abc123"
+				instance_type    = "m5.xlarge"
+			}
+		`, seaplaneServer.URL()))
+
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("cannot exceed replicas")
+	})
+
+	It("allows max_unavailable with autoscaling", func() {
+		clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"nodePoolManagementARN": "arn:aws:iam::123456789012:role/roles-prefix-node-pool-management"}}}}}}`
+		nodepoolResponse := `{"metadata": {"uid": "np-123", "name": "test-cluster.workers"}, "spec": {"autoRepair": true, "nodePool": {"clusterName": "test-cluster", "autoScaling": {"min": 2, "max": 5}, "management": {"upgradeType": "Replace", "replace": {"strategy": "RollingUpdate", "rollingUpdate": {"maxUnavailable": 1}}}, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+		jsonHeader := http.Header{"Content-Type": []string{"application/json"}}
+
+		seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.workers", CombineHandlers(
+			RespondWith(http.StatusOK, nodepoolResponse, jsonHeader),
+		))
+		seaplaneServer.AppendHandlers(
+			CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse, jsonHeader)),
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+				verifyJQ(`.spec.nodePool.autoScaling.min`, 2),
+				verifyJQ(`.spec.nodePool.autoScaling.max`, 5),
+				verifyJQ(`.spec.nodePool.management.replace.rollingUpdate.maxUnavailable`, 1),
+				RespondWith(http.StatusCreated, nodepoolResponse, jsonHeader),
+			),
+		)
+
+		Terraform.Source(fmt.Sprintf(`
+			provider "rhcs" {
+				alias          = "sp"
+				seaplane_url   = "%s"
+				aws_account_id = "123"
+				aws_region     = "us-east-1"
+			}
+			resource "rhcs_nodepool_seaplane" "test" {
+				provider        = rhcs.sp
+				cluster_id      = "c-123"
+				cluster_name    = "test-cluster"
+				name            = "test-cluster.workers"
+				autoscaling     = {
+					enabled      = true
+					min_replicas = 2
+					max_replicas = 5
+				}
+				max_unavailable = "1"
+				auto_repair     = true
+				subnet_id       = "subnet-0abc123"
+				instance_type   = "m5.xlarge"
+			}
+		`, seaplaneServer.URL()))
+
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		planOutput := Terraform.Run("plan", "-detailed-exitcode")
+		Expect(planOutput.ExitCode).To(BeZero(), "expected no-op plan after create with autoscaling + max_unavailable")
+
+		runOutput = Terraform.Destroy()
+		Expect(runOutput.ExitCode).To(BeZero())
+	})
+
+	It("rejects max_unavailable exceeding autoscaling min_replicas", func() {
+		Terraform.Source(fmt.Sprintf(`
+			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			resource "rhcs_nodepool_seaplane" "test" {
+				cluster_id      = "c-123"
+				cluster_name    = "test-cluster"
+				name            = "test-cluster.workers"
+				autoscaling     = {
+					enabled      = true
+					min_replicas = 2
+					max_replicas = 5
+				}
+				max_unavailable = "3"
+				auto_repair     = true
+				subnet_id       = "subnet-0abc123"
+				instance_type   = "m5.xlarge"
+			}
+		`, seaplaneServer.URL()))
+
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("cannot exceed autoscaling min_replicas")
+	})
+})
 })
 
 var _ = Describe("Seaplane nodepool root volume", func() {

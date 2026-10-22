@@ -36,6 +36,7 @@ resource "rhcs_nodepool_seaplane" "nodepool" {
   instance_type                     = var.instance_type
   disk_size                         = var.disk_size
   ec2_instance_metadata_http_tokens = var.ec2_instance_metadata_http_tokens
+  max_unavailable                   = var.max_unavailable
   image_type                        = var.image_type
   placement_market_type             = var.placement_market_type
   max_price                         = var.max_price

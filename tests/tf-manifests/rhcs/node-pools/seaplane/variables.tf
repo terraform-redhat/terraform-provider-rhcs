@@ -64,6 +64,18 @@ variable "instance_type" {
   description = "EC2 instance type (e.g. m5.xlarge)"
 }
 
+variable "placement_market_type" {
+  type        = string
+  description = "EC2 purchasing model, such as OnDemand or Spot"
+  default     = null
+}
+
+variable "max_price" {
+  type        = string
+  description = "Maximum hourly price in USD for Spot instances"
+  default     = null
+}
+
 variable "ec2_instance_metadata_http_tokens" {
   type        = string
   description = "EC2 instance metadata HTTP token requirement"

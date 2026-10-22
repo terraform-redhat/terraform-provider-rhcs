@@ -24,6 +24,7 @@ type SeaplaneNodePoolArgs struct {
 	EC2InstanceMetadataHttpTokens *string              `hcl:"ec2_instance_metadata_http_tokens"`
 	Tags                          map[string]string    `hcl:"tags"`
 	Labels                        map[string]string    `hcl:"labels"`
+	Taints                        *[]map[string]string `hcl:"taints"`
 }
 
 type NodePoolAutoscaling struct {

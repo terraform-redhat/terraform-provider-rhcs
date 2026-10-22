@@ -103,11 +103,11 @@ resource "aws_route_table_association" "private" {
 # ── Route53 private hosted zone ───────────────────────────────────────────────
 
 resource "aws_route53_zone" "seaplane" {
-	name    = "${var.name_prefix}.hypershift.local"
-	comment = "Private hosted zone for Seaplane cluster ${var.name_prefix}"
+  name    = "${var.name_prefix}.hypershift.local"
+  comment = "Private hosted zone for Seaplane cluster ${var.name_prefix}"
 
   vpc {
-		vpc_id = aws_vpc.seaplane.id
+    vpc_id = aws_vpc.seaplane.id
   }
 
   tags = {

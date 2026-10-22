@@ -64,7 +64,10 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 	if !strings.HasPrefix(input.Name.ValueString(), input.ClusterName.ValueString()+".") {
 		diags.AddError(
 			"invalid NodePool name",
-			fmt.Sprintf("NodePool name %q must start with parent cluster name %q followed by a dot", input.Name.ValueString(), input.ClusterName.ValueString()),
+			fmt.Sprintf(
+				"NodePool name %q must start with parent cluster name %q followed by a dot",
+				input.Name.ValueString(), input.ClusterName.ValueString(),
+			),
 		)
 		return diags
 	}
@@ -87,10 +90,13 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 			diags.AddError("invalid autoscaling configuration", "autoscaling.enabled must be specified")
 		} else if !config.Enabled.ValueBool() {
 			if !config.MinReplicas.IsNull() || !config.MaxReplicas.IsNull() {
-				diags.AddError("invalid autoscaling configuration", "min_replicas and max_replicas can only be set when autoscaling is enabled")
+				diags.AddError(
+					"invalid autoscaling configuration",
+					"min_replicas and max_replicas can only be set when autoscaling is enabled",
+				)
 			}
 		} else {
-			if input.Replicas.IsNull() == false || input.Replicas.IsUnknown() {
+			if !input.Replicas.IsNull() || input.Replicas.IsUnknown() {
 				diags.AddError("conflicting nodepool sizing", "replicas cannot be set when autoscaling is enabled")
 			}
 			if config.MinReplicas.IsNull() || config.MaxReplicas.IsNull() {
@@ -184,6 +190,15 @@ func (h *NodePoolHandlerImpl) PostExpand(
 	}
 
 	return diags
+}
+
+// PostPartialExpand allows the raw partial-update document to be customized.
+func (h *NodePoolHandlerImpl) PostPartialExpand(
+	ctx context.Context,
+	input *NodePoolState,
+	document map[string]any,
+) diag.Diagnostics {
+	return diag.Diagnostics{}
 }
 
 // PostResponse is called after API operations

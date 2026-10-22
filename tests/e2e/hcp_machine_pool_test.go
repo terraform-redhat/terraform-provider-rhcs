@@ -382,6 +382,79 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 		})
 
+	It("can create/edit/delete labels/taints/autorepair - [id:72507]",
+		ci.High, func() {
+			By("Create machinepool")
+			replicas := 3
+			machineType := "m5.xlarge"
+			name := helper.GenerateRandomName("np-72507", 2)
+			subnetId := vpcOutput.PrivateSubnets[0]
+			labels := map[string]string{
+				"l1": "v1",
+				"l2": "v2",
+			}
+			taint1 := map[string]string{"key": "t1", "value": "v1", "schedule_type": constants.NoSchedule}
+			taints := []map[string]string{taint1}
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:            new(clusterID),
+				AutoscalingEnabled: new(false),
+				Replicas:           new(replicas),
+				Name:               new(name),
+				SubnetID:           new(subnetId),
+				MachineType:        new(machineType),
+				AutoRepair:         new(false),
+				Labels:             new(labels),
+				Taints:             &taints,
+			}
+			_, err := mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+			// Verify
+			mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			respTaints := mpResponseBody.Taints()
+			for index, taint := range respTaints {
+				Expect(taint.Effect()).To(Equal(taints[index]["schedule_type"]))
+				Expect(taint.Key()).To(Equal(taints[index]["key"]))
+				Expect(taint.Value()).To(Equal(taints[index]["value"]))
+			}
+			Expect(mpResponseBody.AutoRepair()).To(BeFalse())
+			Expect(mpResponseBody.Labels()).To(Equal(labels))
+
+			By("Update labels/taints/autorepair")
+			taints = append(taints, map[string]string{"key": "t2", "value": "", "schedule_type": constants.NoExecute})
+			labels = map[string]string{
+				"l3": "v3",
+			}
+			mpArgs.AutoRepair = new(true)
+			mpArgs.Taints = &taints
+			mpArgs.Labels = new(labels)
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+			// Verify
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			respTaints = mpResponseBody.Taints()
+			for index, taint := range respTaints {
+				Expect(taint.Effect()).To(Equal(taints[index]["schedule_type"]))
+				Expect(taint.Key()).To(Equal(taints[index]["key"]))
+				Expect(taint.Value()).To(Equal(taints[index]["value"]))
+			}
+			Expect(mpResponseBody.AutoRepair()).To(BeTrue())
+			Expect(mpResponseBody.Labels()).To(Equal(labels))
+
+			By("Remove labels/taints")
+			mpArgs.Labels = nil
+			mpArgs.Taints = nil
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+			// Verify
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.Taints()).To(BeEmpty())
+			Expect(mpResponseBody.AutoRepair()).To(BeTrue())
+			Expect(mpResponseBody.Labels()).To(BeEmpty())
+		})
+
 	It("can be created with specific version - [id:72509]",
 		ci.High, func() {
 			replicas := 3
@@ -1347,88 +1420,6 @@ var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, ci.
 		},
 	)
 
-	It("can create/edit/delete labels/taints/autorepair - [id:72507]",
-		ci.High, ci.SeaplaneValidated, ci.Day2, func(ctx SpecContext) {
-			profile, err := profilehandler.NewProfileHandlerFromYamlFile()
-			Expect(err).NotTo(HaveOccurred())
-			if clusterID == "" {
-				Skip("an existing cluster ID is required for the nodepool day-2 workflow")
-			}
-
-			nodePool, err := clusterworkflow.NewNodePool(
-				profile,
-				clusterID,
-				helper.GenerateRandomName("np-72507", 2),
-			)
-			Expect(err).NotTo(HaveOccurred())
-
-			nodePoolApplyAttempted := false
-			DeferCleanup(func(cleanupCtx SpecContext) {
-				if !nodePoolApplyAttempted {
-					return
-				}
-				Expect(nodePool.Destroy()).To(Succeed())
-				if config.IsWaitForNodePoolDeletion() {
-					Expect(nodePool.WaitDeleted(cleanupCtx)).To(Succeed())
-				}
-			}, GracePeriod(90*time.Minute))
-
-			replicas := 1
-			autoRepair := false
-			labels := map[string]string{
-				"l1": "v1",
-				"l2": "v2",
-			}
-			taints := []exec.NodePoolTaint{{
-				Key:    "t1",
-				Value:  "v1",
-				Effect: constants.NoSchedule,
-			}}
-
-			By("Create machinepool through the selected backend")
-			nodePoolApplyAttempted = true
-			Expect(nodePool.Create(exec.NodePoolSpec{
-				Replicas:   &replicas,
-				Labels:     &labels,
-				Taints:     &taints,
-				AutoRepair: &autoRepair,
-			})).To(Succeed())
-			Expect(nodePool.WaitReady(ctx)).To(Succeed())
-			expectNodePoolState(ctx, nodePool, labels, taints, autoRepair)
-
-			By("Update auto-repair without changing labels or taints")
-			autoRepair = true
-			Expect(nodePool.Update(exec.NodePoolSpec{AutoRepair: &autoRepair})).To(Succeed())
-			Expect(nodePool.WaitReady(ctx)).To(Succeed())
-			expectNodePoolState(ctx, nodePool, labels, taints, autoRepair)
-
-			By("Add a taint without changing labels or auto-repair")
-			taints = append(taints, exec.NodePoolTaint{
-				Key:    "t2",
-				Value:  "",
-				Effect: constants.NoExecute,
-			})
-			Expect(nodePool.Update(exec.NodePoolSpec{Taints: &taints})).To(Succeed())
-			Expect(nodePool.WaitReady(ctx)).To(Succeed())
-			expectNodePoolState(ctx, nodePool, labels, taints, autoRepair)
-
-			By("Update labels without changing taints or auto-repair")
-			labels = map[string]string{"l3": "v3"}
-			Expect(nodePool.Update(exec.NodePoolSpec{Labels: &labels})).To(Succeed())
-			Expect(nodePool.WaitReady(ctx)).To(Succeed())
-			expectNodePoolState(ctx, nodePool, labels, taints, autoRepair)
-
-			By("Remove labels and taints")
-			emptyLabels := map[string]string{}
-			emptyTaints := []exec.NodePoolTaint{}
-			Expect(nodePool.Update(exec.NodePoolSpec{
-				Labels: &emptyLabels,
-				Taints: &emptyTaints,
-			})).To(Succeed())
-			Expect(nodePool.WaitReady(ctx)).To(Succeed())
-			expectNodePoolState(ctx, nodePool, emptyLabels, emptyTaints, autoRepair)
-		})
-
 	It("preserves custom root volume size when scaling a Seaplane nodepool", ci.High, func(ctx SpecContext) {
 		profile, err := profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).NotTo(HaveOccurred())
@@ -1587,28 +1578,3 @@ var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, ci.
 		Expect(state.Tags).NotTo(HaveKey("obsolete"))
 	})
 })
-
-func expectNodePoolState(
-	ctx SpecContext,
-	nodePool exec.NodePoolLifecycle,
-	labels map[string]string,
-	taints []exec.NodePoolTaint,
-	autoRepair bool,
-) {
-	Eventually(func(g Gomega) {
-		state, err := nodePool.Read(ctx)
-		g.Expect(err).NotTo(HaveOccurred())
-		if len(labels) == 0 {
-			g.Expect(state.Labels).To(BeEmpty())
-		} else {
-			g.Expect(state.Labels).To(Equal(labels))
-		}
-		if len(taints) == 0 {
-			g.Expect(state.Taints).To(BeEmpty())
-		} else {
-			g.Expect(state.Taints).To(Equal(taints))
-		}
-		g.Expect(state.AutoRepair).NotTo(BeNil())
-		g.Expect(*state.AutoRepair).To(Equal(autoRepair))
-	}).WithContext(ctx).WithTimeout(5 * time.Minute).WithPolling(30 * time.Second).Should(Succeed())
-}

@@ -262,6 +262,10 @@ resources:
           - create
         description: "EC2 instance metadata HTTP token requirement. `required` enforces IMDSv2; `optional` permits IMDSv1. Defaults to `required` and is immutable after creation."
 
+      - path: spec.maxUnavailable
+        type: string
+        description: "Largest number of nodes in this pool that may be unavailable at the same time while the pool is upgrading, as an absolute node count (for example `2`). It may not exceed `replicas`. Defaults to 0 when unset: no node is taken out of service until its replacement is ready. The Platform API also accepts a percentage, which this provider cannot send yet."
+
       - path: spec.labels
         type: map
       - path: spec.nodePool.config

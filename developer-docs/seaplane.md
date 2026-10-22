@@ -145,7 +145,7 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 
 ## HCP parity gap analysis
 
-### `rhcs_cluster_seaplane` vs `rhcs_cluster_rosa_hcp`
+### `rhcs_cluster_seaplane` versus `rhcs_cluster_rosa_hcp`
 
 #### Fields that CAN be added (mutable in passthrough)
 
@@ -189,11 +189,11 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 
 #### Seaplane-only fields (no HCP equivalent)
 
-`operator_roles_prefix`, `vpc_id`, `expiration_timestamp`, `phase` (vs HCP's `state`), `management_cluster`, `aws_partition`, `creator_arn`
+`operator_roles_prefix`, `vpc_id`, `expiration_timestamp`, `phase` (versus HCP's `state`), `management_cluster`, `aws_partition`, `creator_arn`
 
 ---
 
-### `rhcs_nodepool_seaplane` vs `rhcs_hcp_machine_pool`
+### `rhcs_nodepool_seaplane` versus `rhcs_hcp_machine_pool`
 
 #### Fields that CAN be added (mutable in passthrough)
 

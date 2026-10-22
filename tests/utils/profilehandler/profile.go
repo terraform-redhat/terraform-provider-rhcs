@@ -3,6 +3,7 @@
 
 package profilehandler
 
+//nolint:lll // Struct tags cannot be wrapped across lines.
 type Profile struct {
 	Name                           string   `ini:"name,omitempty" json:"name,omitempty"`
 	ClusterName                    string   `ini:"cluster_name,omitempty" json:"cluster_name,omitempty"`

@@ -21,20 +21,22 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 
 provider "rhcs" {
-  seaplane_url = var.seaplane_url
+  seaplane_url   = var.seaplane_url
   aws_account_id = data.aws_caller_identity.current.account_id
   aws_caller_arn = data.aws_caller_identity.current.arn
 }
 
 resource "rhcs_nodepool_seaplane" "nodepool" {
-  cluster_id    = var.cluster_id
-  cluster_name  = var.cluster_name
-  name          = var.name
-  subnet_id     = var.subnet_id
-  auto_repair   = var.auto_repair
-  replicas      = var.replicas
-  instance_type = var.instance_type
+  cluster_id                        = var.cluster_id
+  cluster_name                      = var.cluster_name
+  name                              = var.name
+  subnet_id                         = var.subnet_id
+  auto_repair                       = var.auto_repair
+  replicas                          = var.replicas
+  instance_type                     = var.instance_type
   ec2_instance_metadata_http_tokens = var.ec2_instance_metadata_http_tokens
-  labels        = var.labels
-  autoscaling   = var.autoscaling
+  placement_market_type             = var.placement_market_type
+  max_price                         = var.max_price
+  labels                            = var.labels
+  autoscaling                       = var.autoscaling
 }

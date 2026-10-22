@@ -295,6 +295,10 @@ resources:
               description: "Name of the ConfigMap containing serialized tuning configuration."
       - path: spec.nodePool.platform.aws.resourceTags
         type: string
+      - path: spec.nodePool.platform.aws.rootVolume.size
+        alias: disk_size
+        goName: DiskSize
+        immutable: true
       - path: spec.nodePool.platform.aws.securityGroups
         alias: additional_security_group_ids
         description: "Additional AWS security group IDs to attach to node pool instances."

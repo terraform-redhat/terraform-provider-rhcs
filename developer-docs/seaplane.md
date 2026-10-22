@@ -136,7 +136,7 @@ R=Required, O=Optional, C=Computed.
 | `labels` | map(string) | O | no | Node labels |
 | `auto_repair` | bool | R | no | |
 | `aws_node_pool.instance_type` | string | R | yes | EC2 instance type |
-| `aws_node_pool.disk_size` | int64 | O/C | yes | Root volume GiB |
+| `disk_size` | int64 | O | yes | Root volume GiB; changing or removing an explicit value replaces the pool |
 | `aws_node_pool.tags` | map(string) | O | no | Additional AWS resource tags |
 | `phase` | string | C | — | WaitingForCluster / Provisioning / Ready / Deleting |
 | `ignore_deletion_error` | bool | O/C | no | Suppress delete errors; default false |

@@ -34,7 +34,7 @@ type NodePoolState struct {
 	MaxPrice                      types.String `tfsdk:"max_price"`
 	Tenancy                       types.String `tfsdk:"tenancy"`
 	ResourceTags                  types.String `tfsdk:"resource_tags"`
-	Size                          types.Int64  `tfsdk:"size"`
+	DiskSize                      types.Int64  `tfsdk:"disk_size"`
 	Additional_security_group_ids types.List   `tfsdk:"additional_security_group_ids"`
 	Filters                       types.String `tfsdk:"filters"`
 	SubnetId                      types.String `tfsdk:"subnet_id"`

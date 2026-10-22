@@ -17,12 +17,15 @@ limitations under the License.
 package seaplane
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"
+	. "github.com/onsi/ginkgo/v2/dsl/table"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
+	v1alpha1 "github.com/openshift-online/rosa-seaplane-api/api/v1alpha1/public"
 
 	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
@@ -114,6 +117,13 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+					func(_ http.ResponseWriter, req *http.Request) {
+						var body v1alpha1.NodePool
+						Expect(json.NewDecoder(req.Body).Decode(&body)).To(Succeed())
+						Expect(body.Spec.NodePool.Platform.AWS).NotTo(BeNil())
+						Expect(body.Spec.NodePool.Platform.AWS.RootVolume).NotTo(BeNil())
+						Expect(body.Spec.NodePool.Platform.AWS.RootVolume.Size).To(Equal(int64(100)))
+					},
 					RespondWith(http.StatusCreated, nodepoolResponse, header),
 				),
 				CombineHandlers(
@@ -139,7 +149,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = true
 					instance_type    = "m5.xlarge"
-					size = 100
+					disk_size = 100
 					labels = {
 						"workload-type" = "general"
 					}
@@ -292,6 +302,13 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-cluster.worker"),
+					func(_ http.ResponseWriter, req *http.Request) {
+						var body v1alpha1.NodePool
+						Expect(json.NewDecoder(req.Body).Decode(&body)).To(Succeed())
+						Expect(body.Spec.NodePool.Platform.AWS).NotTo(BeNil())
+						Expect(body.Spec.NodePool.Platform.AWS.RootVolume).NotTo(BeNil())
+						Expect(body.Spec.NodePool.Platform.AWS.RootVolume.Size).To(Equal(int64(100)))
+					},
 					RespondWith(http.StatusOK, updateResponse, header),
 				),
 			)
@@ -314,7 +331,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = true
 					instance_type    = "m5.xlarge"
-					size = 100
+					disk_size = 100
 					labels = {
 						"workload-type" = "general"
 					}
@@ -342,7 +359,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = true
 					instance_type    = "m5.xlarge"
-					size = 100
+					disk_size = 100
 					labels = {
 						"workload-type" = "general",
 						"environment"   = "production"
@@ -499,7 +516,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = true
 					instance_type    = "m5.xlarge"
-					size = 100
+					disk_size = 100
 				}
 			`, seaplaneServer.URL()))
 
@@ -524,7 +541,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = false
 					instance_type    = "m5.xlarge"
-					size = 100
+					disk_size = 100
 				}
 			`, seaplaneServer.URL()))
 
@@ -644,7 +661,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 					subnet_id        = "subnet-0abc123"
 					auto_repair      = true
 					instance_type    = "m5.xlarge"
-					size = 100
+					disk_size = 100
 				}
 			`, seaplaneServer.URL()))
 
@@ -655,4 +672,52 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 			Expect(runOutput.ExitCode).To(BeZero())
 		})
 	})
+})
+
+var _ = Describe("Seaplane nodepool root volume", func() {
+	DescribeTable("plans the root volume lifecycle", func(nextSize string) {
+		server := NewServer()
+		DeferCleanup(server.Close)
+		header := http.Header{"Content-Type": []string{"application/json"}}
+		cluster := `{"metadata":{"name":"test-cluster","uid":"cluster-uid"},"spec":{"hostedCluster":{"platform":{"aws":{"rolesRef":{"nodePoolManagementARN":"arn:aws:iam::123456789012:role/test-NodePool"}}}}}}`
+		// Include service-managed fields to exercise refresh without a spurious diff.
+		pool := `{"metadata":{"name":"test-cluster.worker","uid":"pool-uid"},"spec":{"nodePool":{"clusterName":"test-cluster","replicas":1,"platform":{"type":"AWS","aws":{"instanceType":"m5.xlarge","rootVolume":{"size":500,"type":"gp3","encrypted":true}}}}},"status":{"phase":"Ready"}}`
+		server.RouteToHandler(http.MethodGet, "/api/v0/clusters/test-cluster", RespondWith(http.StatusOK, cluster, header))
+		server.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.worker", RespondWith(http.StatusOK, pool, header))
+		server.AppendHandlers(CombineHandlers(
+			VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+			RespondWith(http.StatusCreated, pool, header),
+		))
+		source := func(size string) string {
+			return fmt.Sprintf(`
+                provider "rhcs" {
+                    alias = "sp"
+                    seaplane_url = %q
+                    aws_account_id = "123456789012"
+                    aws_region = "us-east-1"
+                }
+                resource "rhcs_nodepool_seaplane" "test" {
+                    provider = rhcs.sp
+                    name = "test-cluster.worker"
+                    cluster_name = "test-cluster"
+                    cluster_id = "cluster-uid"
+                    replicas = 1
+                    instance_type = "m5.xlarge"
+                    %s
+                }
+            `, server.URL(), size)
+		}
+		Terraform.Source(source("disk_size = 500"))
+		Expect(Terraform.Apply().ExitCode).To(BeZero())
+		Expect(Terraform.Run("plan", "-detailed-exitcode", "-no-color").ExitCode).To(BeZero())
+		Terraform.Source(source(nextSize))
+		plan := Terraform.Run("plan", "-detailed-exitcode", "-no-color")
+		Expect(plan.ExitCode).To(Equal(2))
+		plan.VerifyOutputContainsSubstring("must be replaced")
+		plan.VerifyOutputContainsSubstring("disk_size")
+		plan.VerifyOutputContainsSubstring("forces replacement")
+	},
+		Entry("replaces the pool when changing size", "disk_size = 600"),
+		Entry("replaces the pool when removing explicit size", ""),
+	)
 })

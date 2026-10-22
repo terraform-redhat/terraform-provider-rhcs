@@ -1,3 +1,9 @@
+## 1.7.11 (22 Oct, 2026)
+
+ENHANCEMENTS:
+ * Chores
+   * Bump Go to 1.26.10
+
 ## 1.7.10 (13 Oct, 2026)
 
 FEATURES:

@@ -23,6 +23,7 @@ type NodePoolState struct {
 	Config                        types.List   `tfsdk:"config"`
 	NodeDrainTimeout              types.String `tfsdk:"node_drain_timeout"`
 	NodeLabels                    types.Map    `tfsdk:"node_labels"`
+	NodeVolumeDetachTimeout       types.String `tfsdk:"node_volume_detach_timeout"`
 	Ami                           types.String `tfsdk:"ami"`
 	ImageType                     types.String `tfsdk:"image_type"`
 	InstanceProfile               types.String `tfsdk:"instance_profile"`
@@ -33,7 +34,6 @@ type NodePoolState struct {
 	PlacementMarketType           types.String `tfsdk:"placement_market_type"`
 	MaxPrice                      types.String `tfsdk:"max_price"`
 	Tenancy                       types.String `tfsdk:"tenancy"`
-	ResourceTags                  types.String `tfsdk:"resource_tags"`
 	Size                          types.Int64  `tfsdk:"size"`
 	Additional_security_group_ids types.List   `tfsdk:"additional_security_group_ids"`
 	Filters                       types.String `tfsdk:"filters"`
@@ -43,6 +43,7 @@ type NodePoolState struct {
 	Replicas                      types.Int64  `tfsdk:"replicas"`
 	Taints                        types.List   `tfsdk:"taints"`
 	Tuning_config                 types.List   `tfsdk:"tuning_config"`
+	Tags                          types.Map    `tfsdk:"tags"`
 	Cluster_id                    types.String `tfsdk:"cluster_id"`
 	Phase                         types.String `tfsdk:"phase"`
 	Autoscaling                   types.Object `tfsdk:"autoscaling"`

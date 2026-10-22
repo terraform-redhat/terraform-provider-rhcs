@@ -33,12 +33,6 @@ import (
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 )
 
-// maxClusterTags is the number of customer AWS tags the Platform API accepts on
-// spec.tags. HyperShift caps platform.aws.resourceTags at 25 entries and the
-// operator injects 2 system tags (red-hat-managed and
-// kubernetes.io/cluster/<id>), leaving 23 for the customer.
-const maxClusterTags = 23
-
 // awsReservedTagPrefix marks tag keys AWS reserves for its own use.
 const awsReservedTagPrefix = "aws:"
 
@@ -122,9 +116,9 @@ func (h *ClusterHandlerImpl) PreExpand(ctx context.Context, input *ClusterState)
 	return diags
 }
 
-// validateClusterTags checks the customer AWS tags against the limits the
-// Platform API enforces on spec.tags so a bad value fails during apply instead
-// of on the API round trip. Wording follows the ROSA CLI --tags validation.
+// validateClusterTags checks customer AWS tag key and value formats before the
+// API request. The Platform API remains authoritative for the shared tag budget
+// after reserving capacity for system tags.
 func validateClusterTags(ctx context.Context, tags types.Map) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -140,11 +134,6 @@ func validateClusterTags(ctx context.Context, tags types.Map) diag.Diagnostics {
 
 	addError := func(format string, args ...any) {
 		diags.AddAttributeError(path.Root("tags"), "Invalid cluster AWS tags", fmt.Sprintf(format, args...))
-	}
-
-	if len(values) > maxClusterTags {
-		addError("a maximum of %d tags is supported, got %d", maxClusterTags, len(values))
-		return diags
 	}
 
 	// Sorted so repeated plans report the same tag first.
@@ -232,7 +221,7 @@ func (h *ClusterHandlerImpl) PostExpand(
 	// Compute RolesRef
 	rolesRef := computeRolesRef(prefix, h.accountID, partition)
 	// Build Platform spec with AWS configuration
-	awsSpec := &hypershiftv1beta1.AWSPlatformSpec{
+	awsSpec := &v1alpha1.AWSPlatformSpec{
 		Region:   region,
 		RolesRef: rolesRef,
 		CloudProviderConfig: &hypershiftv1beta1.AWSCloudProviderConfig{

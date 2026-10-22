@@ -260,10 +260,8 @@ var _ = Describe("Seaplane sanity", func() {
 		// Cluster references the OidcConfig by ID
 		By("Phase 4: apply cluster")
 		expiresAt := time.Now().UTC().Add(4 * time.Hour).Format(time.RFC3339)
-		// Customer AWS tags are applied when the cluster's AWS resources are
-		// provisioned and cannot be changed afterwards, so they are set on create
-		// and repeated verbatim on every later apply — a changed value would plan
-		// a cluster replacement.
+		// Customer AWS tags are set on create here; the Seaplane API also supports
+		// propagating subsequent tag changes to the HostedCluster and NodePools.
 		clusterTags := map[string]string{"cost-center": "cc-1234", "qe-managed": "true"}
 		_, err = clusterSvc.Apply(&exec.SeaplaneClusterArgs{
 			SeaplaneURL:         &seaplaneURL,

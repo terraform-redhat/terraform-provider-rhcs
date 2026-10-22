@@ -223,7 +223,7 @@ generate: $(MOCKGEN)
 
 .PHONY: generate-seaplane
 SEAPLANE_REPO ?= https://github.com/openshift-online/rosa-seaplane-api.git
-SEAPLANE_BRANCH ?= main
+SEAPLANE_BRANCH ?= clientset/v0.1.23
 
 generate-seaplane:
 	@echo "Generating Terraform resource code from Seaplane pathbind configuration..."

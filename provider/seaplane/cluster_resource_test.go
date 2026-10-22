@@ -5,7 +5,6 @@ package seaplane
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -140,7 +139,6 @@ func TestValidateClusterTags_Valid(t *testing.T) {
 		{"typical", tagsMap(t, map[string]string{"cost-center": "cc-1234", "environment": "production"})},
 		// Keys and values may contain the extra characters AWS allows.
 		{"allowed characters", tagsMap(t, map[string]string{"kubernetes.io/role": "worker+1@eu=west"})},
-		{"maximum", tagsMap(t, generatedTags(maxClusterTags))},
 	}
 	for _, tc := range cases {
 		if diags := validateClusterTags(context.Background(), tc.tags); diags.HasError() {
@@ -155,11 +153,6 @@ func TestValidateClusterTags_Invalid(t *testing.T) {
 		tags   types.Map
 		detail string
 	}{
-		{
-			name:   "too many tags",
-			tags:   tagsMap(t, generatedTags(maxClusterTags+1)),
-			detail: "a maximum of 23 tags is supported, got 24",
-		},
 		{
 			name:   "empty value",
 			tags:   tagsMap(t, map[string]string{"owner": ""}),
@@ -477,12 +470,4 @@ func TestCloudRegionPlanModifiersResolveUnknownWithoutReplacement(t *testing.T) 
 	if !modResp.PlanValue.Equal(types.StringValue("us-east-1")) {
 		t.Fatalf("cloud_region plan value = %v, want the state value us-east-1", modResp.PlanValue)
 	}
-}
-
-func generatedTags(count int) map[string]string {
-	tags := make(map[string]string, count)
-	for i := range count {
-		tags[fmt.Sprintf("tag%d", i)] = "value"
-	}
-	return tags
 }

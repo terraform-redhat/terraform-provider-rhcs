@@ -64,7 +64,6 @@ type ClusterState struct {
 	Port                           types.Int64  `tfsdk:"port"`
 	Filters                        types.String `tfsdk:"filters"`
 	Subnet_id                      types.String `tfsdk:"subnet_id"`
-	ResourceTags                   types.String `tfsdk:"resource_tags"`
 	ControlPlaneOperatorARN        types.String `tfsdk:"control_plane_operator_arn"`
 	ImageRegistryARN               types.String `tfsdk:"image_registry_arn"`
 	AwsRolesRefIngressARN          types.String `tfsdk:"aws_roles_ref_ingress_arn"`

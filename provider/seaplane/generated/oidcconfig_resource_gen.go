@@ -106,7 +106,7 @@ func (r *OidcConfigResource) Schema(
 		MarkdownDescription: "Manages OidcConfig resources.",
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name.",
+				MarkdownDescription: "Client-selected OIDC configuration name. Immutable after creation.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -127,10 +127,10 @@ func (r *OidcConfigResource) Schema(
 				},
 			},
 			"issuer_url": schema.StringAttribute{
-				MarkdownDescription: "Issuer_url.",
+				MarkdownDescription: "OIDC issuer URL. Computed by the controller for managed type.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.UseStateForUnknown(), stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"secret_arn": schema.StringAttribute{
@@ -148,14 +148,14 @@ func (r *OidcConfigResource) Schema(
 				},
 			},
 			"phase": schema.StringAttribute{
-				MarkdownDescription: "Phase.",
+				MarkdownDescription: "Current lifecycle phase of the OIDC config (Pending, Ready, Error). Read-only.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"thumbprint": schema.StringAttribute{
-				MarkdownDescription: "Thumbprint.",
+				MarkdownDescription: "SHA-1 fingerprint of the OIDC issuer's TLS certificate. Computed by the controller and refreshed periodically. Read-only.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),

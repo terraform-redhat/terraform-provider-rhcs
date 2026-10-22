@@ -159,6 +159,88 @@ func seaplaneClusterProxyResponse(httpProxy, httpsProxy, noProxy string) string 
 	}`, configuration)
 }
 
+func seaplaneClusterAllowedPrincipalsResponse(principals []string) string {
+	principalsJSON, err := json.Marshal(principals)
+	Expect(err).NotTo(HaveOccurred())
+
+	return fmt.Sprintf(`{
+		"metadata": {
+			"uid": "test-cluster-id",
+			"name": "my-cluster",
+			"creationTimestamp": "2024-01-01T00:00:00Z"
+		},
+		"spec": {
+			"hostedCluster": {
+				"platform": {
+					"type": "AWS",
+					"aws": {
+						"region": "us-east-1",
+						"additionalAllowedPrincipals": %s,
+						"cloudProviderConfig": {
+							"vpc": "vpc-0def456",
+							"zone": "us-east-1a",
+							"subnet": {
+								"id": "subnet-0abc123"
+							}
+						}
+					}
+				}
+			}
+		},
+		"status": {
+			"phase": "Ready",
+			"controlPlaneEndpoint": {
+				"host": "api.my-cluster.example.com",
+				"port": 6443
+			}
+		}
+	}`, string(principalsJSON))
+}
+
+func verifySeaplaneAllowedPrincipalsRequest(principals []string) http.HandlerFunc {
+	return func(_ http.ResponseWriter, req *http.Request) {
+		var body struct {
+			Spec struct {
+				HostedCluster struct {
+					Platform struct {
+						AWS struct {
+							AdditionalAllowedPrincipals []string `json:"additionalAllowedPrincipals"`
+						} `json:"aws"`
+					} `json:"platform"`
+				} `json:"hostedCluster"`
+			} `json:"spec"`
+		}
+		Expect(json.NewDecoder(req.Body).Decode(&body)).To(Succeed())
+		Expect(body.Spec.HostedCluster.Platform.AWS.AdditionalAllowedPrincipals).To(Equal(principals))
+	}
+}
+
+func seaplaneClusterAllowedPrincipalsTerraformConfig(serverURL string, principals []string) string {
+	principalsJSON, err := json.Marshal(principals)
+	Expect(err).NotTo(HaveOccurred())
+
+	return fmt.Sprintf(`
+		provider "rhcs" {
+			alias          = "sp"
+			seaplane_url   = %q
+			aws_account_id = "123456789012"
+			aws_region     = "us-east-1"
+		}
+
+		resource "rhcs_cluster_seaplane" "test" {
+			provider              = rhcs.sp
+			name                  = "my-cluster"
+			operator_roles_prefix = "my-cluster"
+			aws = {
+				aws_subnet_ids                = ["subnet-0abc123"]
+				vpc_id                        = "vpc-0def456"
+				availability_zones            = ["us-east-1a"]
+				additional_allowed_principals = %s
+			}
+		}
+	`, serverURL, string(principalsJSON))
+}
+
 func seaplaneClusterTerraformConfig(serverURL, httpProxy, httpsProxy, noProxy string, includeProxy bool) string {
 	proxyAttributes := ""
 	if includeProxy {
@@ -364,6 +446,37 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 			Expect(resource).To(matchJQ(".attributes.http_proxy", httpProxy))
 			Expect(resource).To(matchJQ(".attributes.https_proxy", httpsProxy))
 			Expect(resource).To(matchJQ(".attributes.no_proxy", noProxy))
+		})
+
+		It("creates a cluster with additional allowed principals", func() {
+			principals := []string{
+				"arn:aws:iam::123456789012:role/example-consumer",
+				"arn:aws:iam::123456789012:role/another-consumer",
+			}
+			header := http.Header{"Content-Type": []string{"application/json"}}
+
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					verifySeaplaneAllowedPrincipalsRequest(principals),
+					RespondWith(
+						http.StatusCreated,
+						seaplaneClusterAllowedPrincipalsResponse(principals),
+						header,
+					),
+				),
+			)
+
+			Terraform.Source(seaplaneClusterAllowedPrincipalsTerraformConfig(
+				seaplaneServer.URL(), principals,
+			))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_cluster_seaplane", "test")
+			Expect(resource).To(matchJQ(".attributes.aws.additional_allowed_principals[0]", principals[0]))
+			Expect(resource).To(matchJQ(".attributes.aws.additional_allowed_principals[1]", principals[1]))
 		})
 
 		It("reports a Seaplane proxy validation failure on create", func() {
@@ -830,6 +943,102 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 			Expect(resource).To(matchJQ(".attributes.http_proxy", nil))
 			Expect(resource).To(matchJQ(".attributes.https_proxy", nil))
 			Expect(resource).To(matchJQ(".attributes.no_proxy", nil))
+		})
+
+		It("updates additional allowed principals", func() {
+			initialPrincipals := []string{
+				"arn:aws:iam::123456789012:role/example-consumer",
+			}
+			updatedPrincipals := []string{
+				"arn:aws:iam::123456789012:role/example-consumer",
+				"arn:aws:iam::123456789012:role/another-consumer",
+			}
+			clearedPrincipals := []string{}
+			initialResponse := seaplaneClusterAllowedPrincipalsResponse(initialPrincipals)
+			updatedResponse := seaplaneClusterAllowedPrincipalsResponse(updatedPrincipals)
+			clearedResponse := seaplaneClusterAllowedPrincipalsResponse(clearedPrincipals)
+			header := http.Header{"Content-Type": []string{"application/json"}}
+			updatedPrincipalsJSON, err := json.Marshal(updatedPrincipals)
+			Expect(err).NotTo(HaveOccurred())
+
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					verifySeaplaneAllowedPrincipalsRequest(initialPrincipals),
+					RespondWith(http.StatusCreated, initialResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
+					RespondWith(http.StatusOK, initialResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
+					RespondWith(http.StatusOK, initialResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/clusters/my-cluster"),
+					verifySeaplaneClusterUpdate(fmt.Sprintf(`{
+						"spec": {
+							"hostedCluster": {
+								"platform": {
+									"aws": {
+										"additionalAllowedPrincipals": %s
+									}
+								}
+							}
+						}
+					}`, string(updatedPrincipalsJSON))),
+					RespondWith(http.StatusOK, updatedResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
+					RespondWith(http.StatusOK, updatedResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/my-cluster"),
+					RespondWith(http.StatusOK, updatedResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/clusters/my-cluster"),
+					verifySeaplaneClusterUpdate(`{
+						"spec": {
+							"hostedCluster": {
+								"platform": {
+									"aws": {
+										"additionalAllowedPrincipals": null
+									}
+								}
+							}
+						}
+					}`),
+					RespondWith(http.StatusOK, clearedResponse, header),
+				),
+			)
+
+			Terraform.Source(seaplaneClusterAllowedPrincipalsTerraformConfig(
+				seaplaneServer.URL(), initialPrincipals,
+			))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			Terraform.Source(seaplaneClusterAllowedPrincipalsTerraformConfig(
+				seaplaneServer.URL(), updatedPrincipals,
+			))
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_cluster_seaplane", "test")
+			Expect(resource).To(matchJQ(".attributes.aws.additional_allowed_principals[0]", updatedPrincipals[0]))
+			Expect(resource).To(matchJQ(".attributes.aws.additional_allowed_principals[1]", updatedPrincipals[1]))
+
+			Terraform.Source(seaplaneClusterAllowedPrincipalsTerraformConfig(
+				seaplaneServer.URL(), nil,
+			))
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource = Terraform.Resource("rhcs_cluster_seaplane", "test")
+			Expect(resource).To(matchJQ(".attributes.aws.additional_allowed_principals", nil))
 		})
 	})
 

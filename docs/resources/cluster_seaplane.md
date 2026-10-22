@@ -111,7 +111,7 @@ Required:
 
 Optional:
 
-- `additional_allowed_principals` (String) Additional_allowed_principals.
+- `additional_allowed_principals` (List of String) Additional principal ARNs allowed to connect to the hosted control plane VPC Endpoint Service.
 - `availability_zone` (String) Availability_zone.
 - `endpoint_access` (String) Endpoint_access.
 - `multi_arch` (Boolean) Multi_arch.

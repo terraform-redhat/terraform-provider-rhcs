@@ -107,3 +107,9 @@ variable "component_routes" {
   type    = string
   default = null
 }
+
+variable "additional_allowed_principals" {
+  type        = list(string)
+  description = "Optional principal ARNs allowed to connect to the hosted control plane VPC Endpoint Service"
+  default     = null
+}

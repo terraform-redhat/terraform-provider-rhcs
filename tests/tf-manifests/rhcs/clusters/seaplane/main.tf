@@ -21,7 +21,7 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 
 provider "rhcs" {
-  seaplane_url = var.seaplane_url
+  seaplane_url   = var.seaplane_url
   aws_account_id = data.aws_caller_identity.current.account_id
   aws_caller_arn = data.aws_caller_identity.current.arn
 }
@@ -31,9 +31,10 @@ resource "rhcs_cluster_seaplane" "cluster" {
   operator_roles_prefix = var.operator_roles_prefix
   version               = var.release_image
   aws = {
-    aws_subnet_ids     = [var.subnet_id]
-    vpc_id             = var.vpc_id
-    availability_zones = [var.availability_zone]
+    aws_subnet_ids                = [var.subnet_id]
+    vpc_id                        = var.vpc_id
+    availability_zones            = [var.availability_zone]
+    additional_allowed_principals = var.additional_allowed_principals
   }
   expiration_timestamp               = var.expiration_timestamp
   oidc_config_id                     = var.oidc_config_id != "" ? var.oidc_config_id : null

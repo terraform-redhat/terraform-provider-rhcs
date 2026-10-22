@@ -5,12 +5,14 @@ package seaplane
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-seaplane-api/api/v1alpha1/public"
 	"github.com/openshift-online/rosa-seaplane-api/clientset/pathbind"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
@@ -131,5 +133,62 @@ func TestNodePoolResourceSchema_EC2InstanceMetadataHttpTokens(t *testing.T) {
 	}
 	if len(attribute.PlanModifiers) == 0 {
 		t.Error("ec2_instance_metadata_http_tokens should require replacement when changed")
+	}
+}
+
+// ── validateMaxUnavailable ────────────────────────────────────────────────────
+
+func TestValidateMaxUnavailable_Valid(t *testing.T) {
+	cases := []struct {
+		name  string
+		value types.String
+		// replicas is only checked when max_unavailable is a valid count
+		replicas types.Int64
+	}{
+		{"null", types.StringNull(), types.Int64Value(3)},
+		{"unknown", types.StringUnknown(), types.Int64Value(3)},
+		{"zero", types.StringValue("0"), types.Int64Value(3)},
+		{"positive count", types.StringValue("2"), types.Int64Value(3)},
+		{"count equals replicas", types.StringValue("3"), types.Int64Value(3)},
+		{"large count under limit", types.StringValue("999"), types.Int64Value(1000)},
+	}
+	for _, tc := range cases {
+		diags := validateMaxUnavailable(&NodePoolState{
+			MaxUnavailable: tc.value,
+			Replicas:       tc.replicas,
+		})
+		if diags.HasError() {
+			t.Errorf("%s: unexpected error: %v", tc.name, diags.Errors())
+		}
+	}
+}
+
+func TestValidateMaxUnavailable_Invalid(t *testing.T) {
+	cases := []struct {
+		name         string
+		value        string
+		replicas     types.Int64
+		wantContains string
+	}{
+		{"percentage", "50%", types.Int64Value(10), "percentages are not supported yet"},
+		{"negative", "-1", types.Int64Value(5), "non-negative whole number"},
+		{"float", "2.5", types.Int64Value(5), "non-negative whole number"},
+		{"not a number", "abc", types.Int64Value(5), "non-negative whole number"},
+		{"leading zero", "01", types.Int64Value(5), "non-negative whole number"},
+		{"exceeds replicas", "10", types.Int64Value(5), "cannot exceed replicas"},
+	}
+	for _, tc := range cases {
+		diags := validateMaxUnavailable(&NodePoolState{
+			MaxUnavailable: types.StringValue(tc.value),
+			Replicas:       tc.replicas,
+		})
+		if !diags.HasError() {
+			t.Errorf("%s: expected an error, got none", tc.name)
+			continue
+		}
+		detail := diags.Errors()[0].Detail()
+		if !strings.Contains(detail, tc.wantContains) {
+			t.Errorf("%s: detail = %q, want it to contain %q", tc.name, detail, tc.wantContains)
+		}
 	}
 }

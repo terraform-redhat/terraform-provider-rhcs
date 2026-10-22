@@ -53,6 +53,12 @@ variable "autoscaling" {
   default     = null
 }
 
+variable "image_type" {
+  type        = string
+  description = "Operating system image family (Linux or Windows)"
+  default     = null
+}
+
 variable "instance_type" {
   type        = string
   description = "EC2 instance type (e.g. m5.xlarge)"

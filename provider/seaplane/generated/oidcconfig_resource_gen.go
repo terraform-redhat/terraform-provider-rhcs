@@ -130,7 +130,7 @@ func (r *OidcConfigResource) Schema(
 				MarkdownDescription: "Issuer_url.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(), stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"secret_arn": schema.StringAttribute{

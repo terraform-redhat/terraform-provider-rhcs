@@ -422,16 +422,15 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "Cloud_region.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(), stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"no_cni": schema.BoolAttribute{
 				MarkdownDescription: "No_cni.",
-				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
 					boolplanmodifier.RequiresReplace(),
+					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"api_url": schema.StringAttribute{
@@ -515,7 +514,7 @@ func (r *ClusterResource) Schema(
 					"aws_partition": schema.StringAttribute{
 						MarkdownDescription: "Aws_partition.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown(), stringplanmodifier.RequiresReplace()},
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 					},
 				},
 				Required: true,

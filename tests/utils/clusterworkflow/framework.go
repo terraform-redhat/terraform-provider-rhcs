@@ -92,7 +92,7 @@ func NewNodePoolReplica(
 		if clusterName == "" {
 			clusterName = profile.Profile().GetName()
 		}
-		return NewSeaplaneNodePoolReplica(clusterName, nodePoolName, clusterID, profile.Profile().GetName())
+		return NewSeaplaneNodePoolReplica(profile, clusterName, nodePoolName, clusterID, profile.Profile().GetName())
 	default:
 		return nil, fmt.Errorf("unsupported cluster type %q for nodepool replica workflow", clusterType.String())
 	}

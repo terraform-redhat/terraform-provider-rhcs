@@ -5,8 +5,10 @@ package seaplanegenerated
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
+	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -44,6 +46,10 @@ type NodePoolHandler interface {
 	// PostExpand is called after pathbind.Expand and before the API call.
 	// Use this to set SDK fields that pathbind cannot express (enum constants, computed structs).
 	PostExpand(ctx context.Context, input *NodePoolState, obj *v1alpha1.NodePool) diag.Diagnostics
+
+	// PostPartialExpand is called after the partial update document is built and before it is marshalled.
+	// Use this to add or change SDK fields that pathbind cannot express in the raw update document.
+	PostPartialExpand(ctx context.Context, input *NodePoolState, document map[string]any) diag.Diagnostics
 
 	// PostResponse is called after API calls (Create, Read, Update, Delete).
 	// Use this for output formatting, side effects, and post-processing.
@@ -496,68 +502,128 @@ func (r *NodePoolResource) Update(
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var NodePoolPartialUpdatePaths = map[string]bool{
+		"spec.autoRepair":                                             true,
+		"spec.labels":                                                 true,
+		"spec.maxSurge":                                               true,
+		"spec.maxUnavailable":                                         true,
+		"spec.nodePool.autoScaling.max":                               true,
+		"spec.nodePool.autoScaling.min":                               true,
+		"spec.nodePool.clusterName":                                   true,
+		"spec.nodePool.config":                                        true,
+		"spec.nodePool.nodeDrainTimeout":                              true,
+		"spec.nodePool.nodeLabels":                                    true,
+		"spec.nodePool.platform.aws.ami":                              true,
+		"spec.nodePool.platform.aws.instanceProfile":                  true,
+		"spec.nodePool.platform.aws.instanceType":                     true,
+		"spec.nodePool.platform.aws.placement.capacityReservation.id": true,
+		"spec.nodePool.platform.aws.placement.capacityReservation.marketType": true,
+		"spec.nodePool.platform.aws.placement.capacityReservation.preference": true,
+		"spec.nodePool.platform.aws.placement.marketType":                     true,
+		"spec.nodePool.platform.aws.placement.spot.maxPrice":                  true,
+		"spec.nodePool.platform.aws.placement.tenancy":                        true,
+		"spec.nodePool.platform.aws.resourceTags":                             true,
+		"spec.nodePool.platform.aws.securityGroups":                           true,
+		"spec.nodePool.platform.aws.subnet.filters":                           true,
+		"spec.nodePool.platform.aws.subnet.id":                                true,
+		"spec.nodePool.release.image":                                         true,
+		"spec.nodePool.replicas":                                              true,
+		"spec.nodePool.taints":                                                true,
+		"spec.nodePool.tuningConfig":                                          true,
+	}
 
-	// Convert Terraform state to native Go struct for pathbind
-	native, conversionDiags := terraformNodePoolToNative(&plan)
-	resp.Diagnostics.Append(conversionDiags...)
+	var NodePoolClearablePartialUpdatePaths = map[string]bool{
+		"spec.autoRepair":               true,
+		"spec.nodePool.autoScaling.max": true,
+		"spec.nodePool.autoScaling.min": true,
+		"spec.nodePool.replicas":        true,
+	}
+
+	var NodePoolAutoscalingPartialUpdateAttributes = map[string]string{
+		"Max_replicas": "max_replicas",
+		"Min_replicas": "min_replicas",
+		"Enabled":      "enabled",
+	}
+
+	var priorState NodePoolState
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorState)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Fetch by account-scoped metadata.name so fields not represented in Terraform are preserved.
-	obj, err := r.Client.SeaplaneV1alpha1().NodePools().Get(ctx, plan.Name.ValueString(), hfwrappers.GetOptions{})
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to read NodePool for update", err.Error())
+	updateDocument, updateDiags := partialUpdateDocument(
+		ctx,
+		&plan,
+		&priorState,
+		reflect.TypeOf(NodePoolStateNative{}),
+		NodePoolPartialUpdatePaths,
+		NodePoolClearablePartialUpdatePaths,
+	)
+
+	appendPartialUpdateBundle(
+		ctx,
+		plan.Autoscaling,
+		priorState.Autoscaling,
+		reflect.TypeOf(NodePoolAutoscalingNative{}),
+		NodePoolAutoscalingPartialUpdateAttributes,
+		NodePoolPartialUpdatePaths,
+		NodePoolClearablePartialUpdatePaths,
+		updateDocument,
+		&updateDiags,
+	)
+
+	resp.Diagnostics.Append(updateDiags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Expand the Terraform plan into the current SDK object.
-	if err := pathbind.Expand(ctx, native, obj); err != nil {
-		resp.Diagnostics.AddError("Failed to expand plan to SDK struct", err.Error())
-		return
-	}
+	mergeResponseNodePool(&plan, &priorState)
 
-	// Call handler for setting unmappable fields
-	diags = r.Handler.PostExpand(ctx, &plan, obj)
+	diags = r.Handler.PostPartialExpand(ctx, &plan, updateDocument)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Update via API. The Platform API derives the account namespace internally.
-	updated, err := r.Client.SeaplaneV1alpha1().NodePools().Update(ctx, obj, hfwrappers.UpdateOptions{})
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to update NodePool", err.Error())
-		return
+	updated := &v1alpha1.NodePool{}
+	if len(updateDocument) != 0 {
+		body, err := json.Marshal(updateDocument)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to encode NodePool update", err.Error())
+			return
+		}
+
+		err = r.Client.SeaplaneV1alpha1().RESTClient().
+			Put().
+			Resource("nodepools").
+			Name(plan.Name.ValueString()).
+			Body(body).
+			Do(ctx).
+			Into(updated)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to update NodePool", err.Error())
+			return
+		}
+
+		var nativeState NodePoolStateNative
+		if err := pathbind.Flatten(ctx, updated, &nativeState); err != nil {
+			resp.Diagnostics.AddError("Failed to flatten API response to state", err.Error())
+			return
+		}
+
+		resp.Diagnostics.Append(r.Handler.PostResponse(ctx, updated)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		responseState, responseDiags := nativeNodePoolToTerraform(&nativeState)
+		resp.Diagnostics.Append(responseDiags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		mergeResponseNodePool(&plan, responseState)
+		r.Handler.PostFlatten(ctx, &plan, updated)
 	}
-
-	// Flatten response into native state
-	var nativeState NodePoolStateNative
-	if err := pathbind.Flatten(ctx, updated, &nativeState); err != nil {
-		resp.Diagnostics.AddError("Failed to flatten API response to state", err.Error())
-		return
-	}
-
-	// Call handler for post-processing
-	diags = r.Handler.PostResponse(ctx, updated)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Convert native state to Terraform state
-	responseState, responseDiags := nativeNodePoolToTerraform(&nativeState)
-	resp.Diagnostics.Append(responseDiags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Merge API response values into plan to preserve consumer-only fields
-	// This keeps user-provided values while adding computed fields from the API
-	mergeResponseNodePool(&plan, responseState)
-
-	// Call handler to populate computed fields and adjust state after flatten
-	r.Handler.PostFlatten(ctx, &plan, updated)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

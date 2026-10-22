@@ -17,12 +17,12 @@ terraform {
 data "aws_caller_identity" "current" {}
 
 provider "rhcs" {
-  seaplane_url = var.seaplane_url
+  seaplane_url   = var.seaplane_url
   aws_account_id = data.aws_caller_identity.current.account_id
   aws_caller_arn = data.aws_caller_identity.current.arn
 }
 
 resource "rhcs_oidcconfig_seaplane" "oidc" {
-	name = var.name
-	type = var.type
+  name = var.name
+  type = var.type
 }

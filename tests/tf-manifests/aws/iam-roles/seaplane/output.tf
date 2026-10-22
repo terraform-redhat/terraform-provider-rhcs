@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 output "oidc_provider_arn" {
-	value = aws_iam_openid_connect_provider.seaplane.arn
+  value = aws_iam_openid_connect_provider.seaplane.arn
 }
 
 output "worker_role_arn" {

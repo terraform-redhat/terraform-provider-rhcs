@@ -179,3 +179,43 @@ func TestValidateImageType_Invalid(t *testing.T) {
 		}
 	}
 }
+
+// Exercise the real SDK binding, including preserving service-managed settings
+// when expanding a size into an object fetched for an unrelated update.
+func TestNodePoolRootVolumeBinding(t *testing.T) {
+	var schemaResponse resource.SchemaResponse
+	NewNodePool().Schema(context.Background(), resource.SchemaRequest{}, &schemaResponse)
+	if _, exists := schemaResponse.Schema.Attributes["size"]; exists {
+		t.Fatal("legacy size attribute should not be exposed")
+	}
+	if _, ok := schemaResponse.Schema.Attributes["disk_size"].(schema.Int64Attribute); !ok {
+		t.Fatal("disk_size should be an integer attribute")
+	}
+	size := int64(500)
+	encrypted := true
+	obj := &v1alpha1.NodePool{
+		Spec: v1alpha1.NodePoolSpec{
+			NodePool: v1alpha1.NodePoolSpecPassthrough{
+				Platform: v1alpha1.NodePoolPlatform{
+					AWS: &v1alpha1.AWSNodePoolPlatform{
+						RootVolume: &v1alpha1.Volume{Size: 100, Type: "gp3", Encrypted: &encrypted},
+					},
+				},
+			},
+		},
+	}
+	if err := pathbind.Expand(context.Background(), &NodePoolStateNative{DiskSize: &size}, obj); err != nil {
+		t.Fatal(err)
+	}
+	volume := obj.Spec.NodePool.Platform.AWS.RootVolume
+	if volume.Size != size || volume.Type != "gp3" || volume.Encrypted == nil || !*volume.Encrypted {
+		t.Fatalf("root volume settings were not preserved: %+v", volume)
+	}
+	var native NodePoolStateNative
+	if err := pathbind.Flatten(context.Background(), obj, &native); err != nil {
+		t.Fatal(err)
+	}
+	if native.DiskSize == nil || *native.DiskSize != size {
+		t.Fatalf("flattened size = %v, want %d", native.DiskSize, size)
+	}
+}

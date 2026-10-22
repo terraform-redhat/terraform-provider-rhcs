@@ -64,4 +64,5 @@ type Profile struct {
 	AllowedRegistries              []string `ini:"allowed_registries,omitempty" json:"allowed_registries,omitempty"`
 	BlockedRegistries              []string `ini:"blocked_registries,omitempty" json:"blocked_registries,omitempty"`
 	ExternalAuthEnabled            bool     `ini:"external_auth_enabled,omitempty" json:"external_auth_enabled,omitempty"`
+	Windows                        bool     `ini:"windows,omitempty" json:"windows,omitempty"`
 }

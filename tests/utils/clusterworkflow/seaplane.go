@@ -293,10 +293,6 @@ func newExistingSeaplaneBackend(profile profilehandler.ProfileHandler) (*Backend
 	if region == "" {
 		return nil, fmt.Errorf("cannot derive AWS region from SEAPLANE_URL %q", seaplaneURL)
 	}
-	clusterName := config.GetRHCSClusterName()
-	if clusterName == "" {
-		clusterName = profile.Profile().GetName()
-	}
 	// The API cluster name may be overridden independently from the Terraform
 	// workspace name. Existing profile-managed clusters keep their Terraform
 	// state in the profile workspace, even when RHCS_CLUSTER_NAME is set.

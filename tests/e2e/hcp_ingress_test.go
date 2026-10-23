@@ -4,12 +4,17 @@
 package e2e
 
 import (
+	"strings"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
@@ -149,5 +154,40 @@ var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Expected a valid param"))
 		Expect(err.Error()).To(ContainSubstring("Options are"))
+	})
+})
+
+var _ = Describe("Shared component routes workflow", ci.Day2, ci.FeatureIngress, ci.SeaplaneValidated, func() {
+	It("updates component routes through the selected HCP or Seaplane backend", ci.High, func(ctx SpecContext) {
+		profile, err := profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).NotTo(HaveOccurred())
+		clusterType := profile.Profile().GetClusterType()
+		if clusterType != constants.ROSA_HCP && clusterType != constants.SEAPLANE {
+			Skip("component routes require a profile with cluster_type to be rosa-hcp or seaplane")
+		}
+
+		backend, err := clusterworkflow.NewExisting(profile)
+		Expect(err).NotTo(HaveOccurred())
+		before, err := backend.Lifecycle.Read(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		originalRoutes := before.ComponentRoutes
+		if originalRoutes == "" {
+			if clusterType == constants.SEAPLANE {
+				originalRoutes = "[]"
+			} else {
+				originalRoutes = "{}"
+			}
+		}
+		DeferCleanup(func() {
+			Expect(backend.Lifecycle.Update(exec.ClusterSpec{ComponentRoutes: &originalRoutes})).To(Succeed())
+		})
+
+		routes := `[{"namespace":"openshift-console","name":"console","hostname":"console-shared.example.com","servingCertKeyPairSecret":{"name":"console-tls"}}]`
+		Expect(backend.Lifecycle.Update(exec.ClusterSpec{ComponentRoutes: &routes})).To(Succeed())
+		Eventually(func() bool {
+			state, readErr := backend.Lifecycle.Read(ctx)
+			return readErr == nil && state.ComponentRoutes != "" &&
+				strings.Contains(state.ComponentRoutes, "console-shared.example.com")
+		}).WithContext(ctx).WithTimeout(5 * time.Minute).WithPolling(15 * time.Second).Should(BeTrue())
 	})
 })

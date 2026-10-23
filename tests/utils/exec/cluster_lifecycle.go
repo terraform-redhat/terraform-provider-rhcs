@@ -8,12 +8,59 @@ import (
 	"fmt"
 )
 
+// ClusterSpec contains the backend-neutral cluster settings used by shared
+// cluster e2e workflows. Nil fields are omitted during Update and therefore
+// preserve their current value.
+type ClusterSpec struct {
+	Autoscaler       *ClusterAutoscalerSpec
+	ComponentRoutes  *string
+	SchedulerProfile *string
+}
+
+// ClusterAutoscalerSpec contains the autoscaler settings shared by HCP and
+// Seaplane cluster workflows.
+type ClusterAutoscalerSpec struct {
+	MaxNodeProvisionTime *string
+	MaxNodesTotal        *int64
+	MaxPodGracePeriod    *int64
+	PodPriorityThreshold *int64
+}
+
+// ClusterState is the backend-neutral cluster state returned by Read.
+type ClusterState struct {
+	ClusterID        string
+	ClusterName      string
+	Phase            string
+	Autoscaler       *ClusterAutoscalerState
+	SchedulerProfile string
+	ComponentRoutes  string
+}
+
+// ClusterAutoscalerState contains the autoscaler settings returned by a
+// backend after create or update.
+type ClusterAutoscalerState struct {
+	MaxNodeProvisionTime string
+	MaxNodesTotal        int64
+	MaxPodGracePeriod    int64
+	PodPriorityThreshold int64
+}
+
 // ClusterReadinessLifecycle contains the provider-specific operations needed by
 // shared create/readiness e2e workflows. HCP and Seaplane adapters can
 // implement this without sharing Terraform argument structs or API clients.
 type ClusterReadinessLifecycle interface {
 	Create() (clusterID string, err error)
 	WaitReady(ctx context.Context, clusterID string) error
+}
+
+// ClusterLifecycle contains the complete backend-neutral lifecycle needed by
+// shared cluster e2e workflows. ClusterReadinessLifecycle is embedded so
+// existing create/readiness callers remain compatible while adapters are
+// migrated incrementally.
+type ClusterLifecycle interface {
+	ClusterReadinessLifecycle
+	Update(spec ClusterSpec) error
+	Read(ctx context.Context) (ClusterState, error)
 }
 
 // ClusterReadinessLifecycleFuncs adapts existing test code to the shared

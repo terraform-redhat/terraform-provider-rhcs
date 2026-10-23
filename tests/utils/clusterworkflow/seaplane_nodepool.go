@@ -32,16 +32,10 @@ type seaplaneNodePoolReplica struct {
 // parameter supplies platform-specific defaults (like Windows image type).
 func NewSeaplaneNodePoolReplica(
 	profile profilehandler.ProfileHandler, clusterName, nodePoolName, clusterID, workspace string,
-) (exec.NodePoolReplicaLifecycle, error) {
+) (*seaplaneNodePoolReplica, error) {
 	if clusterID == "" {
 		return nil, fmt.Errorf("cluster ID is required to create a Seaplane nodepool")
 	}
-	return newSeaplaneNodePoolReplica(profile, clusterName, nodePoolName, clusterID, workspace)
-}
-
-func newSeaplaneNodePoolReplica(
-	profile profilehandler.ProfileHandler, clusterName, nodePoolName, clusterID, workspace string,
-) (*seaplaneNodePoolReplica, error) {
 	seaplaneURL, err := requiredEnv("SEAPLANE_URL")
 	if err != nil {
 		return nil, err
@@ -120,11 +114,7 @@ func newSeaplaneNodePoolReplica(
 	}, nil
 }
 
-func (n *seaplaneNodePoolReplica) Create(replicas int) error {
-	n.args.Replicas = &replicas
-	_, err := n.service.Apply(n.args)
-	return err
-}
+func (n *seaplaneNodePoolReplica) Create(spec exec.NodePoolSpec) error { return n.apply(spec) }
 
 func (n *seaplaneNodePoolReplica) WaitReady(ctx context.Context) error {
 	return n.client.SeaplaneV1alpha1().NodePools().WaitUntil(
@@ -143,33 +133,45 @@ func (n *seaplaneNodePoolReplica) WaitReady(ctx context.Context) error {
 	)
 }
 
-func (n *seaplaneNodePoolReplica) UpdateReplicas(replicas int) error {
-	n.args.Replicas = &replicas
+func (n *seaplaneNodePoolReplica) Update(spec exec.NodePoolSpec) error { return n.apply(spec) }
+
+func (n *seaplaneNodePoolReplica) apply(spec exec.NodePoolSpec) error {
+	if spec.Replicas != nil && spec.Autoscaling != nil {
+		return fmt.Errorf("nodepool replicas and autoscaling are mutually exclusive")
+	}
+	if spec.Replicas != nil {
+		n.args.Replicas = spec.Replicas
+		n.args.Autoscaling = nil
+	}
+	if spec.Autoscaling != nil {
+		n.args.Replicas = nil
+		n.args.Autoscaling = spec.Autoscaling
+	}
+	if spec.EC2InstanceMetadataHttpTokens != nil {
+		n.args.EC2InstanceMetadataHttpTokens = spec.EC2InstanceMetadataHttpTokens
+	}
 	_, err := n.service.Apply(n.args)
 	return err
 }
 
-func (n *seaplaneNodePoolReplica) Replicas(ctx context.Context) (int, error) {
+func (n *seaplaneNodePoolReplica) Read(ctx context.Context) (exec.NodePoolState, error) {
 	nodePool, err := n.client.SeaplaneV1alpha1().NodePools().Get(ctx, n.name, spplatform.GetOptions{})
 	if err != nil {
-		return 0, err
+		return exec.NodePoolState{}, err
 	}
-	if nodePool.Spec.NodePool.Replicas == nil {
-		return 0, fmt.Errorf("nodepool %q returned no replicas", n.name)
+	state := exec.NodePoolState{EC2InstanceMetadataHttpTokens: string(nodePool.Spec.EC2InstanceMetadataHttpTokens)}
+	if nodePool.Spec.NodePool.Replicas != nil {
+		replicas := int(*nodePool.Spec.NodePool.Replicas)
+		state.Replicas = &replicas
 	}
-	return int(*nodePool.Spec.NodePool.Replicas), nil
-}
-
-func (n *seaplaneNodePoolReplica) SetEC2InstanceMetadataHttpTokens(value string) {
-	n.args.EC2InstanceMetadataHttpTokens = &value
-}
-
-func (n *seaplaneNodePoolReplica) EC2InstanceMetadataHttpTokens(ctx context.Context) (string, error) {
-	nodePool, err := n.client.SeaplaneV1alpha1().NodePools().Get(ctx, n.name, spplatform.GetOptions{})
-	if err != nil {
-		return "", err
+	if autoscaling := nodePool.Spec.NodePool.AutoScaling; autoscaling != nil && autoscaling.Min != nil {
+		state.Autoscaling = &exec.NodePoolAutoscalingState{
+			Enabled:     true,
+			MinReplicas: int(*autoscaling.Min),
+			MaxReplicas: int(autoscaling.Max),
+		}
 	}
-	return string(nodePool.Spec.EC2InstanceMetadataHttpTokens), nil
+	return state, nil
 }
 
 func (n *seaplaneNodePoolReplica) Destroy() error {
@@ -194,4 +196,4 @@ func (n *seaplaneNodePoolReplica) WaitDeleted(ctx context.Context) error {
 	)
 }
 
-var _ exec.NodePoolReplicaLifecycle = (*seaplaneNodePoolReplica)(nil)
+var _ exec.NodePoolLifecycle = (*seaplaneNodePoolReplica)(nil)

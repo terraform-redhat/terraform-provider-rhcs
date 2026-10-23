@@ -109,7 +109,7 @@ func (r *NodePoolResource) Schema(
 		MarkdownDescription: "Manages NodePool resources.",
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name.",
+				MarkdownDescription: "Client-selected NodePool name in <cluster>.<child> form.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -127,7 +127,7 @@ func (r *NodePoolResource) Schema(
 				Optional:            true,
 			},
 			"ec2_instance_metadata_http_tokens": schema.StringAttribute{
-				MarkdownDescription: "EC2InstanceMetadataHttpTokens.",
+				MarkdownDescription: "EC2 instance metadata HTTP token requirement. `required` enforces IMDSv2; `optional` permits IMDSv1. Defaults to `required` and is immutable after creation.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -147,7 +147,7 @@ func (r *NodePoolResource) Schema(
 				Optional:            true,
 			},
 			"cluster_name": schema.StringAttribute{
-				MarkdownDescription: "ClusterName.",
+				MarkdownDescription: "Name of the parent cluster; must match the NodePool name prefix.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -174,12 +174,16 @@ func (r *NodePoolResource) Schema(
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
+			"node_volume_detach_timeout": schema.StringAttribute{
+				MarkdownDescription: "NodeVolumeDetachTimeout.",
+				Optional:            true,
+			},
 			"ami": schema.StringAttribute{
 				MarkdownDescription: "Ami.",
 				Optional:            true,
 			},
 			"image_type": schema.StringAttribute{
-				MarkdownDescription: "ImageType.",
+				MarkdownDescription: "Operating system image family for the nodes in this pool, either `Linux` (RHCOS, the default when unset) or `Windows`. Windows pools are License Included: the hourly instance cost covers both the Windows Server OS and the Red Hat support subscription. This is baked into every instance the pool launches, so changing it replaces the node pool; add Windows capacity to an existing cluster with a second node pool.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -217,10 +221,6 @@ func (r *NodePoolResource) Schema(
 				MarkdownDescription: "Tenancy.",
 				Optional:            true,
 			},
-			"resource_tags": schema.StringAttribute{
-				MarkdownDescription: "ResourceTags.",
-				Optional:            true,
-			},
 			"size": schema.Int64Attribute{
 				MarkdownDescription: "Size.",
 				Optional:            true,
@@ -246,7 +246,7 @@ func (r *NodePoolResource) Schema(
 				Optional:            true,
 			},
 			"platform_type": schema.StringAttribute{
-				MarkdownDescription: "Platform_type.",
+				MarkdownDescription: "Platform type for the NodePool (AWS).",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -292,15 +292,20 @@ func (r *NodePoolResource) Schema(
 				},
 				Optional: true,
 			},
+			"tags": schema.MapAttribute{
+				MarkdownDescription: "Customer AWS tags applied to resources for this NodePool. They combine with Cluster tags and use the shared AWS tag budget after reserved system tags.",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
 			"cluster_id": schema.StringAttribute{
-				MarkdownDescription: "Cluster_id.",
+				MarkdownDescription: "UID of the parent cluster; validated against cluster_name.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"phase": schema.StringAttribute{
-				MarkdownDescription: "Phase.",
+				MarkdownDescription: "Current lifecycle phase of the node pool (Provisioning, Ready, Deleting).",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -309,15 +314,15 @@ func (r *NodePoolResource) Schema(
 			"autoscaling": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"max_replicas": schema.Int64Attribute{
-						MarkdownDescription: "Max_replicas.",
+						MarkdownDescription: "Maximum number of replicas when autoscaling is enabled.",
 						Optional:            true,
 					},
 					"min_replicas": schema.Int64Attribute{
-						MarkdownDescription: "Min_replicas.",
+						MarkdownDescription: "Minimum number of replicas when autoscaling is enabled.",
 						Optional:            true,
 					},
 					"enabled": schema.BoolAttribute{
-						MarkdownDescription: "Enabled.",
+						MarkdownDescription: "Enable NodePool autoscaling.",
 						Optional:            true,
 					},
 				},
@@ -694,6 +699,9 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 		diags = append(diags, collectionDiags...)
 		native.NodeLabels = values
 	}
+	if !tf.NodeVolumeDetachTimeout.IsNull() && !tf.NodeVolumeDetachTimeout.IsUnknown() {
+		native.NodeVolumeDetachTimeout = tf.NodeVolumeDetachTimeout.ValueString()
+	}
 	if !tf.Ami.IsNull() && !tf.Ami.IsUnknown() {
 		native.Ami = tf.Ami.ValueString()
 	}
@@ -723,9 +731,6 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 	}
 	if !tf.Tenancy.IsNull() && !tf.Tenancy.IsUnknown() {
 		native.Tenancy = tf.Tenancy.ValueString()
-	}
-	if !tf.ResourceTags.IsNull() && !tf.ResourceTags.IsUnknown() {
-		native.ResourceTags = tf.ResourceTags.ValueString()
 	}
 	if !tf.Size.IsNull() && !tf.Size.IsUnknown() {
 		i := tf.Size.ValueInt64()
@@ -766,6 +771,11 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 		encoded, collectionDiags := terraformObjectListToJSON(tf.Tuning_config)
 		diags = append(diags, collectionDiags...)
 		native.Tuning_config = encoded
+	}
+	if !tf.Tags.IsNull() && !tf.Tags.IsUnknown() {
+		values, collectionDiags := terraformMapToStringMap(tf.Tags)
+		diags = append(diags, collectionDiags...)
+		native.Tags = values
 	}
 	if !tf.Cluster_id.IsNull() && !tf.Cluster_id.IsUnknown() {
 		native.Cluster_id = tf.Cluster_id.ValueString()
@@ -809,6 +819,7 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 	}
 	tf.NodeDrainTimeout = toTerraformString(native.NodeDrainTimeout)
 	tf.NodeLabels = toTerraformMap(native.NodeLabels)
+	tf.NodeVolumeDetachTimeout = toTerraformString(native.NodeVolumeDetachTimeout)
 	tf.Ami = toTerraformString(native.Ami)
 	tf.ImageType = toTerraformString(native.ImageType)
 	tf.InstanceProfile = toTerraformString(native.InstanceProfile)
@@ -819,7 +830,6 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 	tf.PlacementMarketType = toTerraformString(native.PlacementMarketType)
 	tf.MaxPrice = toTerraformString(native.MaxPrice)
 	tf.Tenancy = toTerraformString(native.Tenancy)
-	tf.ResourceTags = toTerraformString(native.ResourceTags)
 	tf.Size = toTerraformInt64Ptr(normalizeOptionalInt64(native.Size))
 	{
 		var collectionDiags diag.Diagnostics
@@ -849,6 +859,7 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 		})
 		diags = append(diags, collectionDiags...)
 	}
+	tf.Tags = toTerraformMap(native.Tags)
 	tf.Cluster_id = toTerraformString(native.Cluster_id)
 	tf.Phase = toTerraformString(native.Phase)
 	{

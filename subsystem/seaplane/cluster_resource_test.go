@@ -485,9 +485,8 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
-		It("replaces the cluster when the tags change", func() {
-			// AWS resources created for the cluster cannot be retagged, so a tag
-			// change must be planned as a replacement rather than an update.
+		It("updates cluster tags in place through the Platform API", func() {
+			clusterWithUpdatedTags := strings.Replace(clusterWithTags, "cc-1234", "cc-9999", 1)
 			seaplaneServer.RouteToHandler(
 				http.MethodGet, "/api/v0/clusters/my-cluster",
 				RespondWith(http.StatusOK, clusterWithTags, header),
@@ -508,18 +507,34 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/clusters/my-cluster"),
+					verifyJQ(`.spec.tags."cost-center"`, "cc-9999"),
+					verifyJQ(`.spec.tags.environment`, "production"),
+					RespondWith(http.StatusOK, clusterWithUpdatedTags, header),
+				),
+			)
 			Terraform.Source(clusterSource(seaplaneServer.URL(), `
 					tags = {
 						"cost-center" = "cc-9999"
 						"environment" = "production"
 					}`))
 
-			runOutput = Terraform.Run("plan", "-no-color")
+			runOutput = Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
-			runOutput.VerifyOutputContainsSubstring("must be replaced")
 		})
 
 		It("rejects more tags than the Platform API accepts", func() {
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					RespondWith(http.StatusUnprocessableEntity,
+						`{"message":"rendered AWS resource tags would contain 26 entries including reserved system tags; maximum is 25"}`,
+						header),
+				),
+			)
+
 			tags := make([]string, 0, 24)
 			for i := range 24 {
 				tags = append(tags, fmt.Sprintf("    \"tag%d\" = \"value\"", i))
@@ -532,7 +547,7 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).ToNot(BeZero())
-			runOutput.VerifyErrorContainsSubstring("a maximum of 23 tags is supported, got 24")
+			runOutput.VerifyErrorContainsSubstring("Failed to create Cluster")
 		})
 
 		It("rejects a tag key reserved for AWS", func() {

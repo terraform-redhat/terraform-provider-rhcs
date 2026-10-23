@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -112,14 +111,14 @@ func (r *ClusterResource) Schema(
 		MarkdownDescription: "Manages Cluster resources.",
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name.",
+				MarkdownDescription: "Human-readable cluster name. Immutable after creation.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Id.",
+				MarkdownDescription: "Cluster UID assigned by the Platform API on creation.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -130,7 +129,7 @@ func (r *ClusterResource) Schema(
 				Optional:            true,
 			},
 			"delete_protection": schema.BoolAttribute{
-				MarkdownDescription: "Delete_protection.",
+				MarkdownDescription: "Enable or disable deletion protection for the cluster. When enabled, the cluster cannot be deleted via the API.",
 				Optional:            true,
 			},
 			"dns_reservation_id": schema.StringAttribute{
@@ -138,7 +137,7 @@ func (r *ClusterResource) Schema(
 				Optional:            true,
 			},
 			"expiration_timestamp": schema.StringAttribute{
-				MarkdownDescription: "Expiration_timestamp.",
+				MarkdownDescription: "Optional RFC3339 timestamp after which the Platform API automatically deletes the cluster.",
 				Optional:            true,
 			},
 			"role_arn": schema.StringAttribute{
@@ -168,19 +167,19 @@ func (r *ClusterResource) Schema(
 				Optional:            true,
 			},
 			"autoscaler_max_node_provision_time": schema.StringAttribute{
-				MarkdownDescription: "AutoscalerMaxNodeProvisionTime.",
+				MarkdownDescription: "Maximum time cluster-autoscaler waits for a node to be provisioned.",
 				Optional:            true,
 			},
 			"autoscaler_max_nodes_total": schema.Int64Attribute{
-				MarkdownDescription: "AutoscalerMaxNodesTotal.",
+				MarkdownDescription: "Maximum number of nodes across all node pools.",
 				Optional:            true,
 			},
 			"autoscaler_max_pod_grace_period": schema.Int64Attribute{
-				MarkdownDescription: "AutoscalerMaxPodGracePeriod.",
+				MarkdownDescription: "Maximum pod graceful termination period in seconds.",
 				Optional:            true,
 			},
 			"autoscaler_pod_priority_threshold": schema.Int64Attribute{
-				MarkdownDescription: "AutoscalerPodPriorityThreshold.",
+				MarkdownDescription: "Pod priority threshold for cluster autoscaler scale-up.",
 				Optional:            true,
 			},
 			"delay_after_add_seconds": schema.Int64Attribute{
@@ -222,7 +221,7 @@ func (r *ClusterResource) Schema(
 				Optional:            true,
 			},
 			"oidc_providers": schema.StringAttribute{
-				MarkdownDescription: "OidcProviders.",
+				MarkdownDescription: "OIDC identity provider configurations encoded as a JSON array.",
 				Optional:            true,
 			},
 			"authentication_type": schema.StringAttribute{
@@ -230,7 +229,7 @@ func (r *ClusterResource) Schema(
 				Optional:            true,
 			},
 			"component_routes": schema.StringAttribute{
-				MarkdownDescription: "ComponentRoutes.",
+				MarkdownDescription: "Custom component routes encoded as a JSON array.",
 				Optional:            true,
 			},
 			"container_log_max_files": schema.Int64Attribute{
@@ -304,7 +303,7 @@ func (r *ClusterResource) Schema(
 				Optional:            true,
 			},
 			"scheduler_profile": schema.StringAttribute{
-				MarkdownDescription: "SchedulerProfile.",
+				MarkdownDescription: "Scheduler profile used by the hosted cluster. Valid values are LowNodeUtilization, HighNodeUtilization, and NoScoring.",
 				Optional:            true,
 			},
 			"image_content_sources": schema.StringAttribute{
@@ -328,15 +327,11 @@ func (r *ClusterResource) Schema(
 				Optional:            true,
 			},
 			"subnet_id": schema.StringAttribute{
-				MarkdownDescription: "Subnet_id.",
+				MarkdownDescription: "Subnet ID for the cluster.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-			},
-			"resource_tags": schema.StringAttribute{
-				MarkdownDescription: "ResourceTags.",
-				Optional:            true,
 			},
 			"control_plane_operator_arn": schema.StringAttribute{
 				MarkdownDescription: "ControlPlaneOperatorARN.",
@@ -404,44 +399,42 @@ func (r *ClusterResource) Schema(
 				ElementType:         types.StringType,
 			},
 			"tags": schema.MapAttribute{
-				MarkdownDescription: "Tags.",
+				MarkdownDescription: "Customer AWS tags applied to resources for this cluster. Changes are applied in place. The effective budget is the AWS tag limit of 25 minus capacity reserved for system tags.",
 				Optional:            true,
 				ElementType:         types.StringType,
-				PlanModifiers: []planmodifier.Map{
-					mapplanmodifier.RequiresReplace(),
-				},
 			},
 			"operator_roles_prefix": schema.StringAttribute{
-				MarkdownDescription: "Operator_roles_prefix.",
+				MarkdownDescription: "Prefix used to construct the seven operator IAM role ARNs (e.g. a prefix of `my-cluster` produces `my-cluster-ingress`, `my-cluster-ebs-csi`, etc.). Immutable after creation.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"cloud_region": schema.StringAttribute{
-				MarkdownDescription: "Cloud_region.",
+				MarkdownDescription: "AWS region identifier (e.g. `us-east-1`). Derived from `availability_zones` if not set. Immutable after creation.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.UseStateForUnknown(), stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"no_cni": schema.BoolAttribute{
-				MarkdownDescription: "No_cni.",
+				MarkdownDescription: "Disable CNI creation to let users bring their own CNI. Cannot be changed after creation.",
+				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
 					boolplanmodifier.UseStateForUnknown(),
+					boolplanmodifier.RequiresReplace(),
 				},
 			},
 			"api_url": schema.StringAttribute{
-				MarkdownDescription: "Api_url.",
+				MarkdownDescription: "API URL of the cluster control plane endpoint.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"phase": schema.StringAttribute{
-				MarkdownDescription: "Phase.",
+				MarkdownDescription: "Current lifecycle phase of the cluster (WaitingForPlacement, Provisioning, Ready, Deleting).",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -500,21 +493,21 @@ func (r *ClusterResource) Schema(
 						Optional:            true,
 					},
 					"aws_subnet_ids": schema.ListAttribute{
-						MarkdownDescription: "Aws_subnet_ids.",
+						MarkdownDescription: "IDs of worker-node subnets. The first entry is used as the cluster subnet. Typically sourced from `data.aws_subnet`. Immutable after creation.",
 						Required:            true,
 						ElementType:         types.StringType,
 						PlanModifiers:       []planmodifier.List{listplanmodifier.RequiresReplace()},
 					},
 					"availability_zones": schema.ListAttribute{
-						MarkdownDescription: "Availability_zones.",
+						MarkdownDescription: "Availability zones for worker nodes. The first entry determines the cluster AZ. Typically sourced from `data.aws_subnet.*.availability_zone`. Immutable after creation.",
 						Required:            true,
 						ElementType:         types.StringType,
 						PlanModifiers:       []planmodifier.List{listplanmodifier.RequiresReplace()},
 					},
 					"aws_partition": schema.StringAttribute{
-						MarkdownDescription: "Aws_partition.",
+						MarkdownDescription: "AWS partition used when computing operator role ARNs. Defaults to `aws`. Set to `aws-us-gov` for GovCloud regions. Immutable after creation.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown(), stringplanmodifier.RequiresReplace()},
 					},
 				},
 				Required: true,
@@ -1116,9 +1109,6 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.Subnet_id.IsNull() && !tf.Subnet_id.IsUnknown() {
 		native.Subnet_id = tf.Subnet_id.ValueString()
 	}
-	if !tf.ResourceTags.IsNull() && !tf.ResourceTags.IsUnknown() {
-		native.ResourceTags = tf.ResourceTags.ValueString()
-	}
 	if !tf.ControlPlaneOperatorARN.IsNull() && !tf.ControlPlaneOperatorARN.IsUnknown() {
 		native.ControlPlaneOperatorARN = tf.ControlPlaneOperatorARN.ValueString()
 	}
@@ -1276,7 +1266,6 @@ func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.D
 	tf.Port = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.Port))
 	tf.Filters = toTerraformString(native.Filters)
 	tf.Subnet_id = toTerraformString(native.Subnet_id)
-	tf.ResourceTags = toTerraformString(native.ResourceTags)
 	tf.ControlPlaneOperatorARN = toTerraformString(native.ControlPlaneOperatorARN)
 	tf.ImageRegistryARN = toTerraformString(native.ImageRegistryARN)
 	tf.AwsRolesRefIngressARN = toTerraformString(native.AwsRolesRefIngressARN)

@@ -60,7 +60,6 @@ type ClusterStateNative struct {
 	Port                           *int32            `hfsdk:"spec.hostedCluster.networking.apiServer.port"`
 	Filters                        string            `hfsdk:"spec.hostedCluster.platform.aws.cloudProviderConfig.subnet.filters"`
 	Subnet_id                      string            `hfsdk:"spec.hostedCluster.platform.aws.cloudProviderConfig.subnet.id"`
-	ResourceTags                   string            `hfsdk:"spec.hostedCluster.platform.aws.resourceTags"`
 	ControlPlaneOperatorARN        string            `hfsdk:"spec.hostedCluster.platform.aws.rolesRef.controlPlaneOperatorARN"`
 	ImageRegistryARN               string            `hfsdk:"spec.hostedCluster.platform.aws.rolesRef.imageRegistryARN"`
 	AwsRolesRefIngressARN          string            `hfsdk:"spec.hostedCluster.platform.aws.rolesRef.ingressARN"`

@@ -19,6 +19,7 @@ type NodePoolStateNative struct {
 	Config                        string            `hfsdk:"spec.nodePool.config"`
 	NodeDrainTimeout              string            `hfsdk:"spec.nodePool.nodeDrainTimeout"`
 	NodeLabels                    map[string]string `hfsdk:"spec.nodePool.nodeLabels"`
+	NodeVolumeDetachTimeout       string            `hfsdk:"spec.nodePool.nodeVolumeDetachTimeout"`
 	Ami                           string            `hfsdk:"spec.nodePool.platform.aws.ami"`
 	ImageType                     string            `hfsdk:"spec.nodePool.platform.aws.imageType"`
 	InstanceProfile               string            `hfsdk:"spec.nodePool.platform.aws.instanceProfile"`
@@ -29,7 +30,6 @@ type NodePoolStateNative struct {
 	PlacementMarketType           string            `hfsdk:"spec.nodePool.platform.aws.placement.marketType"`
 	MaxPrice                      string            `hfsdk:"spec.nodePool.platform.aws.placement.spot.maxPrice"`
 	Tenancy                       string            `hfsdk:"spec.nodePool.platform.aws.placement.tenancy"`
-	ResourceTags                  string            `hfsdk:"spec.nodePool.platform.aws.resourceTags"`
 	Size                          *int64            `hfsdk:"spec.nodePool.platform.aws.rootVolume.size"`
 	Additional_security_group_ids string            `hfsdk:"spec.nodePool.platform.aws.securityGroups"`
 	Filters                       string            `hfsdk:"spec.nodePool.platform.aws.subnet.filters"`
@@ -39,6 +39,7 @@ type NodePoolStateNative struct {
 	Replicas                      *int32            `hfsdk:"spec.nodePool.replicas"`
 	Taints                        string            `hfsdk:"spec.nodePool.taints"`
 	Tuning_config                 string            `hfsdk:"spec.nodePool.tuningConfig"`
+	Tags                          map[string]string `hfsdk:"spec.tags"`
 	Cluster_id                    string            `hfsdk:"-"`
 	Phase                         string            `hfsdk:"-"`
 	Autoscaling                   NodePoolAutoscalingNative

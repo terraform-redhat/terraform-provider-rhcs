@@ -6,6 +6,7 @@ package clusterworkflow
 import (
 	"context"
 	"fmt"
+	"maps"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -105,6 +106,9 @@ func (n *hcpNodePoolReplica) apply(spec exec.NodePoolSpec) error {
 	if spec.EC2InstanceMetadataHttpTokens != nil {
 		n.args.Ec2MetadataHttpTokens = spec.EC2InstanceMetadataHttpTokens
 	}
+	if spec.Tags != nil {
+		n.args.Tags = spec.Tags
+	}
 	_, err := n.service.Apply(n.args)
 	return err
 }
@@ -125,11 +129,33 @@ func (n *hcpNodePoolReplica) Read(_ context.Context) (exec.NodePoolState, error)
 	}
 	if nodePool.AWSNodePool() != nil {
 		state.EC2InstanceMetadataHttpTokens = string(nodePool.AWSNodePool().Ec2MetadataHttpTokens())
+		state.Tags = nodePool.AWSNodePool().Tags()
 	}
 	return state, nil
 }
 
 var _ exec.NodePoolLifecycle = (*hcpNodePoolReplica)(nil)
+
+func (n *hcpNodePoolReplica) WaitTagsApplied(ctx context.Context, expected map[string]string) error {
+	return wait.PollUntilContextTimeout(
+		ctx,
+		15*time.Second,
+		10*time.Minute,
+		true,
+		func(ctx context.Context) (bool, error) {
+			state, err := n.Read(ctx)
+			if err != nil {
+				log.Logger.Infof("[hcp] nodepool %s tags are not available yet: %v", n.name, err)
+				return false, nil
+			}
+			if !maps.Equal(state.Tags, expected) {
+				log.Logger.Infof("[hcp] nodepool %s tags have not converged yet", n.name)
+				return false, nil
+			}
+			return true, nil
+		},
+	)
+}
 
 func (n *hcpNodePoolReplica) Destroy() error {
 	_, err := n.service.Destroy()

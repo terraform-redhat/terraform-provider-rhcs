@@ -6,8 +6,11 @@ package clusterworkflow
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1alpha1 "github.com/openshift-online/rosa-seaplane-api/api/v1alpha1/public"
 	seaplane "github.com/openshift-online/rosa-seaplane-api/clientset"
@@ -150,6 +153,9 @@ func (n *seaplaneNodePoolReplica) apply(spec exec.NodePoolSpec) error {
 	if spec.EC2InstanceMetadataHttpTokens != nil {
 		n.args.EC2InstanceMetadataHttpTokens = spec.EC2InstanceMetadataHttpTokens
 	}
+	if spec.Tags != nil {
+		n.args.Tags = *spec.Tags
+	}
 	_, err := n.service.Apply(n.args)
 	return err
 }
@@ -159,7 +165,10 @@ func (n *seaplaneNodePoolReplica) Read(ctx context.Context) (exec.NodePoolState,
 	if err != nil {
 		return exec.NodePoolState{}, err
 	}
-	state := exec.NodePoolState{EC2InstanceMetadataHttpTokens: string(nodePool.Spec.EC2InstanceMetadataHttpTokens)}
+	state := exec.NodePoolState{
+		EC2InstanceMetadataHttpTokens: string(nodePool.Spec.EC2InstanceMetadataHttpTokens),
+		Tags:                          nodePool.Spec.Tags,
+	}
 	if nodePool.Spec.NodePool.Replicas != nil {
 		replicas := int(*nodePool.Spec.NodePool.Replicas)
 		state.Replicas = &replicas
@@ -172,6 +181,44 @@ func (n *seaplaneNodePoolReplica) Read(ctx context.Context) (exec.NodePoolState,
 		}
 	}
 	return state, nil
+}
+
+func (n *seaplaneNodePoolReplica) WaitTagsApplied(ctx context.Context, expected map[string]string) error {
+	err := n.client.SeaplaneV1alpha1().NodePools().WaitUntil(
+		ctx,
+		n.name,
+		func(nodePool *v1alpha1.NodePool) bool {
+			if nodePool == nil {
+				log.Logger.Infof("[seaplane] nodepool %s not found while waiting for tags", n.name)
+				return false
+			}
+
+			synced := false
+			for _, condition := range nodePool.Status.Conditions {
+				if condition.Type == "Synced" {
+					synced = condition.Status == metav1.ConditionTrue &&
+						condition.ObservedGeneration == nodePool.Generation
+					break
+				}
+			}
+			tagsMatch := maps.Equal(nodePool.Spec.Tags, expected)
+			statusCurrent := nodePool.Status.ObservedGeneration == nodePool.Generation
+			log.Logger.Infof(
+				"[seaplane] nodepool %s tags applied: synced=%t statusCurrent=%t tagsMatch=%t",
+				n.name,
+				synced,
+				statusCurrent,
+				tagsMatch,
+			)
+			return synced && statusCurrent && tagsMatch
+		},
+		15*time.Second,
+		10*time.Minute,
+	)
+	if err != nil {
+		return fmt.Errorf("wait for Seaplane NodePool %q tags to be applied: %w", n.name, err)
+	}
+	return nil
 }
 
 func (n *seaplaneNodePoolReplica) Destroy() error {

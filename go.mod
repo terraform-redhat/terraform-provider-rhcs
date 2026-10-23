@@ -23,8 +23,8 @@ require (
 	github.com/onsi/gomega v1.43.0
 	github.com/openshift-online/ocm-common v0.0.46
 	github.com/openshift-online/ocm-sdk-go v0.1.517
-	github.com/openshift-online/rosa-seaplane-api/api v0.1.23-0.20261021073928-a021db627f75
-	github.com/openshift-online/rosa-seaplane-api/clientset v0.1.21-0.20261021073928-a021db627f75
+	github.com/openshift-online/rosa-seaplane-api/api v0.1.25
+	github.com/openshift-online/rosa-seaplane-api/clientset v0.1.23
 	github.com/openshift/hypershift/api v0.0.0-20260803100438-deb947936de7
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4

@@ -542,54 +542,6 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			}
 		})
 
-	It("can be created with tags - [id:72510]",
-		ci.Critical, func() {
-			By("Create machinepool")
-			replicas := 3
-			machineType := profileHandler.Profile().GetComputeMachineType()
-			name := helper.GenerateRandomName("np-72510", 2)
-			subnetId := vpcOutput.PrivateSubnets[0]
-			tags := map[string]string{
-				"aaa": "bbb",
-				"ccc": "ddd",
-			}
-			mpArgs := &exec.MachinePoolArgs{
-				Cluster:            new(clusterID),
-				AutoscalingEnabled: new(false),
-				Replicas:           new(replicas),
-				Name:               new(name),
-				SubnetID:           new(subnetId),
-				MachineType:        new(machineType),
-				AutoRepair:         new(true),
-				Tags:               new(tags),
-			}
-			_, err := mpService.Apply(mpArgs)
-			Expect(err).ToNot(HaveOccurred())
-
-			By("Verify tags are correctly set")
-			mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("aaa", "bbb"))
-			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("ccc", "ddd"))
-
-			By("Remove machinepool")
-			_, err = mpService.Destroy()
-			Expect(err).ToNot(HaveOccurred())
-
-			By("Create machinepool with empty tags")
-			name = helper.GenerateRandomName("np-72510", 2)
-			tags = map[string]string{}
-			mpArgs.Name = new(name)
-			mpArgs.Tags = new(tags)
-			_, err = mpService.Apply(mpArgs)
-			Expect(err).ToNot(HaveOccurred())
-
-			By("Verify tags are correctly set")
-			output, err := mpService.Output()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(output.MachinePools[0].Tags)).To(Equal(0))
-		})
-
 	It("can be created with tuning configs - [id:72508]",
 		ci.High, func() {
 			var tuningconfigs []string
@@ -1531,5 +1483,61 @@ var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, ci.
 			return assertAutoscaling(updatedMin, updatedMax)
 		}).WithContext(ctx).WithTimeout(5 * time.Minute).WithPolling(30 * time.Second).
 			Should(BeTrue())
+	})
+
+	It("creates and updates root AWS tags", ci.Day2, ci.FeatureMachinepool, ci.SeaplaneValidated, func(ctx SpecContext) {
+		profile, err := profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).NotTo(HaveOccurred())
+		if clusterID == "" {
+			Skip("an existing cluster ID is required for the nodepool tag workflow")
+		}
+		clusterType := profile.Profile().GetClusterType()
+		nodePool, err := clusterworkflow.NewNodePool(
+			profile,
+			clusterID,
+			helper.GenerateRandomName("np-tags", 2),
+		)
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(func(cleanupCtx SpecContext) {
+			Expect(nodePool.Destroy()).To(Succeed())
+			if config.IsWaitForNodePoolDeletion() {
+				Expect(nodePool.WaitDeleted(cleanupCtx)).To(Succeed())
+			}
+		})
+
+		initialTags := map[string]string{
+			"environment": "test",
+			"team":        "compute",
+			"obsolete":    "remove-me",
+		}
+		replicas := 1
+		Expect(nodePool.Create(exec.NodePoolSpec{Replicas: &replicas, Tags: &initialTags})).To(Succeed())
+		Expect(nodePool.WaitReady(ctx)).To(Succeed())
+		By("Wait for the initial tags to be applied")
+		Expect(nodePool.WaitTagsApplied(ctx, initialTags)).To(Succeed())
+
+		By("Verify root-level tags are applied at creation")
+		state, err := nodePool.Read(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(state.Tags).To(Equal(initialTags))
+		if clusterType.String() != constants.SEAPLANE.String() {
+			Skip("the HCP backend keeps machine-pool tags immutable")
+		}
+
+		updatedTags := map[string]string{
+			"environment": "production",
+			"team":        "compute",
+			"cost-center": "cc-1234",
+		}
+		By("Update the root-level tags in place, adding and removing keys")
+		Expect(nodePool.Update(exec.NodePoolSpec{Tags: &updatedTags})).To(Succeed())
+		By("Wait for the updated tags to be applied")
+		Expect(nodePool.WaitTagsApplied(ctx, updatedTags)).To(Succeed())
+
+		By("Verify the updated tags replace the previous map")
+		state, err = nodePool.Read(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(state.Tags).To(Equal(updatedTags))
+		Expect(state.Tags).NotTo(HaveKey("obsolete"))
 	})
 })

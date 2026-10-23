@@ -15,6 +15,7 @@ type NodePoolSpec struct {
 	Replicas                      *int
 	Autoscaling                   *NodePoolAutoscaling
 	EC2InstanceMetadataHttpTokens *string
+	Tags                          *map[string]string
 }
 
 // NodePoolState is the backend-neutral representation returned by Read.
@@ -22,6 +23,7 @@ type NodePoolState struct {
 	Replicas                      *int
 	Autoscaling                   *NodePoolAutoscalingState
 	EC2InstanceMetadataHttpTokens string
+	Tags                          map[string]string
 }
 
 type NodePoolAutoscalingState struct {
@@ -37,6 +39,7 @@ type NodePoolLifecycle interface {
 	Update(spec NodePoolSpec) error
 	WaitReady(ctx context.Context) error
 	Read(ctx context.Context) (NodePoolState, error)
+	WaitTagsApplied(ctx context.Context, tags map[string]string) error
 	Destroy() error
 	WaitDeleted(ctx context.Context) error
 }

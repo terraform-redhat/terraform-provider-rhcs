@@ -184,16 +184,13 @@ resources:
         alias: availability_zone
         type: string
         bundle: aws
-      - path: spec.hostedCluster.platform.aws.resourceTags
-        type: string
       - path: spec.hostedCluster.platform.aws.serviceEndpoints
         type: string
       - path: spec.properties
         type: map
       - path: spec.tags
         type: map
-        immutable: true
-        description: "Customer AWS tags applied to the AWS resources created for this cluster. Applied at provisioning time only — AWS resources created by OpenShift cannot be retagged — so changing them replaces the cluster. A maximum of 23 tags is supported."
+        description: "Customer AWS tags applied to resources for this cluster. Changes are applied in place. The effective budget is the AWS tag limit of 25 minus capacity reserved for system tags."
 
       # computed fields — read-only from API response
       - path: metadata.uid
@@ -297,8 +294,6 @@ resources:
         type: string
         immutable: true
         description: "Operating system image family for the nodes in this pool, either `Linux` (RHCOS, the default when unset) or `Windows`. Windows pools are License Included: the hourly instance cost covers both the Windows Server OS and the Red Hat support subscription. This is baked into every instance the pool launches, so changing it replaces the node pool; add Windows capacity to an existing cluster with a second node pool."
-      - path: spec.nodePool.platform.aws.resourceTags
-        type: string
       - path: spec.nodePool.platform.aws.securityGroups
         alias: additional_security_group_ids
         description: "Additional AWS security group IDs to attach to node pool instances."
@@ -311,6 +306,9 @@ resources:
               description: "AWS security group ID (for example sg-0a1b2c3d)."
       - path: spec.nodePool.platform.aws.subnet.filters
         type: string
+      - path: spec.tags
+        type: map
+        description: "Customer AWS tags applied to resources for this NodePool. They combine with Cluster tags and use the shared AWS tag budget after reserved system tags."
 
       - alias: cluster_id
         type: string

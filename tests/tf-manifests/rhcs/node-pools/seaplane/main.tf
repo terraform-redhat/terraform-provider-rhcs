@@ -37,5 +37,6 @@ resource "rhcs_nodepool_seaplane" "nodepool" {
   ec2_instance_metadata_http_tokens = var.ec2_instance_metadata_http_tokens
   image_type                        = var.image_type
   labels                            = var.labels
+  tags                              = var.tags
   autoscaling                       = var.autoscaling
 }

@@ -271,7 +271,12 @@ func (f *seaplaneFetcher) FetchClusterID(ctx context.Context) (string, error) {
 		return "", err
 	}
 	if string(cluster.UID) != clusterID {
-		return "", fmt.Errorf("configured Seaplane cluster ID %q does not match cluster %q UID %q", clusterID, f.clusterName, cluster.UID)
+		return "", fmt.Errorf(
+			"configured Seaplane cluster ID %q does not match cluster %q UID %q",
+			clusterID,
+			f.clusterName,
+			cluster.UID,
+		)
 	}
 	return clusterID, nil
 }
@@ -287,10 +292,6 @@ func newExistingSeaplaneBackend(profile profilehandler.ProfileHandler) (*Backend
 	}
 	if region == "" {
 		return nil, fmt.Errorf("cannot derive AWS region from SEAPLANE_URL %q", seaplaneURL)
-	}
-	clusterName := config.GetRHCSClusterName()
-	if clusterName == "" {
-		clusterName = profile.Profile().GetName()
 	}
 	// The API cluster name may be overridden independently from the Terraform
 	// workspace name. Existing profile-managed clusters keep their Terraform
@@ -313,7 +314,7 @@ func newExistingSeaplaneBackend(profile profilehandler.ProfileHandler) (*Backend
 
 func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string) (*Backend, error) {
 	if !profile.Profile().IsBYOVPC() {
-		return nil, fmt.Errorf("Seaplane cluster profiles must set byovpc: true")
+		return nil, fmt.Errorf("seaplane cluster profiles must set byovpc: true")
 	}
 	releaseImage, err := requiredEnv(config.EnvSeaplaneReleaseImage)
 	if err != nil {
@@ -430,7 +431,7 @@ func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string)
 	var proxyOutput *exec.ProxyOutput
 	if profile.Profile().IsProxy() {
 		if publicSubnetID == "" {
-			return nil, fmt.Errorf("Seaplane proxy profile requires a public subnet in VPC %s", vpcID)
+			return nil, fmt.Errorf("seaplane proxy profile requires a public subnet in VPC %s", vpcID)
 		}
 		proxyService, err = exec.NewProxyService(workspace+"-proxy", profile.Profile().GetClusterType())
 		if err != nil {
@@ -457,7 +458,7 @@ func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string)
 		}
 		if proxies == nil || len(proxies.Proxies) == 0 {
 			return nil, cleanupSeaplaneProxyOnError(
-				proxyService, fmt.Errorf("Seaplane proxy Terraform output has no endpoints"),
+				proxyService, fmt.Errorf("seaplane proxy Terraform output has no endpoints"),
 			)
 		}
 		proxyOutput = proxies.Proxies[0]
@@ -503,8 +504,8 @@ func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string)
 		AutoscalerPodPriorityThreshold: podPriority,
 		ComponentRoutes:                componentRoutesValue,
 	}
-	// Customer AWS tags are applied at provisioning time only, so they can only
-	// be set on create.
+	// Set the profile's initial customer AWS tags. They can be updated in place
+	// after the cluster is created.
 	if profile.Profile().IsTagging() {
 		tags := profilehandler.Tags
 		clusterArgs.Tags = &tags
@@ -534,14 +535,19 @@ func (b *seaplaneBackend) FetchClusterID(ctx context.Context) (string, error) {
 		clusterName = *b.args.ClusterName
 	}
 	if clusterName == "" {
-		return "", fmt.Errorf("Seaplane cluster name is required to validate cluster ID %q", clusterID)
+		return "", fmt.Errorf("seaplane cluster name is required to validate cluster ID %q", clusterID)
 	}
 	cluster, err := b.client.SeaplaneV1alpha1().Clusters().Get(ctx, clusterName, spplatform.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 	if string(cluster.UID) != clusterID {
-		return "", fmt.Errorf("configured Seaplane cluster ID %q does not match cluster %q UID %q", clusterID, clusterName, cluster.UID)
+		return "", fmt.Errorf(
+			"configured Seaplane cluster ID %q does not match cluster %q UID %q",
+			clusterID,
+			clusterName,
+			cluster.UID,
+		)
 	}
 	return clusterID, nil
 }
@@ -686,7 +692,7 @@ func (b *seaplaneBackend) WaitReady(ctx context.Context, _ string) error {
 		clusterName = *b.args.ClusterName
 	}
 	if clusterName == "" {
-		return fmt.Errorf("Seaplane cluster name is required while waiting for Ready")
+		return fmt.Errorf("seaplane cluster name is required while waiting for Ready")
 	}
 	return b.client.SeaplaneV1alpha1().Clusters().WaitUntil(
 		ctx,

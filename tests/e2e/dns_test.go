@@ -4,15 +4,21 @@
 package e2e
 
 import (
+	"os"
+	"regexp"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
+
+var seaplaneRegionRE = regexp.MustCompile(`[a-z]+-(?:[a-z]+-)+\d+`)
 
 var _ = Describe("DNS Domain", func() {
 	var (
@@ -40,12 +46,21 @@ var _ = Describe("DNS Domain", func() {
 
 	It("can create and destroy dnsdomain - [id:67570]",
 		ci.Day2, ci.Medium, ci.FeatureIDP, func() {
-			if profileHandler.Profile().IsHCP() {
-				Skip("Test can run only on Classic cluster")
+			dnsArgs := &exec.DnsDomainArgs{}
+			if profileHandler.Profile().GetClusterType() == constants.SEAPLANE {
+				seaplaneURL := os.Getenv("SEAPLANE_URL")
+				Expect(seaplaneURL).NotTo(BeEmpty(), "SEAPLANE_URL is required for Seaplane DNS domain tests")
+				awsRegion := seaplaneRegionRE.FindString(seaplaneURL)
+				if awsRegion == "" {
+					awsRegion = profileHandler.Profile().GetRegion()
+				}
+				Expect(awsRegion).NotTo(BeEmpty(), "cannot derive AWS region from SEAPLANE_URL")
+				dnsArgs.SeaplaneURL = &seaplaneURL
+				dnsArgs.AWSRegion = &awsRegion
 			}
 
 			By("Create/Apply dns-domain resource by terraform")
-			_, err := dnsService.Apply(&exec.DnsDomainArgs{})
+			_, err := dnsService.Apply(dnsArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Destroy dns-domain resource by terraform")

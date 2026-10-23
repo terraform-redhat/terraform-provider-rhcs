@@ -58,6 +58,8 @@ type ClusterState struct {
 	HttpsProxy                     types.String `tfsdk:"https_proxy"`
 	NoProxy                        types.String `tfsdk:"no_proxy"`
 	SchedulerProfile               types.String `tfsdk:"scheduler_profile"`
+	BaseDNSDomain                  types.String `tfsdk:"base_dns_domain"`
+	BaseDomainPrefix               types.String `tfsdk:"base_domain_prefix"`
 	ImageContentSources            types.String `tfsdk:"image_content_sources"`
 	AllocateNodeCIDRs              types.String `tfsdk:"allocate_node_cidrs"`
 	AdvertiseAddress               types.String `tfsdk:"advertise_address"`

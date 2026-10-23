@@ -1,6 +1,6 @@
 # Seaplane resources
 
-This document covers the architecture, file layout, schema design, and test strategy for the Seaplane resources (`rhcs_cluster_seaplane` and `rhcs_nodepool_seaplane`). It also records the deliberate gaps relative to their HCP equivalents and the reasons behind them.
+This document covers the architecture, file layout, schema design, and test strategy for the Seaplane resources (`rhcs_cluster_seaplane`, `rhcs_nodepool_seaplane`, `rhcs_oidcconfig_seaplane`, and `rhcs_dns_domain_seaplane`). It also records the deliberate gaps relative to their HCP equivalents and the reasons behind them.
 
 ## What is Seaplane
 
@@ -29,11 +29,23 @@ The Seaplane API annotates every HyperShift field with `+seaplane:write-mode`:
 
 Fields marked `service-set` cannot be exposed as writable resource attributes. See the gap tables below for the full breakdown.
 
-### Subsystem test layer covers provider-config diagnostics only
+### Custom DNS domains use the Platform API reservation flow
+`rhcs_dns_domain_seaplane` reserves an account-scoped HCP DNS domain through
+`/api/v0/dns_domains`. The reservation ID is the generated base domain. The API
+does not expose an individual GET route, so Terraform refreshes by listing the
+account's reservations and matching the ID. Deletes treat an already-missing
+domain as success so Terraform destroy is idempotent.
+
+Pass the reservation ID to `rhcs_cluster_seaplane.base_dns_domain` to use it for
+cluster ingress. `base_domain_prefix` optionally controls the subdomain prefix.
+Both fields are create-time only and replace the cluster when changed.
+
+### Subsystem tests cover provider-config diagnostics and DNS CRUD
 The standard `subsystem/hcp/` and `subsystem/classic/` suites rely on a stubbed OCM HTTP server (`TestServer`). The Seaplane Platform API uses a Kubernetes API server wire protocol, so the subsystem suite covers the provider flow against a local HTTP stub:
 - `seaplane_url` absent from the provider block → descriptive error.
 - `seaplane_url` set but `aws_account_id` missing → descriptive error.
 - `aws_region` contradicting the region in `seaplane_url` → "AWS region mismatch" error.
+- `rhcs_dns_domain_seaplane` create, list-based refresh, import, and delete against a local HTTP stub.
 
 Full field-mapping and CRUD coverage is provided by:
 - Unit tests in `provider/seaplane/*_test.go` (state mapping, `buildNodePoolSpec`, `populateState`).
@@ -69,12 +81,12 @@ Both resources implement `ResourceWithImportState`. The cluster resource imports
 
 ```
 provider/seaplane/
-├── resource.go               # rhcs_cluster_seaplane — Schema, CRUD, ImportState
-├── state.go                  # ClusterSeaplaneState struct with tfsdk tags
-├── resource_test.go          # Unit tests for populateState, computeRolesRef
-├── nodepool_resource.go      # rhcs_nodepool_seaplane — Schema, CRUD, ImportState
-├── nodepool_state.go         # NodePoolSeaplaneState, NPAWSNodePool structs
-└── nodepool_resource_test.go # Unit tests for buildNodePoolSpec, populateNodePoolState
+├── generated/                # pathbind-generated cluster, nodepool, and OIDC resources
+├── cluster_handler.go        # rhcs_cluster_seaplane handler and validation
+├── nodepool_handler.go       # rhcs_nodepool_seaplane handler and validation
+├── dnsdomain_resource.go     # rhcs_dns_domain_seaplane — Schema, CRUD, ImportState
+├── dnsdomain_client.go       # Platform API DNS-domain reservation client
+└── dnsdomain_resource_test.go
 
 tests/e2e/seaplane/
 ├── suite_test.go             # Ginkgo suite registration (TestSeaplaneSanity)
@@ -112,6 +124,8 @@ The `manifests.GetSeaplane*ManifestsDir()` helpers in `tests/utils/exec/manifest
 | `aws_subnet_ids` | list(string) | R | yes | Worker subnet IDs; first entry used as cluster subnet |
 | `vpc_id` | string | R | yes | VPC containing the worker subnet |
 | `availability_zones` | list(string) | R | yes | Worker AZs; first entry used |
+| `base_dns_domain` | string | O | yes | Reserved HCP DNS domain ID used for cluster ingress |
+| `base_domain_prefix` | string | O | yes | Optional subdomain prefix; empty string omits the prefix |
 | `expiration_timestamp` | string | O | no | RFC3339; platform auto-deletes cluster at this time |
 | `aws_partition` | string | O/C | yes | Default `aws`; set to `aws-us-gov` for GovCloud |
 | `cloud_region` | string | O/C | yes | Derived from `availability_zones` if unset |
@@ -123,6 +137,15 @@ The `manifests.GetSeaplane*ManifestsDir()` helpers in `tests/utils/exec/manifest
 | `oidc_issuer` | string | C | — | OIDC issuer URL; use to create OIDC provider + trust policies |
 
 R=Required, O=Optional, C=Computed.
+
+### `rhcs_dns_domain_seaplane`
+
+| Attribute | Type | R/O/C | Immutable | Notes |
+|---|---|---|---|---|
+| `id` | string | C | — | Reserved base domain returned by the Platform API |
+| `cluster_arch` | string | O/C | yes | Defaults to `hcp`; Seaplane supports HCP only |
+
+Import format: the reserved DNS domain ID (for example, `abcd.0.example.com`).
 
 ### `rhcs_nodepool_seaplane`
 
@@ -145,7 +168,7 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 
 ## HCP parity gap analysis
 
-### `rhcs_cluster_seaplane` vs `rhcs_cluster_rosa_hcp`
+### `rhcs_cluster_seaplane` compared with `rhcs_cluster_rosa_hcp`
 
 #### Fields that CAN be added (mutable in passthrough)
 
@@ -176,7 +199,7 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 | HCP attribute | Reason |
 |---|---|
 | `sts` | OCM auth model; Seaplane uses ambient AWS credentials |
-| `domain_prefix` / `base_dns_domain` / `domain` | OCM DNS management |
+| `domain_prefix` | OCM DNS management; Seaplane uses `base_dns_domain` / `base_domain_prefix` |
 | `version` / `current_version` / `upgrade_acknowledgements_for` | OCM-driven upgrade pipeline |
 | `autoscaling_enabled` / `replicas` / `compute_machine_type` / `min_replicas` / `max_replicas` / `worker_disk_size` / `ec2_metadata_http_tokens` | Default machine pool concept — Seaplane uses explicit nodepools |
 | `aws_account_id` / `aws_billing_account_id` | Comes from provider config |
@@ -189,11 +212,11 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 
 #### Seaplane-only fields (no HCP equivalent)
 
-`operator_roles_prefix`, `vpc_id`, `expiration_timestamp`, `phase` (vs HCP's `state`), `management_cluster`, `aws_partition`, `creator_arn`
+`operator_roles_prefix`, `vpc_id`, `expiration_timestamp`, `phase` (compared with HCP's `state`), `management_cluster`, `aws_partition`, `creator_arn`
 
 ---
 
-### `rhcs_nodepool_seaplane` vs `rhcs_hcp_machine_pool`
+### `rhcs_nodepool_seaplane` compared with `rhcs_hcp_machine_pool`
 
 #### Fields that CAN be added (mutable in passthrough)
 
@@ -239,7 +262,9 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 |---|---|---|
 | Unit (cluster) | `provider/seaplane/cluster_resource_test.go` | Resource schema, tag validation, `computeRolesRef` / `prefixAndPartitionFromRolesRef` round-trips |
 | Unit (nodepool) | `provider/seaplane/nodepool_resource_test.go` | Native `resource_tags` path and nodepool state mapping |
-| Subsystem | `subsystem/seaplane/cluster_resource_test.go` | Provider-config diagnostics |
+| Unit (DNS domain) | `provider/seaplane/dnsdomain_resource_test.go` | Platform API routes, create/list matching, and delete behavior |
+| Subsystem | `subsystem/seaplane/` | Provider-config diagnostics, cluster custom DNS mapping, and DNS-domain CRUD/import |
+| E2E (DNS domain) | `tests/e2e/dns_test.go` | Create and destroy through the generic Classic/HCP/Seaplane DNS manifest |
 | E2E sanity | `tests/e2e/seaplane/sanity_test.go` | Full create/read/destroy cycle: VPC → cluster (wait Ready) → IAM → two nodepools (wait Ready) → replica scale → LIFO teardown |
 
 Run the E2E suite:
@@ -263,7 +288,7 @@ The following scenarios are not covered today:
 
 | Gap | Priority | Notes |
 |---|---|---|
-| Subsystem CRUD coverage | High | The `subsystem/seaplane/` suite exercises provider configuration; additional CRUD coverage needs a Seaplane API stub (fake Kubernetes API server or interface mock). |
+| Cluster and nodepool CRUD coverage | High | The DNS-domain resource now has subsystem CRUD coverage; cluster and nodepool CRUD still need broader apply/update coverage against the stub. |
 | Cluster `expiration_timestamp` update | Medium | The only mutable cluster field besides future additions; currently only exercised implicitly. |
 | Nodepool `labels` update | Medium | Mutable but not exercised via apply after creation. |
 | Nodepool `auto_repair` update | Medium | Mutable but not covered in e2e. |

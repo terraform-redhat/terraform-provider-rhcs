@@ -62,6 +62,25 @@ func verifySeaplaneProxyRequest(httpProxy, httpsProxy, noProxy string) http.Hand
 	}
 }
 
+func verifySeaplaneClusterDNSDomain(domainID, domainPrefix string) http.HandlerFunc {
+	return func(_ http.ResponseWriter, req *http.Request) {
+		var body struct {
+			Spec struct {
+				HostedCluster struct {
+					DNS struct {
+						BaseDomain       string  `json:"baseDomain"`
+						BaseDomainPrefix *string `json:"baseDomainPrefix"`
+					} `json:"dns"`
+				} `json:"hostedCluster"`
+			} `json:"spec"`
+		}
+		Expect(json.NewDecoder(req.Body).Decode(&body)).To(Succeed())
+		Expect(body.Spec.HostedCluster.DNS.BaseDomain).To(Equal(domainID))
+		Expect(body.Spec.HostedCluster.DNS.BaseDomainPrefix).NotTo(BeNil())
+		Expect(*body.Spec.HostedCluster.DNS.BaseDomainPrefix).To(Equal(domainPrefix))
+	}
+}
+
 func verifySeaplaneClusterUpdate(expected string) http.HandlerFunc {
 	return func(_ http.ResponseWriter, request *http.Request) {
 		body, err := io.ReadAll(request.Body)
@@ -266,6 +285,8 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 		})
 
 		It("creates a cluster successfully", func() {
+			const baseDNSDomain = "abcd.0.example.com"
+			const baseDomainPrefix = "cluster-prefix"
 			clusterResponse := `{
 			"metadata": {
 				"uid": "test-cluster-id",
@@ -274,6 +295,10 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 			},
 			"spec": {
 				"hostedCluster": {
+					"dns": {
+						"baseDomain": "` + baseDNSDomain + `",
+						"baseDomainPrefix": "` + baseDomainPrefix + `"
+					},
 					"platform": {
 						"type": "AWS",
 						"aws": {
@@ -312,6 +337,7 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 			seaplaneServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					verifySeaplaneClusterDNSDomain(baseDNSDomain, baseDomainPrefix),
 					RespondWith(http.StatusCreated, clusterResponse, header),
 				),
 			)
@@ -328,6 +354,8 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 						provider              = rhcs.sp
 					name                  = "my-cluster"
 					operator_roles_prefix = "my-cluster"
+					base_dns_domain       = "`+baseDNSDomain+`"
+					base_domain_prefix    = "`+baseDomainPrefix+`"
 					aws = {
 						aws_subnet_ids     = ["subnet-0abc123"]
 						vpc_id             = "vpc-0def456"
@@ -338,6 +366,9 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
+			stateResource := Terraform.Resource("rhcs_cluster_seaplane", "test")
+			Expect(stateResource).To(matchJQ(".attributes.base_dns_domain", baseDNSDomain))
+			Expect(stateResource).To(matchJQ(".attributes.base_domain_prefix", baseDomainPrefix))
 		})
 
 		It("creates a cluster with proxy settings", func() {

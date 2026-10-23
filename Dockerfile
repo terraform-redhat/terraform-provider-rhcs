@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.26.10-1792592174 AS builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.26.10-1792671270 AS builder
 ENV GOTOOLCHAIN=auto
 COPY . .
 

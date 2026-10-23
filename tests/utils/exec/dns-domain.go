@@ -9,11 +9,15 @@ import (
 )
 
 type DnsDomainArgs struct {
-	ID *string `hcl:"id"`
+	ID          *string `hcl:"id"`
+	ClusterArch *string `hcl:"cluster_arch"`
+	SeaplaneURL *string `hcl:"seaplane_url"`
+	AWSRegion   *string `hcl:"aws_region"`
 }
 
 type DnsDomainOutput struct {
 	DnsDomainId string `json:"dns_domain_id,omitempty"`
+	ClusterArch string `json:"dns_domain_cluster_arch,omitempty"`
 }
 
 type DnsDomainService interface {
@@ -28,12 +32,14 @@ type DnsDomainService interface {
 }
 
 type dnsDomainService struct {
-	tfExecutor TerraformExecutor
+	tfExecutor  TerraformExecutor
+	clusterType constants.ClusterType
 }
 
 func NewDnsDomainService(tfWorkspace string, clusterType constants.ClusterType) (DnsDomainService, error) {
 	svc := &dnsDomainService{
-		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetDnsDomainManifestsDir(clusterType)),
+		tfExecutor:  NewTerraformExecutor(tfWorkspace, manifests.GetDnsDomainManifestsDir(clusterType)),
+		clusterType: clusterType,
 	}
 	err := svc.Init()
 	return svc, err
@@ -45,11 +51,11 @@ func (svc *dnsDomainService) Init() (err error) {
 }
 
 func (svc *dnsDomainService) Plan(args *DnsDomainArgs) (string, error) {
-	return svc.tfExecutor.RunTerraformPlan(args)
+	return svc.tfExecutor.RunTerraformPlan(svc.withDefaults(args))
 }
 
 func (svc *dnsDomainService) Apply(args *DnsDomainArgs) (string, error) {
-	return svc.tfExecutor.RunTerraformApply(args)
+	return svc.tfExecutor.RunTerraformApply(svc.withDefaults(args))
 }
 
 func (svc *dnsDomainService) Output() (*DnsDomainOutput, error) {
@@ -73,4 +79,19 @@ func (svc *dnsDomainService) ReadTFVars() (*DnsDomainArgs, error) {
 
 func (svc *dnsDomainService) DeleteTFVars() error {
 	return svc.tfExecutor.DeleteTerraformVars()
+}
+
+func (svc *dnsDomainService) withDefaults(args *DnsDomainArgs) *DnsDomainArgs {
+	prepared := &DnsDomainArgs{}
+	if args != nil {
+		*prepared = *args
+	}
+	if prepared.ClusterArch == nil {
+		clusterArch := "classic"
+		if svc.clusterType.HCP {
+			clusterArch = "hcp"
+		}
+		prepared.ClusterArch = &clusterArch
+	}
+	return prepared
 }

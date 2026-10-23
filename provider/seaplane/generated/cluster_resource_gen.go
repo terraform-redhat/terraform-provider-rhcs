@@ -307,6 +307,20 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "SchedulerProfile.",
 				Optional:            true,
 			},
+			"base_dns_domain": schema.StringAttribute{
+				MarkdownDescription: "BaseDNSDomain.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"base_domain_prefix": schema.StringAttribute{
+				MarkdownDescription: "BaseDomainPrefix.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
 			"image_content_sources": schema.StringAttribute{
 				MarkdownDescription: "ImageContentSources.",
 				Optional:            true,
@@ -1092,6 +1106,12 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.SchedulerProfile.IsNull() && !tf.SchedulerProfile.IsUnknown() {
 		native.SchedulerProfile = tf.SchedulerProfile.ValueString()
 	}
+	if !tf.BaseDNSDomain.IsNull() && !tf.BaseDNSDomain.IsUnknown() {
+		native.BaseDNSDomain = tf.BaseDNSDomain.ValueString()
+	}
+	if !tf.BaseDomainPrefix.IsNull() && !tf.BaseDomainPrefix.IsUnknown() {
+		native.BaseDomainPrefix = tf.BaseDomainPrefix.ValueString()
+	}
 	if !tf.ImageContentSources.IsNull() && !tf.ImageContentSources.IsUnknown() {
 		native.ImageContentSources = tf.ImageContentSources.ValueString()
 	}
@@ -1270,6 +1290,8 @@ func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.D
 	tf.HttpsProxy = toTerraformString(native.HttpsProxy)
 	tf.NoProxy = toTerraformString(native.NoProxy)
 	tf.SchedulerProfile = toTerraformString(native.SchedulerProfile)
+	tf.BaseDNSDomain = toTerraformString(native.BaseDNSDomain)
+	tf.BaseDomainPrefix = toTerraformString(native.BaseDomainPrefix)
 	tf.ImageContentSources = toTerraformString(native.ImageContentSources)
 	tf.AllocateNodeCIDRs = toTerraformString(native.AllocateNodeCIDRs)
 	tf.AdvertiseAddress = toTerraformString(native.AdvertiseAddress)

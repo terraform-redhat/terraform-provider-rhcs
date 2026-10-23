@@ -18,8 +18,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	v1alpha1 "github.com/openshift-online/rosa-seaplane-api/api/v1alpha1/public"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
-
-	generated "github.com/terraform-redhat/terraform-provider-rhcs/provider/seaplane/generated"
 )
 
 // ── regionFromAZ ──────────────────────────────────────────────────────────────
@@ -252,6 +250,55 @@ func TestPreExpandRejectsUnsupportedNetworkType(t *testing.T) {
 }
 
 func TestPostExpandSetsOtherNetworkTypeForNoCNI(t *testing.T) {
+	input := &ClusterState{
+		Operator_roles_prefix: types.StringValue("test"),
+		Cloud_region:          types.StringValue("us-east-1"),
+		No_cni:                types.BoolValue(true),
+		Aws:                   testClusterAWSObject(t),
+	}
+	obj := &v1alpha1.Cluster{}
+	if diags := (&ClusterHandlerImpl{}).PostExpand(context.Background(), input, obj); diags.HasError() {
+		t.Fatalf("PostExpand() returned diagnostics: %v", diags)
+	}
+
+	if got := obj.Spec.HostedCluster.Networking.NetworkType; got != hypershiftv1beta1.Other {
+		t.Fatalf("PostExpand() network type = %q, want %q", got, hypershiftv1beta1.Other)
+	}
+}
+
+func TestPostExpandPreservesEmptyBaseDomainPrefix(t *testing.T) {
+	input := &ClusterState{
+		Operator_roles_prefix: types.StringValue("test"),
+		Cloud_region:          types.StringValue("us-east-1"),
+		BaseDomainPrefix:      types.StringValue(""),
+		Aws:                   testClusterAWSObject(t),
+	}
+	obj := &v1alpha1.Cluster{}
+	if diags := (&ClusterHandlerImpl{}).PostExpand(context.Background(), input, obj); diags.HasError() {
+		t.Fatalf("PostExpand() returned diagnostics: %v", diags)
+	}
+
+	prefix := obj.Spec.HostedCluster.DNS.BaseDomainPrefix
+	if prefix == nil || *prefix != "" {
+		t.Fatalf("PostExpand() base domain prefix = %v, want explicit empty string", prefix)
+	}
+}
+
+func TestPostFlattenPreservesEmptyBaseDomainPrefix(t *testing.T) {
+	prefix := ""
+	resp := &v1alpha1.Cluster{}
+	resp.Spec.HostedCluster.DNS.BaseDomainPrefix = &prefix
+	state := &ClusterState{BaseDomainPrefix: types.StringNull()}
+
+	(&ClusterHandlerImpl{}).PostFlatten(context.Background(), state, resp)
+
+	if !state.BaseDomainPrefix.Equal(types.StringValue("")) {
+		t.Fatalf("PostFlatten() base domain prefix = %v, want explicit empty string", state.BaseDomainPrefix)
+	}
+}
+
+func testClusterAWSObject(t *testing.T) types.Object {
+	t.Helper()
 	aws, diags := types.ObjectValue(map[string]attr.Type{
 		"aws_partition":      types.StringType,
 		"vpc_id":             types.StringType,
@@ -266,21 +313,7 @@ func TestPostExpandSetsOtherNetworkTypeForNoCNI(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("building AWS object: %v", diags)
 	}
-
-	input := &ClusterState{
-		Operator_roles_prefix: types.StringValue("test"),
-		Cloud_region:          types.StringValue("us-east-1"),
-		No_cni:                types.BoolValue(true),
-		Aws:                   aws,
-	}
-	obj := &v1alpha1.Cluster{}
-	if diags := (&ClusterHandlerImpl{}).PostExpand(context.Background(), input, obj); diags.HasError() {
-		t.Fatalf("PostExpand() returned diagnostics: %v", diags)
-	}
-
-	if got := obj.Spec.HostedCluster.Networking.NetworkType; got != hypershiftv1beta1.Other {
-		t.Fatalf("PostExpand() network type = %q, want %q", got, hypershiftv1beta1.Other)
-	}
+	return aws
 }
 
 // fullNetworkObject builds the network bundle the way nativeClusterToTerraform
@@ -382,12 +415,12 @@ func TestPostFlattenFillsUnknownNoCNI(t *testing.T) {
 	}
 }
 
-// clusterSchema returns the generated Cluster resource schema.
+// clusterSchema returns the Cluster resource schema registered by the provider.
 func clusterSchema(t *testing.T) schema.Schema {
 	t.Helper()
 	req := resource.SchemaRequest{}
 	resp := &resource.SchemaResponse{}
-	(&generated.ClusterResource{}).Schema(context.Background(), req, resp)
+	NewCluster().Schema(context.Background(), req, resp)
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("cluster schema diagnostics: %v", resp.Diagnostics)
 	}
@@ -449,11 +482,53 @@ func TestCloudRegionPlanModifiersResolveUnknownWithoutReplacement(t *testing.T) 
 	if !stringAttr.Computed {
 		t.Fatal("cloud_region must be Computed")
 	}
+	assertStringPlanModifiersResolveUnknownWithoutReplacement(t, "cloud_region", stringAttr, "us-east-1")
+}
 
-	objType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"cloud_region": tftypes.String}}
-	wrapperSchema := schema.Schema{Attributes: map[string]schema.Attribute{"cloud_region": stringAttr}}
+func TestAWSPartitionPlanModifiersResolveUnknownWithoutReplacement(t *testing.T) {
+	s := clusterSchema(t)
+	aws, ok := s.Attributes["aws"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatal("aws is not a SingleNestedAttribute")
+	}
+	partition, ok := aws.Attributes["aws_partition"].(schema.StringAttribute)
+	if !ok {
+		t.Fatal("aws_partition is not a StringAttribute")
+	}
+	if !partition.Computed {
+		t.Fatal("aws_partition must be Computed")
+	}
+	assertStringPlanModifiersResolveUnknownWithoutReplacement(t, "aws_partition", partition, "aws")
+}
+
+func TestOIDCIssuerURLPlanModifiersResolveUnknownWithoutReplacement(t *testing.T) {
+	req := resource.SchemaRequest{}
+	resp := &resource.SchemaResponse{}
+	NewOidcConfig().Schema(context.Background(), req, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("OIDC config schema diagnostics: %v", resp.Diagnostics)
+	}
+	issuerURL, ok := resp.Schema.Attributes["issuer_url"].(schema.StringAttribute)
+	if !ok {
+		t.Fatal("issuer_url is not a StringAttribute")
+	}
+	if !issuerURL.Computed {
+		t.Fatal("issuer_url must be Computed")
+	}
+	assertStringPlanModifiersResolveUnknownWithoutReplacement(t, "issuer_url", issuerURL, "https://issuer.example.test")
+}
+
+func assertStringPlanModifiersResolveUnknownWithoutReplacement(
+	t *testing.T,
+	name string,
+	stringAttr schema.StringAttribute,
+	stateValue string,
+) {
+	t.Helper()
+	objType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{name: tftypes.String}}
+	wrapperSchema := schema.Schema{Attributes: map[string]schema.Attribute{name: stringAttr}}
 	obj := func(v tftypes.Value) tftypes.Value {
-		return tftypes.NewValue(objType, map[string]tftypes.Value{"cloud_region": v})
+		return tftypes.NewValue(objType, map[string]tftypes.Value{name: v})
 	}
 	modReq := planmodifier.StringRequest{
 		Config: tfsdk.Config{Raw: obj(tftypes.NewValue(tftypes.String, nil)), Schema: wrapperSchema},
@@ -461,10 +536,10 @@ func TestCloudRegionPlanModifiersResolveUnknownWithoutReplacement(t *testing.T) 
 			Raw:    obj(tftypes.NewValue(tftypes.String, tftypes.UnknownValue)),
 			Schema: wrapperSchema,
 		},
-		State:       tfsdk.State{Raw: obj(tftypes.NewValue(tftypes.String, "us-east-1")), Schema: wrapperSchema},
+		State:       tfsdk.State{Raw: obj(tftypes.NewValue(tftypes.String, stateValue)), Schema: wrapperSchema},
 		ConfigValue: types.StringNull(),
 		PlanValue:   types.StringUnknown(),
-		StateValue:  types.StringValue("us-east-1"),
+		StateValue:  types.StringValue(stateValue),
 	}
 	modResp := &planmodifier.StringResponse{PlanValue: modReq.PlanValue}
 	for _, m := range stringAttr.PlanModifiers {
@@ -472,10 +547,10 @@ func TestCloudRegionPlanModifiersResolveUnknownWithoutReplacement(t *testing.T) 
 		modReq.PlanValue = modResp.PlanValue
 	}
 	if modResp.RequiresReplace {
-		t.Fatal("cloud_region plan modifiers required replacement for an unconfigured computed value")
+		t.Fatalf("%s plan modifiers required replacement for an unconfigured computed value", name)
 	}
-	if !modResp.PlanValue.Equal(types.StringValue("us-east-1")) {
-		t.Fatalf("cloud_region plan value = %v, want the state value us-east-1", modResp.PlanValue)
+	if !modResp.PlanValue.Equal(types.StringValue(stateValue)) {
+		t.Fatalf("%s plan value = %v, want the state value %s", name, modResp.PlanValue, stateValue)
 	}
 }
 

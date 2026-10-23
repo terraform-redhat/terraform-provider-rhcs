@@ -655,55 +655,67 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 			Expect(runOutput.ExitCode).To(BeZero())
 		})
 	})
-})
 
-		Context("Windows License Included image type", func() {
-			var seaplaneServer *Server
+	Context("Windows License Included image type", func() {
+		var seaplaneServer *Server
 
-			BeforeEach(func() {
-				seaplaneServer = NewServer()
-			})
+		BeforeEach(func() {
+			seaplaneServer = NewServer()
+		})
 
-			AfterEach(func() {
-				seaplaneServer.Close()
-			})
+		AfterEach(func() {
+			seaplaneServer.Close()
+		})
 
-			It("sends imageType: Windows and produces clean re-plan", func() {
-				clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"prefix": "roles-prefix"}}}}}}`
-				createResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.windows-pool"}, "spec": {"autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 2, "platform": {"type": "AWS", "aws": {"imageType": "Windows", "instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+		It("sends imageType: Windows and produces clean re-plan", func() {
+			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"type": "AWS", "aws": {"rolesRef": {"nodePoolManagementARN": "arn:aws:iam::123456789012:role/roles-prefix-node-pool-management"}}}}}}`
+			createResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.windows-pool"}, "spec": {"autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 2, "platform": {"type": "AWS", "aws": {"imageType": "Windows", "instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+			jsonHeader := http.Header{"Content-Type": []string{"application/json"}}
 
-				seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.windows-pool", CombineHandlers(
-					RespondWith(http.StatusOK, createResponse, http.Header{"Content-Type": []string{"application/json"}}),
-				))
-				seaplaneServer.AppendHandlers(
-					CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse)),
-					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
-						VerifyJSONRepresenting(map[string]interface{}{
-							"metadata": map[string]interface{}{"name": "test-cluster.windows-pool"},
-							"spec": map[string]interface{}{
-								"autoRepair": true,
-								"nodePool": map[string]interface{}{
-									"clusterName": "test-cluster",
-									"replicas":    float64(2),
-									"platform": map[string]interface{}{
-										"aws": map[string]interface{}{
-											"imageType":    "Windows",
-											"instanceType": "m5.xlarge",
-											"subnet":       map[string]interface{}{"id": "subnet-0abc123"},
-										},
+			seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.windows-pool", CombineHandlers(
+				RespondWith(http.StatusOK, createResponse, jsonHeader),
+			))
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse, jsonHeader)),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+					VerifyJSONRepresenting(map[string]interface{}{
+						"kind":       "NodePool",
+						"apiVersion": "seaplane.io/v1alpha1",
+						"metadata":   map[string]interface{}{"name": "test-cluster.windows-pool"},
+						"spec": map[string]interface{}{
+							"autoRepair": true,
+							"nodePool": map[string]interface{}{
+								"clusterName": "test-cluster",
+								"release":     map[string]interface{}{"image": ""},
+								"platform": map[string]interface{}{
+									"type": "AWS",
+									"aws": map[string]interface{}{
+										"imageType":       "Windows",
+										"instanceType":    "m5.xlarge",
+										"instanceProfile": "roles-prefix-ROSA-Worker-Role",
+										"subnet":          map[string]interface{}{"id": "subnet-0abc123"},
 									},
 								},
+								"replicas":   float64(2),
+								"management": map[string]interface{}{"upgradeType": "", "autoRepair": false},
 							},
-						}),
-						RespondWith(http.StatusCreated, createResponse),
-					),
-					CombineHandlers(VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.windows-pool"), RespondWith(http.StatusNoContent, "")),
-				)
+						},
+					}),
+					RespondWith(http.StatusCreated, createResponse, jsonHeader),
+				),
+				CombineHandlers(VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.windows-pool"), RespondWith(http.StatusNoContent, "")),
+			)
 
-				Terraform.Source(fmt.Sprintf(`
-					provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			Terraform.Source(fmt.Sprintf(`
+					provider "rhcs" {
+						alias          = "sp"
+						seaplane_url   = "%s"
+						aws_account_id = "123"
+						aws_region     = "us-east-1"
+					}
 					resource "rhcs_nodepool_seaplane" "test" {
+						provider      = rhcs.sp
 						cluster_id    = "c-123"
 						cluster_name  = "test-cluster"
 						name          = "test-cluster.windows-pool"
@@ -715,32 +727,39 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 					}
 				`, seaplaneServer.URL()))
 
-				runOutput := Terraform.Apply()
-				Expect(runOutput.ExitCode).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
-				planOutput := Terraform.Run("plan", "-detailed-exitcode")
-				Expect(planOutput.ExitCode).To(BeZero(), "expected no-op plan after create")
+			planOutput := Terraform.Run("plan", "-detailed-exitcode")
+			Expect(planOutput.ExitCode).To(BeZero(), "expected no-op plan after create")
 
-				runOutput = Terraform.Destroy()
-				Expect(runOutput.ExitCode).To(BeZero())
-			})
+			runOutput = Terraform.Destroy()
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
 
-			It("replaces the pool when image_type changes", func() {
-				clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"prefix": "roles-prefix"}}}}}}`
-				linuxResponse := `{"metadata": {"uid": "np-linux", "name": "test-cluster.pool"}, "spec": {"autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 2, "platform": {"type": "AWS", "aws": {"imageType": "Linux", "instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
-				windowsResponse := `{"metadata": {"uid": "np-windows", "name": "test-cluster.pool"}, "spec": {"autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 2, "platform": {"type": "AWS", "aws": {"imageType": "Windows", "instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+		It("replaces the pool when image_type changes", func() {
+			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"type": "AWS", "aws": {"rolesRef": {"nodePoolManagementARN": "arn:aws:iam::123456789012:role/roles-prefix-node-pool-management"}}}}}}`
+			linuxResponse := `{"metadata": {"uid": "np-linux", "name": "test-cluster.pool"}, "spec": {"autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 2, "platform": {"type": "AWS", "aws": {"imageType": "Linux", "instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+			windowsResponse := `{"metadata": {"uid": "np-windows", "name": "test-cluster.pool"}, "spec": {"autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 2, "platform": {"type": "AWS", "aws": {"imageType": "Windows", "instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+			jsonHeader := http.Header{"Content-Type": []string{"application/json"}}
 
-				seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.pool", CombineHandlers(
-					RespondWith(http.StatusOK, linuxResponse, http.Header{"Content-Type": []string{"application/json"}}),
-				))
-				seaplaneServer.AppendHandlers(
-					CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse)),
-					CombineHandlers(VerifyRequest(http.MethodPost, "/api/v0/nodepools"), RespondWith(http.StatusCreated, linuxResponse)),
-				)
+			seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.pool", CombineHandlers(
+				RespondWith(http.StatusOK, linuxResponse, jsonHeader),
+			))
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse, jsonHeader)),
+				CombineHandlers(VerifyRequest(http.MethodPost, "/api/v0/nodepools"), RespondWith(http.StatusCreated, linuxResponse, jsonHeader)),
+			)
 
-				Terraform.Source(fmt.Sprintf(`
-					provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			Terraform.Source(fmt.Sprintf(`
+					provider "rhcs" {
+						alias          = "sp"
+						seaplane_url   = "%s"
+						aws_account_id = "123"
+						aws_region     = "us-east-1"
+					}
 					resource "rhcs_nodepool_seaplane" "test" {
+						provider      = rhcs.sp
 						cluster_id    = "c-123"
 						cluster_name  = "test-cluster"
 						name          = "test-cluster.pool"
@@ -752,22 +771,28 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 					}
 				`, seaplaneServer.URL()))
 
-				runOutput := Terraform.Apply()
-				Expect(runOutput.ExitCode).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
-				seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.pool", CombineHandlers(
-					RespondWith(http.StatusOK, windowsResponse, http.Header{"Content-Type": []string{"application/json"}}),
-				))
-				seaplaneServer.AppendHandlers(
-					CombineHandlers(VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.pool"), RespondWith(http.StatusNoContent, "")),
-					CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse)),
-					CombineHandlers(VerifyRequest(http.MethodPost, "/api/v0/nodepools"), RespondWith(http.StatusCreated, windowsResponse)),
-					CombineHandlers(VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.pool"), RespondWith(http.StatusNoContent, "")),
-				)
+			seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.pool", CombineHandlers(
+				RespondWith(http.StatusOK, windowsResponse, jsonHeader),
+			))
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.pool"), RespondWith(http.StatusNoContent, "")),
+				CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse, jsonHeader)),
+				CombineHandlers(VerifyRequest(http.MethodPost, "/api/v0/nodepools"), RespondWith(http.StatusCreated, windowsResponse, jsonHeader)),
+				CombineHandlers(VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.pool"), RespondWith(http.StatusNoContent, "")),
+			)
 
-				Terraform.Source(fmt.Sprintf(`
-					provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			Terraform.Source(fmt.Sprintf(`
+					provider "rhcs" {
+						alias          = "sp"
+						seaplane_url   = "%s"
+						aws_account_id = "123"
+						aws_region     = "us-east-1"
+					}
 					resource "rhcs_nodepool_seaplane" "test" {
+						provider      = rhcs.sp
 						cluster_id    = "c-123"
 						cluster_name  = "test-cluster"
 						name          = "test-cluster.pool"
@@ -779,17 +804,23 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 					}
 				`, seaplaneServer.URL()))
 
-				runOutput = Terraform.Apply()
-				Expect(runOutput.ExitCode).To(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
-				runOutput = Terraform.Destroy()
-				Expect(runOutput.ExitCode).To(BeZero())
-			})
+			runOutput = Terraform.Destroy()
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
 
-			It("rejects bad enum value", func() {
-				Terraform.Source(fmt.Sprintf(`
-					provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+		It("rejects bad enum value", func() {
+			Terraform.Source(fmt.Sprintf(`
+					provider "rhcs" {
+						alias          = "sp"
+						seaplane_url   = "%s"
+						aws_account_id = "123"
+						aws_region     = "us-east-1"
+					}
 					resource "rhcs_nodepool_seaplane" "test" {
+						provider      = rhcs.sp
 						cluster_id    = "c-123"
 						cluster_name  = "test-cluster"
 						name          = "test-cluster.pool"
@@ -801,10 +832,9 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 					}
 				`, seaplaneServer.URL()))
 
-				runOutput := Terraform.Apply()
-				Expect(runOutput.ExitCode).ToNot(BeZero())
-				runOutput.VerifyErrorContainsSubstring(`must be "Linux" or "Windows"`)
-			})
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`must be "Linux" or "Windows"`)
 		})
 	})
 })

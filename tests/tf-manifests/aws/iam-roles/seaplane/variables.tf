@@ -13,7 +13,7 @@ variable "operator_roles_prefix" {
 
 variable "oidc_issuer_url" {
   type        = string
-	description = "OIDC issuer URL returned by the Seaplane cluster (e.g. https://s3.amazonaws.com/...)"
+  description = "OIDC issuer URL returned by the Seaplane cluster (e.g. https://s3.amazonaws.com/...)"
 }
 
 variable "oidc_thumbprint" {

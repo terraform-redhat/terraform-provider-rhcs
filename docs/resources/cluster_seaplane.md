@@ -34,6 +34,8 @@ Manages Cluster resources.
 - `autoscaler_pod_priority_threshold` (Number) AutoscalerPodPriorityThreshold.
 - `aws_roles_ref_ingress_arn` (String) AwsRolesRefIngressARN.
 - `balancing_ignored_labels` (List of String) BalancingIgnoredLabels.
+- `base_dns_domain` (String) BaseDNSDomain.
+- `base_domain_prefix` (String) BaseDomainPrefix.
 - `channel` (String) Channel.
 - `component_routes` (String) ComponentRoutes.
 - `container_log_max_files` (Number) ContainerLogMaxFiles.

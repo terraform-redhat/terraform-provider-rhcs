@@ -5,7 +5,7 @@ data "aws_subnet" "worker" {
 }
 
 provider "rhcs" {
-  seaplane_url = var.seaplane_url
+  seaplane_url   = var.seaplane_url
   aws_account_id = data.aws_caller_identity.current.account_id
   aws_caller_arn = data.aws_caller_identity.current.arn
 }

@@ -5,13 +5,16 @@ package e2e
 
 import (
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
@@ -411,5 +414,50 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		_, err = caService.Apply(args)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))
+	})
+})
+
+var _ = Describe("Shared cluster autoscaler workflow", ci.Day2, ci.FeatureClusterAutoscaler, ci.SeaplaneValidated, func() {
+	It("updates autoscaler settings through the selected backend", ci.High, func(ctx SpecContext) {
+		profile, err := profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).NotTo(HaveOccurred())
+		clusterType := profile.Profile().GetClusterType()
+		if clusterType != constants.ROSA_HCP && clusterType != constants.SEAPLANE {
+			Skip("shared cluster workflow requires a profile with cluster_type to be rosa-hcp or seaplane")
+		}
+
+		backend, err := clusterworkflow.NewExisting(profile)
+		Expect(err).NotTo(HaveOccurred())
+		before, err := backend.Lifecycle.Read(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		if before.Autoscaler == nil {
+			Skip("selected cluster does not expose cluster autoscaler settings")
+		}
+		original := *before.Autoscaler
+		DeferCleanup(func(cleanupCtx SpecContext) {
+			Expect(backend.Lifecycle.Update(exec.ClusterSpec{Autoscaler: &exec.ClusterAutoscalerSpec{
+				MaxNodeProvisionTime: &original.MaxNodeProvisionTime,
+				MaxNodesTotal:        &original.MaxNodesTotal,
+				MaxPodGracePeriod:    &original.MaxPodGracePeriod,
+				PodPriorityThreshold: &original.PodPriorityThreshold,
+			}})).To(Succeed())
+		})
+
+		provisionTime := "20m"
+		maxNodes, maxGrace, priority := int64(12), int64(700), int64(-5)
+		Expect(backend.Lifecycle.Update(exec.ClusterSpec{Autoscaler: &exec.ClusterAutoscalerSpec{
+			MaxNodeProvisionTime: &provisionTime,
+			MaxNodesTotal:        &maxNodes,
+			MaxPodGracePeriod:    &maxGrace,
+			PodPriorityThreshold: &priority,
+		}})).To(Succeed())
+		Eventually(func() bool {
+			state, readErr := backend.Lifecycle.Read(ctx)
+			return readErr == nil && state.Autoscaler != nil &&
+				state.Autoscaler.MaxNodeProvisionTime == provisionTime &&
+				state.Autoscaler.MaxNodesTotal == maxNodes &&
+				state.Autoscaler.MaxPodGracePeriod == maxGrace &&
+				state.Autoscaler.PodPriorityThreshold == priority
+		}).WithContext(ctx).WithTimeout(5 * time.Minute).WithPolling(15 * time.Second).Should(BeTrue())
 	})
 })

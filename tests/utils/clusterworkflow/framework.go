@@ -19,7 +19,7 @@ import (
 // Cleanup is deliberately separate because HCP and Seaplane have different
 // dependency ordering and grace periods.
 type Backend struct {
-	Lifecycle exec.ClusterReadinessLifecycle
+	Lifecycle exec.ClusterLifecycle
 	Fetcher   ClusterIDFetcher
 }
 
@@ -63,6 +63,22 @@ func NewFetcher(profile profilehandler.ProfileHandler) (ClusterIDFetcher, error)
 	}
 }
 
+// NewExisting creates a backend-neutral lifecycle for an already-provisioned
+// cluster. Unlike New, it does not create or apply any supporting resources.
+// It is intended for day-2 workflows which operate on the cluster selected by
+// the shared test-suite CLUSTER_ID.
+func NewExisting(profile profilehandler.ProfileHandler) (*Backend, error) {
+	clusterType := profile.Profile().GetClusterType()
+	switch clusterType.String() {
+	case constants.ROSA_HCP.String():
+		return newHCPBackend(profile, ""), nil
+	case constants.SEAPLANE.String():
+		return newExistingSeaplaneBackend(profile)
+	default:
+		return nil, fmt.Errorf("unsupported cluster type %q for existing cluster workflow", clusterType.String())
+	}
+}
+
 // NewDestroyer creates the backend-specific destroy strategy without applying
 // or recreating any Terraform resources.
 func NewDestroyer(profile profilehandler.ProfileHandler, token, workspace string) (ClusterDestroyer, error) {
@@ -77,12 +93,12 @@ func NewDestroyer(profile profilehandler.ProfileHandler, token, workspace string
 	}
 }
 
-// NewNodePoolReplica creates the fixed-replica day-2 strategy for the selected
-// profile backend.
-func NewNodePoolReplica(
+// NewNodePool creates the backend-neutral node-pool lifecycle for the selected
+// profile.
+func NewNodePool(
 	profile profilehandler.ProfileHandler,
 	clusterID, nodePoolName string,
-) (exec.NodePoolReplicaLifecycle, error) {
+) (exec.NodePoolLifecycle, error) {
 	clusterType := profile.Profile().GetClusterType()
 	switch clusterType.String() {
 	case constants.ROSA_HCP.String():
@@ -94,6 +110,6 @@ func NewNodePoolReplica(
 		}
 		return NewSeaplaneNodePoolReplica(profile, clusterName, nodePoolName, clusterID, profile.Profile().GetName())
 	default:
-		return nil, fmt.Errorf("unsupported cluster type %q for nodepool replica workflow", clusterType.String())
+		return nil, fmt.Errorf("unsupported cluster type %q for nodepool workflow", clusterType.String())
 	}
 }

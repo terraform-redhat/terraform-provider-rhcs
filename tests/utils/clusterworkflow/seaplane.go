@@ -276,6 +276,41 @@ func (f *seaplaneFetcher) FetchClusterID(ctx context.Context) (string, error) {
 	return clusterID, nil
 }
 
+func newExistingSeaplaneBackend(profile profilehandler.ProfileHandler) (*Backend, error) {
+	seaplaneURL, err := requiredEnv("SEAPLANE_URL")
+	if err != nil {
+		return nil, err
+	}
+	region := config.GetRegion()
+	if region == "" {
+		region = seaplaneAWSRegionRE.FindString(seaplaneURL)
+	}
+	if region == "" {
+		return nil, fmt.Errorf("cannot derive AWS region from SEAPLANE_URL %q", seaplaneURL)
+	}
+	clusterName := config.GetRHCSClusterName()
+	if clusterName == "" {
+		clusterName = profile.Profile().GetName()
+	}
+	// The API cluster name may be overridden independently from the Terraform
+	// workspace name. Existing profile-managed clusters keep their Terraform
+	// state in the profile workspace, even when RHCS_CLUSTER_NAME is set.
+	service, err := exec.NewSeaplaneClusterService(profile.Profile().GetName())
+	if err != nil {
+		return nil, err
+	}
+	args, err := service.ReadTFVars()
+	if err != nil {
+		return nil, err
+	}
+	client, err := buildSeaplaneClient(seaplaneURL, region)
+	if err != nil {
+		return nil, err
+	}
+	backend := &seaplaneBackend{service: service, client: client, args: args}
+	return &Backend{Lifecycle: backend, Fetcher: backend}, nil
+}
+
 func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string) (*Backend, error) {
 	if !profile.Profile().IsBYOVPC() {
 		return nil, fmt.Errorf("Seaplane cluster profiles must set byovpc: true")
@@ -541,9 +576,22 @@ func cleanupSeaplaneProxyOnError(proxy exec.ProxyService, cause error) error {
 	return cause
 }
 
-// Update merges the supplied non-nil fields into the existing cluster
-// arguments and reapplies the Terraform-managed Seaplane cluster.
-func (b *seaplaneBackend) Update(args *exec.SeaplaneClusterArgs) error {
+// Update applies backend-neutral cluster settings to the Terraform-managed
+// Seaplane cluster.
+func (b *seaplaneBackend) Update(spec exec.ClusterSpec) error {
+	args := &exec.SeaplaneClusterArgs{}
+	if spec.Autoscaler != nil {
+		args.AutoscalerMaxNodeProvisionTime = spec.Autoscaler.MaxNodeProvisionTime
+		args.AutoscalerMaxNodesTotal = spec.Autoscaler.MaxNodesTotal
+		args.AutoscalerMaxPodGracePeriod = spec.Autoscaler.MaxPodGracePeriod
+		args.AutoscalerPodPriorityThreshold = spec.Autoscaler.PodPriorityThreshold
+	}
+	args.ComponentRoutes = spec.ComponentRoutes
+	args.SchedulerProfile = spec.SchedulerProfile
+	return b.update(args)
+}
+
+func (b *seaplaneBackend) update(args *exec.SeaplaneClusterArgs) error {
 	if args.SeaplaneURL != nil {
 		b.args.SeaplaneURL = args.SeaplaneURL
 	}
@@ -594,6 +642,26 @@ func (b *seaplaneBackend) Update(args *exec.SeaplaneClusterArgs) error {
 	}
 	_, err := b.service.Apply(b.args)
 	return err
+}
+
+func (b *seaplaneBackend) Read(_ context.Context) (exec.ClusterState, error) {
+	output, err := b.service.Output()
+	if err != nil {
+		return exec.ClusterState{}, err
+	}
+	return exec.ClusterState{
+		ClusterID:        output.ClusterID,
+		ClusterName:      output.ClusterName,
+		Phase:            output.Phase,
+		SchedulerProfile: output.SchedulerProfile,
+		ComponentRoutes:  output.ComponentRoutes,
+		Autoscaler: &exec.ClusterAutoscalerState{
+			MaxNodeProvisionTime: output.AutoscalerMaxNodeProvisionTime,
+			MaxNodesTotal:        output.AutoscalerMaxNodesTotal,
+			MaxPodGracePeriod:    output.AutoscalerMaxPodGracePeriod,
+			PodPriorityThreshold: output.AutoscalerPodPriorityThreshold,
+		},
+	}, nil
 }
 
 func (b *seaplaneBackend) WaitReady(ctx context.Context, _ string) error {
@@ -757,4 +825,4 @@ func envOrDefault(name, fallback string) string {
 	return fallback
 }
 
-var _ exec.ClusterReadinessLifecycle = (*seaplaneBackend)(nil)
+var _ exec.ClusterLifecycle = (*seaplaneBackend)(nil)

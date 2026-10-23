@@ -25,7 +25,7 @@ type hcpNodePoolReplica struct {
 
 func newHCPNodePoolReplica(
 	profile profilehandler.ProfileHandler, clusterID, nodePoolName string,
-) (exec.NodePoolReplicaLifecycle, error) {
+) (*hcpNodePoolReplica, error) {
 	// Keep each nodepool's Terraform state separate so shared workflows can
 	// create multiple pools before waiting for them to become ready.
 	serviceProfile := profile.DuplicateRandom()
@@ -64,11 +64,7 @@ func newHCPNodePoolReplica(
 	}, nil
 }
 
-func (n *hcpNodePoolReplica) Create(replicas int) error {
-	n.args.Replicas = &replicas
-	_, err := n.service.Apply(n.args)
-	return err
-}
+func (n *hcpNodePoolReplica) Create(spec exec.NodePoolSpec) error { return n.apply(spec) }
 
 func (n *hcpNodePoolReplica) WaitReady(ctx context.Context) error {
 	return wait.PollUntilContextTimeout(
@@ -88,34 +84,52 @@ func (n *hcpNodePoolReplica) WaitReady(ctx context.Context) error {
 	)
 }
 
-func (n *hcpNodePoolReplica) UpdateReplicas(replicas int) error {
-	n.args.Replicas = &replicas
+func (n *hcpNodePoolReplica) Update(spec exec.NodePoolSpec) error { return n.apply(spec) }
+
+func (n *hcpNodePoolReplica) apply(spec exec.NodePoolSpec) error {
+	if spec.Replicas != nil && spec.Autoscaling != nil {
+		return fmt.Errorf("nodepool replicas and autoscaling are mutually exclusive")
+	}
+	if spec.Replicas != nil {
+		n.args.Replicas = spec.Replicas
+		n.args.AutoscalingEnabled = new(false)
+		n.args.MinReplicas = nil
+		n.args.MaxReplicas = nil
+	}
+	if spec.Autoscaling != nil {
+		n.args.Replicas = nil
+		n.args.AutoscalingEnabled = spec.Autoscaling.Enabled
+		n.args.MinReplicas = spec.Autoscaling.MinReplicas
+		n.args.MaxReplicas = spec.Autoscaling.MaxReplicas
+	}
+	if spec.EC2InstanceMetadataHttpTokens != nil {
+		n.args.Ec2MetadataHttpTokens = spec.EC2InstanceMetadataHttpTokens
+	}
 	_, err := n.service.Apply(n.args)
 	return err
 }
 
-func (n *hcpNodePoolReplica) Replicas(_ context.Context) (int, error) {
+func (n *hcpNodePoolReplica) Read(_ context.Context) (exec.NodePoolState, error) {
 	nodePool, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, n.clusterID, n.name)
 	if err != nil {
-		return 0, err
+		return exec.NodePoolState{}, err
 	}
-	return nodePool.Replicas(), nil
+	replicas := nodePool.Replicas()
+	state := exec.NodePoolState{Replicas: &replicas}
+	if autoscaling := nodePool.Autoscaling(); autoscaling != nil {
+		state.Autoscaling = &exec.NodePoolAutoscalingState{
+			Enabled:     true,
+			MinReplicas: autoscaling.MinReplica(),
+			MaxReplicas: autoscaling.MaxReplica(),
+		}
+	}
+	if nodePool.AWSNodePool() != nil {
+		state.EC2InstanceMetadataHttpTokens = string(nodePool.AWSNodePool().Ec2MetadataHttpTokens())
+	}
+	return state, nil
 }
 
-func (n *hcpNodePoolReplica) SetEC2InstanceMetadataHttpTokens(value string) {
-	n.args.Ec2MetadataHttpTokens = &value
-}
-
-func (n *hcpNodePoolReplica) EC2InstanceMetadataHttpTokens(_ context.Context) (string, error) {
-	nodePool, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, n.clusterID, n.name)
-	if err != nil {
-		return "", err
-	}
-	if nodePool.AWSNodePool() == nil {
-		return "", fmt.Errorf("nodepool %q returned no AWS configuration", n.name)
-	}
-	return string(nodePool.AWSNodePool().Ec2MetadataHttpTokens()), nil
-}
+var _ exec.NodePoolLifecycle = (*hcpNodePoolReplica)(nil)
 
 func (n *hcpNodePoolReplica) Destroy() error {
 	_, err := n.service.Destroy()

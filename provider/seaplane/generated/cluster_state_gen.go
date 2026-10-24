@@ -34,8 +34,8 @@ type ClusterState struct {
 	UnneededDurationSeconds        types.Int64  `tfsdk:"unneeded_duration_seconds"`
 	UtilizationThresholdPercent    types.Int64  `tfsdk:"utilization_threshold_percent"`
 	Scaling                        types.String `tfsdk:"scaling"`
-	Disabled                       types.List   `tfsdk:"disabled"`
-	Enabled                        types.List   `tfsdk:"enabled"`
+	Disabled_capabilities          types.String `tfsdk:"disabled_capabilities"`
+	Enabled_capabilities           types.String `tfsdk:"enabled_capabilities"`
 	Channel                        types.String `tfsdk:"channel"`
 	OidcProviders                  types.String `tfsdk:"oidc_providers"`
 	AuthenticationType             types.String `tfsdk:"authentication_type"`

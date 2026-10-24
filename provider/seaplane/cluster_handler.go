@@ -18,6 +18,7 @@ package seaplane
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"regexp"
@@ -112,6 +113,7 @@ func (h *ClusterHandlerImpl) PreExpand(ctx context.Context, input *ClusterState)
 	}
 
 	diags.Append(validateClusterTags(ctx, input.Tags)...)
+	diags.Append(validateClusterCapabilities(input.Enabled_capabilities, input.Disabled_capabilities)...)
 
 	return diags
 }
@@ -149,6 +151,94 @@ func validateClusterTags(ctx context.Context, tags types.Map) diag.Diagnostics {
 			addError("expected a valid user tag key '%s' matching %s", key, clusterTagKeyRE.String())
 		case !clusterTagValueRE.MatchString(value):
 			addError("expected a valid user tag value for key '%s' matching %s", key, clusterTagValueRE.String())
+		}
+	}
+
+	return diags
+}
+
+// validClusterCapabilities is the set of optional HyperShift capabilities the
+// Platform API accepts on spec.hostedCluster.capabilities. It mirrors the
+// hypershiftv1beta1 optional capability constants and the ROSA CLI
+// --enable/--disable-cluster-capabilities validation, so a capability
+// accepted by one path is accepted by the other.
+var validClusterCapabilities = []string{
+	"ImageRegistry",
+	"OpenShiftSamples",
+	"Insights",
+	"Baremetal",
+	"Console",
+	"NodeTuning",
+	"Ingress",
+}
+
+// validateClusterCapabilities checks the JSON-encoded enabled_capabilities
+// and disabled_capabilities attributes so a bad value fails during apply
+// instead of on the API round trip. Capabilities can only be set at cluster
+// creation and a capability cannot appear in both lists (HyperShift rejects
+// the overlap with "Capabilities can not be both enabled and disabled at
+// once").
+func validateClusterCapabilities(enabled, disabled types.String) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	read := func(value types.String, attribute string) map[string]struct{} {
+		if value.IsNull() || value.IsUnknown() || value.ValueString() == "" {
+			return nil
+		}
+		var capabilities []string
+		if err := json.Unmarshal([]byte(value.ValueString()), &capabilities); err != nil {
+			diags.AddAttributeError(
+				path.Root(attribute),
+				"Invalid cluster capabilities",
+				fmt.Sprintf("expected a JSON-encoded list of capabilities: %v", err),
+			)
+			return nil
+		}
+		set := make(map[string]struct{}, len(capabilities))
+		for _, capability := range capabilities {
+			set[strings.TrimSpace(capability)] = struct{}{}
+		}
+		return set
+	}
+
+	enabledSet := read(enabled, "enabled_capabilities")
+	disabledSet := read(disabled, "disabled_capabilities")
+	if diags.HasError() {
+		return diags
+	}
+
+	valid := make(map[string]struct{}, len(validClusterCapabilities))
+	for _, capability := range validClusterCapabilities {
+		valid[capability] = struct{}{}
+	}
+
+	check := func(attribute string, set map[string]struct{}) {
+		// Sorted so repeated plans report the same capability first.
+		for _, capability := range slices.Sorted(maps.Keys(set)) {
+			if _, ok := valid[capability]; !ok {
+				diags.AddAttributeError(
+					path.Root(attribute),
+					"Invalid cluster capability",
+					fmt.Sprintf(
+						"invalid capability %q; valid values are: %s",
+						capability, strings.Join(validClusterCapabilities, ", "),
+					),
+				)
+			}
+		}
+	}
+	check("enabled_capabilities", enabledSet)
+	check("disabled_capabilities", disabledSet)
+
+	for capability := range enabledSet {
+		if _, ok := disabledSet[capability]; ok {
+			diags.AddError(
+				"Conflicting cluster capabilities",
+				fmt.Sprintf(
+					"capability %q cannot be both enabled and disabled at once",
+					capability,
+				),
+			)
 		}
 	}
 

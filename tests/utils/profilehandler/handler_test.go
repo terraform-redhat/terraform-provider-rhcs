@@ -6,6 +6,8 @@ package profilehandler
 import (
 	"errors"
 	"testing"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
 func TestIsVPCCleanupDependencyError(t *testing.T) {
@@ -43,5 +45,29 @@ func TestIsVPCCleanupDependencyError(t *testing.T) {
 				t.Fatalf("isVPCCleanupDependencyError() = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestNewProfileHandlerByName(t *testing.T) {
+	// The seaplane profiles are checked into the repo, so the by-name
+	// constructor must resolve them without CLUSTER_PROFILE being set.
+	t.Setenv("CLUSTER_PROFILE", "")
+
+	handler, err := NewProfileHandlerByName("sp-no-caps")
+	if err != nil {
+		t.Fatalf("loading profile by name: %v", err)
+	}
+	if handler.Profile().GetName() != "sp-no-caps" {
+		t.Errorf("profile name = %q, want sp-no-caps", handler.Profile().GetName())
+	}
+	if got := handler.Profile().GetClusterType(); got != constants.SEAPLANE {
+		t.Errorf("cluster type = %v, want seaplane", got)
+	}
+	if len(handler.Profile().GetDisableClusterCapabilities()) == 0 {
+		t.Error("profile must define disable_cluster_capabilities")
+	}
+
+	if _, err := NewProfileHandlerByName("no-such-profile"); err == nil {
+		t.Error("expected an error for a nonexistent profile")
 	}
 }

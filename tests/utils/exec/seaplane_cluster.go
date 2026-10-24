@@ -26,6 +26,11 @@ type SeaplaneClusterArgs struct {
 	AutoscalerMaxPodGracePeriod    *int64  `hcl:"autoscaler_max_pod_grace_period"`
 	AutoscalerPodPriorityThreshold *int64  `hcl:"autoscaler_pod_priority_threshold"`
 	ComponentRoutes                *string `hcl:"component_routes"`
+	// EnabledCapabilities / DisabledCapabilities are JSON-encoded lists of
+	// HyperShift capabilities set at cluster creation (e.g. ImageRegistry).
+	// Immutable.
+	EnabledCapabilities  *string `hcl:"enabled_capabilities"`
+	DisabledCapabilities *string `hcl:"disabled_capabilities"`
 	// Tags are customer AWS tags applied to resources for this cluster. Changes
 	// are propagated to the HostedCluster and NodePools in place.
 	Tags       *map[string]string `hcl:"tags"`
@@ -47,6 +52,8 @@ type SeaplaneClusterOutput struct {
 	AutoscalerMaxPodGracePeriod    int64  `json:"autoscaler_max_pod_grace_period,omitempty"`
 	AutoscalerPodPriorityThreshold int64  `json:"autoscaler_pod_priority_threshold,omitempty"`
 	ComponentRoutes                string `json:"component_routes,omitempty"`
+	EnabledCapabilities            string `json:"cluster_enabled_capabilities,omitempty"`
+	DisabledCapabilities           string `json:"cluster_disabled_capabilities,omitempty"`
 }
 
 // SeaplaneClusterService manages the lifecycle of an rhcs_cluster_seaplane

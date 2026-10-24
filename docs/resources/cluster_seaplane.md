@@ -44,9 +44,9 @@ Manages Cluster resources.
 - `delay_after_delete_seconds` (Number) DelayAfterDeleteSeconds.
 - `delay_after_failure_seconds` (Number) DelayAfterFailureSeconds.
 - `delete_protection` (Boolean) Enable or disable deletion protection for the cluster. When enabled, the cluster cannot be deleted via the API.
-- `disabled` (List of String) Disabled.
+- `disabled_capabilities` (String) JSON-encoded list of cluster capabilities explicitly disabled at install time (for example ["ImageRegistry"] to disable the in-cluster image registry). Capabilities can only be set at cluster creation; changing them replaces the cluster.
 - `dns_reservation_id` (String) DnsReservationId.
-- `enabled` (List of String) Enabled.
+- `enabled_capabilities` (String) JSON-encoded list of cluster capabilities explicitly enabled at install time (for example ["ImageRegistry", "Console"]). Capabilities can only be set at cluster creation; changing them replaces the cluster.
 - `expanders` (List of String) Expanders.
 - `expiration_timestamp` (String) Optional RFC3339 timestamp after which the Platform API automatically deletes the cluster.
 - `filters` (String) Filters.

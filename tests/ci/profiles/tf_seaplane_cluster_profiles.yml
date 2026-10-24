@@ -97,3 +97,18 @@ profiles:
       - "*.registry.com"
     worker_disk_size: 75
     additional_sg_number: 3
+
+- as: sp-no-caps
+  cluster:
+    cluster_type: seaplane
+    product_id: rosa
+    cloud_provider: aws
+    region: us-east-1
+    multi_az: false
+    byovpc: true
+    private: false
+    oidc_config: managed
+    tagging: true
+    disable_cluster_capabilities: # ROSAENG-65243 Image Registry Enable/Disable
+      - "ImageRegistry"
+    version: latest

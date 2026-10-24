@@ -80,6 +80,10 @@ type ClusterStateNative struct {
 	Operator_roles_prefix          string            `hfsdk:"-"`
 	Cloud_region                   string            `hfsdk:"-"`
 	No_cni                         bool              `hfsdk:"-"`
+	Machine_cidr                   string            `hfsdk:"-"`
+	Pod_cidr                       string            `hfsdk:"-"`
+	Service_cidr                   string            `hfsdk:"-"`
+	Host_prefix                    int64             `hfsdk:"-"`
 	Api_url                        string            `hfsdk:"-"`
 	Phase                          string            `hfsdk:"-"`
 	Network                        ClusterNetworkNative

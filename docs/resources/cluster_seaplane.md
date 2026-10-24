@@ -50,6 +50,7 @@ Manages Cluster resources.
 - `expanders` (List of String) Expanders.
 - `expiration_timestamp` (String) Optional RFC3339 timestamp after which the Platform API automatically deletes the cluster.
 - `filters` (String) Filters.
+- `host_prefix` (Number) Prefix size allocated to each node from the pod CIDR (e.g. 23 grants 2^(32-23)=512 addresses per node). If unset the platform default (23) applies. Requires pod_cidr. Immutable after creation; changing it replaces the cluster.
 - `http_proxy` (String) HttpProxy.
 - `https_proxy` (String) HttpsProxy.
 - `image_content_sources` (String) ImageContentSources.
@@ -60,6 +61,7 @@ Manages Cluster resources.
 - `kube_cloud_controller_arn` (String) KubeCloudControllerARN.
 - `kube_reserved` (Map of String) KubeReserved.
 - `local_zone_id` (String) LocalZoneID.
+- `machine_cidr` (String) IP address pool for machines (e.g. 10.0.0.0/16). With a byovpc VPC this must contain the VPC CIDR. Only one entry is supported. Immutable after creation; changing it replaces the cluster. Mutually exclusive with network.machine_cidr.
 - `max_free_difference_ratio_percent` (Number) MaxFreeDifferenceRatioPercent.
 - `max_pods` (Number) MaxPods.
 - `network` (Attributes) (see [below for nested schema](#nestedatt--network))
@@ -71,6 +73,7 @@ Manages Cluster resources.
 - `oidc_providers` (String) OIDC identity provider configurations encoded as a JSON array.
 - `platform` (String) Platform.
 - `platform_type` (String) PlatformType.
+- `pod_cidr` (String) IP address pool for pods (e.g. 10.128.0.0/14). Only one entry is supported. Immutable after creation; changing it replaces the cluster. Mutually exclusive with network.pod_cidr.
 - `pod_pids_limit` (Number) PodPidsLimit.
 - `port` (Number) Port.
 - `properties` (Map of String) Properties.
@@ -81,6 +84,7 @@ Manages Cluster resources.
 - `scaling` (String) Scaling.
 - `scheduler_profile` (String) Scheduler profile used by the hosted cluster. Valid values are LowNodeUtilization, HighNodeUtilization, and NoScoring.
 - `serialize_image_pulls` (Boolean) SerializeImagePulls.
+- `service_cidr` (String) IP address pool for services (e.g. 172.31.0.0/16). Only one entry is supported. Immutable after creation; changing it replaces the cluster. Mutually exclusive with network.service_cidr.
 - `service_endpoints` (String) ServiceEndpoints.
 - `shared_vpc_roles_ref_ingress_arn` (String) SharedVPCRolesRefIngressARN.
 - `storage_arn` (String) StorageARN.

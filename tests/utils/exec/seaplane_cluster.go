@@ -26,6 +26,15 @@ type SeaplaneClusterArgs struct {
 	AutoscalerMaxPodGracePeriod    *int64  `hcl:"autoscaler_max_pod_grace_period"`
 	AutoscalerPodPriorityThreshold *int64  `hcl:"autoscaler_pod_priority_threshold"`
 	ComponentRoutes                *string `hcl:"component_routes"`
+	// MachineCIDR / PodCIDR / ServiceCIDR / HostPrefix are the cluster network
+	// CIDRs set at creation. Immutable.
+	MachineCIDR *string `hcl:"machine_cidr"`
+	// APIAllowedCIDRBlocks is the JSON-encoded allow list for the hosted API
+	// server load balancer (networking.apiServer.allowedCIDRBlocks).
+	APIAllowedCIDRBlocks *string `hcl:"api_allowed_cidr_blocks"`
+	PodCIDR              *string `hcl:"pod_cidr"`
+	ServiceCIDR          *string `hcl:"service_cidr"`
+	HostPrefix           *int64  `hcl:"host_prefix"`
 	// Tags are customer AWS tags applied to resources for this cluster. Changes
 	// are propagated to the HostedCluster and NodePools in place.
 	Tags       *map[string]string `hcl:"tags"`
@@ -47,6 +56,10 @@ type SeaplaneClusterOutput struct {
 	AutoscalerMaxPodGracePeriod    int64  `json:"autoscaler_max_pod_grace_period,omitempty"`
 	AutoscalerPodPriorityThreshold int64  `json:"autoscaler_pod_priority_threshold,omitempty"`
 	ComponentRoutes                string `json:"component_routes,omitempty"`
+	MachineCIDR                    string `json:"cluster_machine_cidr,omitempty"`
+	PodCIDR                        string `json:"cluster_pod_cidr,omitempty"`
+	ServiceCIDR                    string `json:"cluster_service_cidr,omitempty"`
+	HostPrefix                     *int64 `json:"cluster_host_prefix,omitempty"`
 }
 
 // SeaplaneClusterService manages the lifecycle of an rhcs_cluster_seaplane

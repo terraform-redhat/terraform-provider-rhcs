@@ -35,3 +35,19 @@ output "autoscaler_pod_priority_threshold" {
 output "component_routes" {
   value = rhcs_cluster_seaplane.cluster.component_routes
 }
+
+output "cluster_machine_cidr" {
+  value = rhcs_cluster_seaplane.cluster.machine_cidr
+}
+
+output "cluster_pod_cidr" {
+  value = rhcs_cluster_seaplane.cluster.pod_cidr
+}
+
+output "cluster_service_cidr" {
+  value = rhcs_cluster_seaplane.cluster.service_cidr
+}
+
+output "cluster_host_prefix" {
+  value = rhcs_cluster_seaplane.cluster.host_prefix
+}

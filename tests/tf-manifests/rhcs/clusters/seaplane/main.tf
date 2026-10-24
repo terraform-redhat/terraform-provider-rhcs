@@ -21,7 +21,7 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 
 provider "rhcs" {
-  seaplane_url = var.seaplane_url
+  seaplane_url   = var.seaplane_url
   aws_account_id = data.aws_caller_identity.current.account_id
   aws_caller_arn = data.aws_caller_identity.current.arn
 }
@@ -35,10 +35,17 @@ resource "rhcs_cluster_seaplane" "cluster" {
     vpc_id             = var.vpc_id
     availability_zones = [var.availability_zone]
   }
-  expiration_timestamp               = var.expiration_timestamp
-  oidc_config_id                     = var.oidc_config_id != "" ? var.oidc_config_id : null
-  scheduler_profile                  = var.scheduler_profile
-  tags                               = var.tags
+  expiration_timestamp = var.expiration_timestamp
+  oidc_config_id       = var.oidc_config_id != "" ? var.oidc_config_id : null
+  scheduler_profile    = var.scheduler_profile
+  tags                 = var.tags
+  machine_cidr         = var.machine_cidr
+  pod_cidr             = var.pod_cidr
+  service_cidr         = var.service_cidr
+  host_prefix          = var.host_prefix
+  network = {
+    api_allowed_cidr_blocks = var.api_allowed_cidr_blocks
+  }
   http_proxy                         = var.http_proxy
   https_proxy                        = var.https_proxy
   no_proxy                           = var.no_proxy

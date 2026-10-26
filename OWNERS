@@ -10,8 +10,15 @@ approvers:
 - davidleerh
 - willkutler
 - red-hat-konflux[bot]
+- cdoan1
+- elveeram
 reviewers:
 - olucasfreitas
 - jerichokeyne
 - amandahla
 - markirish
+- marcolan018
+- willkutler
+- cdoan1
+- elveeram
+- gdbranco

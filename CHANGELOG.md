@@ -1,3 +1,9 @@
+## 1.7.12 (23 Oct, 2026)
+
+ENHANCEMENTS:
+ * Bug fixes
+   * Fix missing provider binaries in the 1.7.11 release archives
+
 ## 1.7.11 (22 Oct, 2026)
 
 ENHANCEMENTS:

@@ -449,10 +449,12 @@ func (r *ClusterResource) Schema(
 					"pod_cidr": schema.StringAttribute{
 						MarkdownDescription: "Pod_cidr.",
 						Optional:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 					},
 					"machine_cidr": schema.StringAttribute{
 						MarkdownDescription: "Machine_cidr.",
 						Optional:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 					},
 					"network_type": schema.StringAttribute{
 						MarkdownDescription: "Network_type.",
@@ -462,6 +464,7 @@ func (r *ClusterResource) Schema(
 					"service_cidr": schema.StringAttribute{
 						MarkdownDescription: "Service_cidr.",
 						Optional:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 					},
 				},
 				Optional: true,

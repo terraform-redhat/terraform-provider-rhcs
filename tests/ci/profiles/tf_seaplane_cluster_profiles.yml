@@ -62,6 +62,10 @@ profiles:
     autoscaler_max_nodes_total: 10
     autoscaler_max_pod_grace_period: 600
     autoscaler_pod_priority_threshold: -8
+    machine_cidr: "10.0.0.0/16"
+    pod_cidr: "10.132.0.0/14"
+    service_cidr: "172.31.0.0/16"
+    host_prefix: 24
     version: latest
 
 - as: sp-hcp-ad

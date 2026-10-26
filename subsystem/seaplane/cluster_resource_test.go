@@ -254,6 +254,83 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 		})
 	})
 
+	Context("IPv4 networking", func() {
+		It("requires replacement for CIDR changes and permits updates with unchanged networking", func() {
+			server := NewServer()
+			defer server.Close()
+
+			response := `{
+				"metadata": {"uid": "test-cluster-id", "name": "my-cluster"},
+				"spec": {"hostedCluster": {
+					"networking": {
+						"machineNetwork": [{"cidr": "10.0.0.0/16"}],
+						"clusterNetwork": [{"cidr": "10.128.0.0/14", "hostPrefix": 23}],
+						"serviceNetwork": [{"cidr": "172.30.0.0/16"}],
+						"networkType": "OVNKubernetes"
+					},
+					"platform": {"type": "AWS", "aws": {
+						"region": "us-east-1",
+						"cloudProviderConfig": {"vpc": "vpc-0def456", "zone": "us-east-1a", "subnet": {"id": "subnet-0abc123"}}
+					}}
+				}},
+				"status": {"phase": "Ready"}
+			}`
+			header := http.Header{"Content-Type": []string{"application/json"}}
+			server.RouteToHandler(http.MethodGet, "/api/v0/clusters/my-cluster", RespondWith(http.StatusOK, response, header))
+			server.AppendHandlers(CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+				verifyJQ(`.spec.hostedCluster.networking.machineNetwork[0].cidr`, "10.0.0.0/16"),
+				verifyJQ(`.spec.hostedCluster.networking.clusterNetwork[0].cidr`, "10.128.0.0/14"),
+				verifyJQ(`.spec.hostedCluster.networking.clusterNetwork[0].hostPrefix`, float64(23)),
+				verifyJQ(`.spec.hostedCluster.networking.serviceNetwork[0].cidr`, "172.30.0.0/16"),
+				RespondWith(http.StatusCreated, response, header),
+			))
+
+			config := fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "sp"
+					seaplane_url   = %q
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+				resource "rhcs_cluster_seaplane" "test" {
+					provider              = rhcs.sp
+					name                  = "my-cluster"
+					operator_roles_prefix = "my-cluster"
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
+					network = {
+						machine_cidr = jsonencode([{cidr = "10.0.0.0/16"}])
+						pod_cidr     = jsonencode([{cidr = "10.128.0.0/14", hostPrefix = 23}])
+						service_cidr = jsonencode([{cidr = "172.30.0.0/16"}])
+						network_type = "OVNKubernetes"
+					}
+					%%s
+				}
+			`, server.URL())
+			Terraform.Source(fmt.Sprintf(config, ""))
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			Expect(Terraform.Run("plan", "-detailed-exitcode").ExitCode).To(BeZero())
+
+			for _, cidr := range []string{"10.0.0.0/16", "10.128.0.0/14", "172.30.0.0/16"} {
+				By("planning replacement when changing " + cidr)
+				Terraform.Source(strings.Replace(fmt.Sprintf(config, ""), cidr, "192.168.0.0/16", 1))
+				plan := Terraform.Run("plan", "-detailed-exitcode")
+				Expect(plan.ExitCode).To(Equal(2))
+				plan.VerifyOutputContainsSubstring("1 to add, 0 to change, 1 to destroy")
+			}
+
+			By("planning an in-place expiration update with unchanged networking")
+			Terraform.Source(fmt.Sprintf(config, `expiration_timestamp = "2030-01-01T00:00:00Z"`))
+			plan := Terraform.Run("plan", "-detailed-exitcode")
+			Expect(plan.ExitCode).To(Equal(2))
+			plan.VerifyOutputContainsSubstring("0 to add, 1 to change, 0 to destroy")
+		})
+	})
+
 	Context("Create operation", func() {
 		var seaplaneServer *Server
 

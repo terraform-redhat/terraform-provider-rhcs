@@ -26,6 +26,9 @@ type SeaplaneClusterArgs struct {
 	AutoscalerMaxPodGracePeriod    *int64  `hcl:"autoscaler_max_pod_grace_period"`
 	AutoscalerPodPriorityThreshold *int64  `hcl:"autoscaler_pod_priority_threshold"`
 	ComponentRoutes                *string `hcl:"component_routes"`
+	MachineCIDR                    *string `hcl:"machine_cidr"`
+	PodCIDR                        *string `hcl:"pod_cidr"`
+	ServiceCIDR                    *string `hcl:"service_cidr"`
 	// Tags are customer AWS tags applied to resources for this cluster. Changes
 	// are propagated to the HostedCluster and NodePools in place.
 	Tags       *map[string]string `hcl:"tags"`

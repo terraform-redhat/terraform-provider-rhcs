@@ -504,6 +504,19 @@ func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string)
 		AutoscalerPodPriorityThreshold: podPriority,
 		ComponentRoutes:                componentRoutesValue,
 	}
+	if cidr := profile.Profile().GetMachineCIDR(); cidr != "" {
+		clusterArgs.MachineCIDR = new(fmt.Sprintf(`[{"cidr":%q}]`, cidr))
+	}
+	if cidr := profile.Profile().GetServiceCIDR(); cidr != "" {
+		clusterArgs.ServiceCIDR = new(fmt.Sprintf(`[{"cidr":%q}]`, cidr))
+	}
+	if cidr := profile.Profile().GetPodCIDR(); cidr != "" {
+		hostPrefix := profile.Profile().GetHostPrefix()
+		if hostPrefix == 0 {
+			hostPrefix = 23
+		}
+		clusterArgs.PodCIDR = new(fmt.Sprintf(`[{"cidr":%q,"hostPrefix":%d}]`, cidr, hostPrefix))
+	}
 	// Set the profile's initial customer AWS tags. They can be updated in place
 	// after the cluster is created.
 	if profile.Profile().IsTagging() {

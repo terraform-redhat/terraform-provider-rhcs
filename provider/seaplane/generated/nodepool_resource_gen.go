@@ -5,10 +5,8 @@ package seaplanegenerated
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
-	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -47,10 +45,6 @@ type NodePoolHandler interface {
 	// PostExpand is called after pathbind.Expand and before the API call.
 	// Use this to set SDK fields that pathbind cannot express (enum constants, computed structs).
 	PostExpand(ctx context.Context, input *NodePoolState, obj *v1alpha1.NodePool) diag.Diagnostics
-
-	// PostPartialExpand is called after the partial update document is built and before it is marshalled.
-	// Use this to add or change SDK fields that pathbind cannot express in the raw update document.
-	PostPartialExpand(ctx context.Context, input *NodePoolState, document map[string]any) diag.Diagnostics
 
 	// PostResponse is called after API calls (Create, Read, Update, Delete).
 	// Use this for output formatting, side effects, and post-processing.
@@ -172,8 +166,8 @@ func (r *NodePoolResource) Schema(
 				},
 				Optional: true,
 			},
-			"node_drain_grace_period": schema.StringAttribute{
-				MarkdownDescription: "Grace period before a node is forcibly drained during upgrade or replacement, as a Go duration string (for example `5m` for 5 minutes, `1h` for 1 hour). Defaults to `0s` when unset: the node is drained indefinitely. Increase this to prevent a misbehaving workload from blocking node replacement indefinitely.",
+			"node_drain_timeout": schema.StringAttribute{
+				MarkdownDescription: "Maximum time to wait for a node to drain before forcibly terminating it during an upgrade or replacement, as a Go duration string (for example `5m` for 5 minutes, `1h` for 1 hour). Defaults to `0s` when unset: the node is drained indefinitely and will not be forcibly terminated. Increase this to prevent a misbehaving workload from blocking node replacement indefinitely.",
 				Optional:            true,
 			},
 			"node_labels": schema.MapAttribute{
@@ -514,128 +508,68 @@ func (r *NodePoolResource) Update(
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	var NodePoolPartialUpdatePaths = map[string]bool{
-		"spec.autoRepair":                                                     true,
-		"spec.labels":                                                         true,
-		"spec.maxSurge":                                                       true,
-		"spec.maxUnavailable":                                                 true,
-		"spec.nodePool.autoScaling.max":                                       true,
-		"spec.nodePool.autoScaling.min":                                       true,
-		"spec.nodePool.clusterName":                                           true,
-		"spec.nodePool.config":                                                true,
-		"spec.nodePool.nodeDrainTimeout":                                      true,
-		"spec.nodePool.nodeLabels":                                            true,
-		"spec.nodePool.nodeVolumeDetachTimeout":                               true,
-		"spec.nodePool.platform.aws.ami":                                      true,
-		"spec.nodePool.platform.aws.instanceProfile":                          true,
-		"spec.nodePool.platform.aws.instanceType":                             true,
-		"spec.nodePool.platform.aws.placement.capacityReservation.id":         true,
-		"spec.nodePool.platform.aws.placement.capacityReservation.marketType": true,
-		"spec.nodePool.platform.aws.placement.capacityReservation.preference": true,
-		"spec.nodePool.platform.aws.placement.marketType":                     true,
-		"spec.nodePool.platform.aws.placement.spot.maxPrice":                  true,
-		"spec.nodePool.platform.aws.placement.tenancy":                        true,
-		"spec.nodePool.platform.aws.securityGroups":                           true,
-		"spec.nodePool.platform.aws.subnet.filters":                           true,
-		"spec.nodePool.platform.aws.subnet.id":                                true,
-		"spec.nodePool.release.image":                                         true,
-		"spec.nodePool.replicas":                                              true,
-		"spec.nodePool.taints":                                                true,
-		"spec.nodePool.tuningConfig":                                          true,
-		"spec.tags":                                                           true,
-	}
 
-	var NodePoolClearablePartialUpdatePaths = map[string]bool{
-		"spec.labels":          true,
-		"spec.nodePool.taints": true,
-		"spec.tags":            true,
-	}
-
-	var NodePoolAutoscalingPartialUpdateAttributes = map[string]string{
-		"Max_replicas": "max_replicas",
-		"Min_replicas": "min_replicas",
-		"Enabled":      "enabled",
-	}
-
-	var priorState NodePoolState
-	resp.Diagnostics.Append(req.State.Get(ctx, &priorState)...)
+	// Convert Terraform state to native Go struct for pathbind
+	native, conversionDiags := terraformNodePoolToNative(&plan)
+	resp.Diagnostics.Append(conversionDiags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	updateDocument, updateDiags := partialUpdateDocument(
-		ctx,
-		&plan,
-		&priorState,
-		reflect.TypeOf(NodePoolStateNative{}),
-		NodePoolPartialUpdatePaths,
-		NodePoolClearablePartialUpdatePaths,
-	)
-
-	appendPartialUpdateBundle(
-		ctx,
-		plan.Autoscaling,
-		priorState.Autoscaling,
-		reflect.TypeOf(NodePoolAutoscalingNative{}),
-		NodePoolAutoscalingPartialUpdateAttributes,
-		NodePoolPartialUpdatePaths,
-		NodePoolClearablePartialUpdatePaths,
-		updateDocument,
-		&updateDiags,
-	)
-
-	resp.Diagnostics.Append(updateDiags...)
-	if resp.Diagnostics.HasError() {
+	// Fetch by account-scoped metadata.name so fields not represented in Terraform are preserved.
+	obj, err := r.Client.SeaplaneV1alpha1().NodePools().Get(ctx, plan.Name.ValueString(), hfwrappers.GetOptions{})
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to read NodePool for update", err.Error())
 		return
 	}
 
-	mergeResponseNodePool(&plan, &priorState)
+	// Expand the Terraform plan into the current SDK object.
+	if err := pathbind.Expand(ctx, native, obj); err != nil {
+		resp.Diagnostics.AddError("Failed to expand plan to SDK struct", err.Error())
+		return
+	}
 
-	diags = r.Handler.PostPartialExpand(ctx, &plan, updateDocument)
+	// Call handler for setting unmappable fields
+	diags = r.Handler.PostExpand(ctx, &plan, obj)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	updated := &v1alpha1.NodePool{}
-	if len(updateDocument) != 0 {
-		body, err := json.Marshal(updateDocument)
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to encode NodePool update", err.Error())
-			return
-		}
-
-		err = r.Client.SeaplaneV1alpha1().RESTClient().
-			Put().
-			Resource("nodepools").
-			Name(plan.Name.ValueString()).
-			Body(body).
-			Do(ctx).
-			Into(updated)
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to update NodePool", err.Error())
-			return
-		}
-
-		var nativeState NodePoolStateNative
-		if err := pathbind.Flatten(ctx, updated, &nativeState); err != nil {
-			resp.Diagnostics.AddError("Failed to flatten API response to state", err.Error())
-			return
-		}
-
-		resp.Diagnostics.Append(r.Handler.PostResponse(ctx, updated)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-
-		responseState, responseDiags := nativeNodePoolToTerraform(&nativeState)
-		resp.Diagnostics.Append(responseDiags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		mergeResponseNodePool(&plan, responseState)
-		r.Handler.PostFlatten(ctx, &plan, updated)
+	// Update via API. The Platform API derives the account namespace internally.
+	updated, err := r.Client.SeaplaneV1alpha1().NodePools().Update(ctx, obj, hfwrappers.UpdateOptions{})
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to update NodePool", err.Error())
+		return
 	}
+
+	// Flatten response into native state
+	var nativeState NodePoolStateNative
+	if err := pathbind.Flatten(ctx, updated, &nativeState); err != nil {
+		resp.Diagnostics.AddError("Failed to flatten API response to state", err.Error())
+		return
+	}
+
+	// Call handler for post-processing
+	diags = r.Handler.PostResponse(ctx, updated)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Convert native state to Terraform state
+	responseState, responseDiags := nativeNodePoolToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Merge API response values into plan to preserve consumer-only fields
+	// This keeps user-provided values while adding computed fields from the API
+	mergeResponseNodePool(&plan, responseState)
+
+	// Call handler to populate computed fields and adjust state after flatten
+	r.Handler.PostFlatten(ctx, &plan, updated)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -761,8 +695,8 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 		diags = append(diags, collectionDiags...)
 		native.Config = encoded
 	}
-	if !tf.NodeDrainGracePeriod.IsNull() && !tf.NodeDrainGracePeriod.IsUnknown() {
-		native.NodeDrainGracePeriod = tf.NodeDrainGracePeriod.ValueString()
+	if !tf.NodeDrainTimeout.IsNull() && !tf.NodeDrainTimeout.IsUnknown() {
+		native.NodeDrainTimeout = tf.NodeDrainTimeout.ValueString()
 	}
 	if !tf.NodeLabels.IsNull() && !tf.NodeLabels.IsUnknown() {
 		values, collectionDiags := terraformMapToStringMap(tf.NodeLabels)
@@ -887,7 +821,7 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 		})
 		diags = append(diags, collectionDiags...)
 	}
-	tf.NodeDrainGracePeriod = toTerraformString(native.NodeDrainGracePeriod)
+	tf.NodeDrainTimeout = toTerraformString(native.NodeDrainTimeout)
 	tf.NodeLabels = toTerraformMap(native.NodeLabels)
 	tf.NodeVolumeDetachTimeout = toTerraformString(native.NodeVolumeDetachTimeout)
 	tf.Ami = toTerraformString(native.Ami)

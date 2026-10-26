@@ -65,9 +65,9 @@ variable "image_type" {
   default     = null
 }
 
-variable "node_drain_grace_period" {
+variable "node_drain_timeout" {
   type        = string
-  description = "Grace period before a node is forcibly drained during upgrade (e.g. 5m, 1h)"
+  description = "Maximum time to wait for a node to drain during upgrade (e.g. 5m, 1h)"
   default     = null
 }
 
@@ -109,15 +109,5 @@ variable "tags" {
 variable "labels" {
   type        = map(string)
   description = "Node labels"
-  default     = null
-}
-
-variable "taints" {
-  type = list(object({
-    key    = string
-    value  = optional(string)
-    effect = string
-  }))
-  description = "Node taints"
   default     = null
 }

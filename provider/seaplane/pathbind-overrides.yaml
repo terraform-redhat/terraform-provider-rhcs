@@ -139,12 +139,10 @@ resources:
         alias: pod_cidr
         type: string
         bundle: network
-        immutable: true
       - path: spec.hostedCluster.networking.machineNetwork
         alias: machine_cidr
         type: string
         bundle: network
-        immutable: true
       - path: spec.hostedCluster.networking.networkType
         alias: network_type
         type: string
@@ -154,7 +152,6 @@ resources:
         alias: service_cidr
         type: string
         bundle: network
-        immutable: true
       - path: spec.hostedCluster.channel
         alias: channel
         type: string
@@ -175,9 +172,8 @@ resources:
         bundle: aws
       - path: spec.hostedCluster.platform.aws.additionalAllowedPrincipals
         alias: additional_allowed_principals
-        type: string[]
+        type: string
         bundle: aws
-        description: "Additional principal ARNs allowed to connect to the hosted control plane VPC Endpoint Service."
       - path: spec.hostedCluster.platform.aws.cloudProviderConfig.subnet.filters
         type: string
       - path: spec.hostedCluster.platform.aws.cloudProviderConfig.vpc
@@ -226,7 +222,6 @@ resources:
         description: "Current lifecycle phase of the cluster (WaitingForPlacement, Provisioning, Ready, Deleting)."
 
   nodePool:
-    partialUpdate: true
     aliases:
       - path: metadata.name
         alias: name
@@ -278,10 +273,8 @@ resources:
               required: true
               description: "Name of the ConfigMap containing serialized nodepool configuration."
       - path: spec.nodePool.nodeDrainTimeout
-        alias: node_drain_grace_period
-        goName: NodeDrainGracePeriod
         type: string
-        description: "Grace period before a node is forcibly drained during upgrade or replacement, as a Go duration string (for example `5m` for 5 minutes, `1h` for 1 hour). Defaults to `0s` when unset: the node is drained indefinitely. Increase this to prevent a misbehaving workload from blocking node replacement indefinitely."
+        description: "Maximum time to wait for a node to drain before forcibly terminating it during an upgrade or replacement, as a Go duration string (for example `5m` for 5 minutes, `1h` for 1 hour). Defaults to `0s` when unset: the node is drained indefinitely and will not be forcibly terminated. Increase this to prevent a misbehaving workload from blocking node replacement indefinitely."
       - path: spec.nodePool.taints
         description: "Node taints applied to nodes in this pool."
         type: list(object)

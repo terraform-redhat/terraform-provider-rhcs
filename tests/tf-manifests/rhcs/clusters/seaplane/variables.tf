@@ -107,3 +107,21 @@ variable "component_routes" {
   type    = string
   default = null
 }
+
+variable "machine_cidr" {
+  type        = string
+  description = "JSON-encoded machine network entries; changing them requires cluster replacement"
+  default     = null
+}
+
+variable "pod_cidr" {
+  type        = string
+  description = "JSON-encoded pod network entries, including hostPrefix; changing them requires cluster replacement"
+  default     = null
+}
+
+variable "service_cidr" {
+  type        = string
+  description = "JSON-encoded service network entries; changing them requires cluster replacement"
+  default     = null
+}

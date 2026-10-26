@@ -139,10 +139,12 @@ resources:
         alias: pod_cidr
         type: string
         bundle: network
+        immutable: true
       - path: spec.hostedCluster.networking.machineNetwork
         alias: machine_cidr
         type: string
         bundle: network
+        immutable: true
       - path: spec.hostedCluster.networking.networkType
         alias: network_type
         type: string
@@ -152,6 +154,7 @@ resources:
         alias: service_cidr
         type: string
         bundle: network
+        immutable: true
       - path: spec.hostedCluster.channel
         alias: channel
         type: string

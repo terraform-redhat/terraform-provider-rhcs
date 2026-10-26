@@ -186,6 +186,8 @@ resources:
         bundle: aws
       - path: spec.hostedCluster.platform.aws.serviceEndpoints
         type: string
+      - path: spec.hostedCluster.platform.aws.resourceTags
+        type: string
       - path: spec.properties
         type: map
       - path: spec.tags
@@ -266,6 +268,9 @@ resources:
               type: string
               required: true
               description: "Name of the ConfigMap containing serialized nodepool configuration."
+      - path: spec.nodePool.nodeDrainTimeout
+        type: string
+        description: "Maximum time to wait for a node to drain before forcibly terminating it during an upgrade or replacement, as a Go duration string (for example `5m` for 5 minutes, `1h` for 1 hour). Defaults to `0s` when unset: the node is drained indefinitely and will not be forcibly terminated. Increase this to prevent a misbehaving workload from blocking node replacement indefinitely."
       - path: spec.nodePool.taints
         description: "Node taints applied to nodes in this pool."
         type: list(object)

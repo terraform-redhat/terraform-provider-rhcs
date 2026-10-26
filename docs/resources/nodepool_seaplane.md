@@ -40,7 +40,7 @@ Manages NodePool resources.
 - `max_price` (String) MaxPrice.
 - `max_surge` (String) MaxSurge.
 - `max_unavailable` (String) MaxUnavailable.
-- `node_drain_timeout` (String) NodeDrainTimeout.
+- `node_drain_timeout` (String) Maximum time to wait for a node to drain before forcibly terminating it during an upgrade or replacement, as a Go duration string (for example `5m` for 5 minutes, `1h` for 1 hour). Defaults to `0s` when unset: the node is drained indefinitely and will not be forcibly terminated. Increase this to prevent a misbehaving workload from blocking node replacement indefinitely.
 - `node_labels` (Map of String) NodeLabels.
 - `node_volume_detach_timeout` (String) NodeVolumeDetachTimeout.
 - `placement_market_type` (String) PlacementMarketType.

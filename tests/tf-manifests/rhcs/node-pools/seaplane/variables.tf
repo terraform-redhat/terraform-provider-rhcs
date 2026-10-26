@@ -59,6 +59,12 @@ variable "image_type" {
   default     = null
 }
 
+variable "node_drain_timeout" {
+  type        = string
+  description = "Maximum time to wait for a node to drain during upgrade (e.g. 5m, 1h)"
+  default     = null
+}
+
 variable "instance_type" {
   type        = string
   description = "EC2 instance type (e.g. m5.xlarge)"

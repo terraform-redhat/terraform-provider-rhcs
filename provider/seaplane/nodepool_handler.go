@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -113,6 +114,7 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 		}
 	}
 
+	diags.Append(validateNodeDrainTimeout(input)...)
 	diags.Append(validateImageType(input)...)
 
 	return diags
@@ -139,6 +141,33 @@ func validateImageType(input *NodePoolState) diag.Diagnostics {
 		fmt.Sprintf("image_type must be %q or %q, got %q",
 			hypershiftv1beta1.ImageTypeLinux, hypershiftv1beta1.ImageTypeWindows, input.ImageType.ValueString()),
 	)
+
+	return diags
+}
+
+// validateNodeDrainTimeout checks that node_drain_timeout is either null, unknown,
+// or a valid Go duration string. Examples: "5m", "1h", "30s", "0s".
+func validateNodeDrainTimeout(input *NodePoolState) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if input.NodeDrainTimeout.IsNull() || input.NodeDrainTimeout.IsUnknown() {
+		return diags
+	}
+
+	value := input.NodeDrainTimeout.ValueString()
+
+	// Parse the duration to validate it
+	_, err := time.ParseDuration(value)
+	if err != nil {
+		diags.AddAttributeError(
+			path.Root("node_drain_timeout"),
+			"Invalid node_drain_timeout",
+			fmt.Sprintf(
+				"node_drain_timeout must be a valid Go duration string (for example \"5m\" for 5 minutes, \"1h\" for 1 hour, \"0s\" for immediate termination), got %q: %v",
+				value, err,
+			),
+		)
+	}
 
 	return diags
 }

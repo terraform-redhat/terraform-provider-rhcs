@@ -167,7 +167,7 @@ func (r *NodePoolResource) Schema(
 				Optional: true,
 			},
 			"node_drain_timeout": schema.StringAttribute{
-				MarkdownDescription: "NodeDrainTimeout.",
+				MarkdownDescription: "Maximum time to wait for a node to drain before forcibly terminating it during an upgrade or replacement, as a Go duration string (for example `5m` for 5 minutes, `1h` for 1 hour). Defaults to `0s` when unset: the node is drained indefinitely and will not be forcibly terminated. Increase this to prevent a misbehaving workload from blocking node replacement indefinitely.",
 				Optional:            true,
 			},
 			"node_labels": schema.MapAttribute{

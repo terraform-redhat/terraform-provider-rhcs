@@ -31,6 +31,10 @@ type SeaplaneNodePoolArgs struct {
 	// and "Windows" (Windows Server, License Included).
 	ImageType *string `hcl:"image_type"`
 
+	// Maximum time to wait for a node to drain before forcibly terminating it
+	// during an upgrade or replacement, as a Go duration string (e.g., "5m", "1h").
+	NodeDrainTimeout *string `hcl:"node_drain_timeout"`
+
 	Tags   map[string]string `hcl:"tags"`
 	Labels map[string]string `hcl:"labels"`
 }

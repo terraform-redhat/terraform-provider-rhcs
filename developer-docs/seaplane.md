@@ -29,15 +29,10 @@ The Seaplane API annotates every HyperShift field with `+seaplane:write-mode`:
 
 Fields marked `service-set` cannot be exposed as writable resource attributes. See the gap tables below for the full breakdown.
 
-### Subsystem test layer covers provider-config diagnostics only
-The standard `subsystem/hcp/` and `subsystem/classic/` suites rely on a stubbed OCM HTTP server (`TestServer`). The Seaplane Platform API uses a Kubernetes API server wire protocol, so the subsystem suite covers the provider flow against a local HTTP stub:
-- `seaplane_url` absent from the provider block → descriptive error.
-- `seaplane_url` set but `aws_account_id` missing → descriptive error.
-- `aws_region` contradicting the region in `seaplane_url` → "AWS region mismatch" error.
+### Subsystem tests use a local Platform API stub
+The standard `subsystem/hcp/` and `subsystem/classic/` suites rely on a stubbed OCM HTTP server (`TestServer`). The Seaplane Platform API uses a Kubernetes-style API protocol, so tests under `subsystem/seaplane/` exercise the Terraform provider against a local Seaplane HTTP stub instead. The suite setup in `seaplane_test.go` still provides fake AWS credentials and a local OCM server for provider initialization; feature tests use the subsystem framework's local server for Seaplane requests.
 
-Full field-mapping and CRUD coverage is provided by:
-- Unit tests in `provider/seaplane/*_test.go` (state mapping, `buildNodePoolSpec`, `populateState`).
-- E2E tests in `tests/e2e/seaplane/` against a real Seaplane environment.
+Subsystem tests cover more than provider configuration: they can verify Terraform configuration sent to the Platform API, response-to-state mapping, resource lifecycle behavior, and diagnostics without a live Seaplane environment. Use the existing local-server patterns in `cluster_resource_test.go`, `nodepool_resource_test.go`, and `oidcconfig_resource_test.go`.
 
 ### Worker instance profile is computed, not exposed
 The Seaplane cluster object carries the operator role ARNs (`RolesRef`) but **not** the worker IAM instance profile. If the nodepool spec omits it, CAPA defaults to a non-existent `<infra-id>-worker-profile` and the create fails with `Invalid IAM Instance Profile name`. The provider therefore computes it during `Create`: it fetches the parent cluster, recovers the operator roles prefix from `RolesRef` (via `prefixAndPartitionFromRolesRef`), and sets `spec.NodePool.Platform.AWS.InstanceProfile = <prefix>-ROSA-Worker-Role` — matching the IAM manifest naming convention (`tests/tf-manifests/aws/iam-roles/seaplane/main.tf`). On `Update` the value is preserved from the live object.
@@ -145,7 +140,7 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 
 ## HCP parity gap analysis
 
-### `rhcs_cluster_seaplane` vs `rhcs_cluster_rosa_hcp`
+### `rhcs_cluster_seaplane` versus `rhcs_cluster_rosa_hcp`
 
 #### Fields that CAN be added (mutable in passthrough)
 
@@ -189,11 +184,11 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 
 #### Seaplane-only fields (no HCP equivalent)
 
-`operator_roles_prefix`, `vpc_id`, `expiration_timestamp`, `phase` (vs HCP's `state`), `management_cluster`, `aws_partition`, `creator_arn`
+`operator_roles_prefix`, `vpc_id`, `expiration_timestamp`, `phase` (versus HCP's `state`), `management_cluster`, `aws_partition`, `creator_arn`
 
 ---
 
-### `rhcs_nodepool_seaplane` vs `rhcs_hcp_machine_pool`
+### `rhcs_nodepool_seaplane` versus `rhcs_hcp_machine_pool`
 
 #### Fields that CAN be added (mutable in passthrough)
 
@@ -233,14 +228,37 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 
 ## Tests
 
-### What exists
+### Required test layers for new Seaplane features
+
+Every new feature onboarded for Seaplane clusters MUST include meaningful **unit, subsystem, and E2E coverage**. Add or extend tests at all three layers for feature behavior and applicable updates; existing tests count only when they exercise and assert the new behavior.
+
+| Layer | Required location | What to verify |
+|---|---|---|
+| Unit | `provider/seaplane/*_test.go` | Schema and plan behavior, validation, Terraform-to-Platform API expansion, Platform API-to-state flattening, state mapping, helper behavior, and diagnostics as applicable. Include valid and invalid inputs and null/unknown/default cases when those affect the behavior. |
+| Subsystem | `subsystem/seaplane/*_test.go` | Run Terraform against the local Seaplane API stub. Assert request method/path and relevant payload fields, returned state, updates/deletes, and error diagnostics for the feature as applicable. Use stubbed API responses; unit tests alone do not verify the provider's Terraform/API integration. |
+| E2E | Shared ROSA HCP test or, when permitted below, `tests/e2e/seaplane/` | Exercise the feature against a Seaplane cluster selected by an E2E profile. Assert the user-visible result in the cluster/provider state and clean up resources. The test must be enabled for Seaplane profiles and actually reach the Seaplane backend. |
+
+#### E2E placement: HCP test first
+
+Before creating a Seaplane-specific E2E test, search for an existing ROSA HCP E2E test that covers the same capability.
+
+| Matching ROSA HCP E2E test | Required action |
+|---|---|
+| Exists | First extend or refactor that test into a shared ROSA HCP/Seaplane workflow, following the shared workflow pattern in [`tests/e2e/hcp_machine_pool_test.go`](../tests/e2e/hcp_machine_pool_test.go). Put backend-neutral operations behind the adapters in `tests/utils/clusterworkflow/` and the lifecycle interfaces in `tests/utils/exec/`; use the Seaplane profile marker/gates such as `ci.SeaplaneValidated`. Keep HCP coverage and add backend-specific assertions only where behavior genuinely differs. Do not add a duplicate Seaplane-only test for the same capability. |
+| Does not exist | **If and only if** no matching ROSA HCP E2E test exists, add a dedicated test under `tests/e2e/seaplane/` (package `seaplane`). Follow that package's `suite_test.go`, use the Seaplane E2E profile and shared workflow helpers where applicable, and register cleanup for created resources. |
+
+This decision is part of the feature's E2E coverage requirement: a matching HCP test is the place to introduce shared Seaplane coverage before considering a separate Seaplane test.
+
+### Existing test coverage
 
 | Layer | Location | Coverage |
 |---|---|---|
-| Unit (cluster) | `provider/seaplane/cluster_resource_test.go` | Resource schema, tag validation, `computeRolesRef` / `prefixAndPartitionFromRolesRef` round-trips |
-| Unit (nodepool) | `provider/seaplane/nodepool_resource_test.go` | Native `resource_tags` path and nodepool state mapping |
-| Subsystem | `subsystem/seaplane/cluster_resource_test.go` | Provider-config diagnostics |
-| E2E sanity | `tests/e2e/seaplane/sanity_test.go` | Full create/read/destroy cycle: VPC → cluster (wait Ready) → IAM → two nodepools (wait Ready) → replica scale → LIFO teardown |
+| Unit (cluster) | `provider/seaplane/cluster_resource_test.go` | Cluster schema, tag validation, role-reference mapping, network configuration, and plan behavior |
+| Unit (nodepool) | `provider/seaplane/nodepool_resource_test.go` | Nodepool schema, validation, expansion, and state mapping |
+| Subsystem (cluster) | `subsystem/seaplane/cluster_resource_test.go` | Provider diagnostics and stubbed Platform API create/read/update/delete flows, including proxy and tag behavior |
+| Subsystem (nodepool/OIDC) | `subsystem/seaplane/nodepool_resource_test.go`, `oidcconfig_resource_test.go` | Stubbed nodepool lifecycle and updates, OIDC config creation, and validation diagnostics |
+| E2E shared workflow | `tests/e2e/hcp_machine_pool_test.go` | Backend-neutral nodepool workflows selected for ROSA HCP or Seaplane profiles, including scaling, IMDSv2, autoscaling, and tags |
+| E2E Seaplane-specific | `tests/e2e/seaplane/` | Seaplane cluster create/destroy sanity, proxy behavior, and scheduler-profile configuration |
 
 Run the E2E suite:
 ```
@@ -257,19 +275,18 @@ SEAPLANE_NODEPOOL_INSTANCE_TYPE  # default: m5.xlarge
 
 AWS credentials must be set in the environment (standard `AWS_*` vars, shared config, or instance profile). The test derives the AWS region from the host portion of `SEAPLANE_URL`.
 
-### Test gaps
+### E2E gaps
 
-The following scenarios are not covered today:
+The following live-cluster scenarios are not covered today; unit and subsystem coverage may exist independently:
 
 | Gap | Priority | Notes |
 |---|---|---|
-| Subsystem CRUD coverage | High | The `subsystem/seaplane/` suite exercises provider configuration; additional CRUD coverage needs a Seaplane API stub (fake Kubernetes API server or interface mock). |
-| Cluster `expiration_timestamp` update | Medium | The only mutable cluster field besides future additions; currently only exercised implicitly. |
-| Nodepool `labels` update | Medium | Mutable but not exercised via apply after creation. |
-| Nodepool `auto_repair` update | Medium | Mutable but not covered in e2e. |
+| Cluster `expiration_timestamp` update | Medium | The subsystem suite covers the update through the local API stub; no Seaplane live-cluster E2E update exists. |
+| Nodepool `labels` update | Medium | The subsystem suite covers the update; no Seaplane live-cluster E2E update exists. |
+| Nodepool `auto_repair` update | Medium | The subsystem suite covers the update; no Seaplane live-cluster E2E update exists. |
 | Nodepool import | Medium | `ImportState` is implemented but not tested e2e. |
 | Cluster import | Medium | `ImportState` is implemented but not tested e2e. |
-| `ignore_deletion_error=true` path | Low | Tests the nodepool delete error suppression; can be unit-tested with a mock. |
+| `ignore_deletion_error=true` path | Low | Nodepool delete-error suppression is not exercised against a live Seaplane environment. |
 | Multiple availability zones | Low | E2E only exercises single-AZ clusters and nodepools. |
 | Teardown when cluster never reached Ready | Low | Cluster deletion and IAM/VPC cleanup when cluster is in Provisioning phase. |
 | Concurrent nodepool creates | Low | Parallel Ginkgo nodes are not exercised. |

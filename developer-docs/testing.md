@@ -8,6 +8,7 @@ WHEN your situation matches one of these, open **only** that section:
 - WHEN choosing which test layer applies → [Layers](#layers)
 - WHEN adding or changing tests for a type or behavior → [When to add tests](#when-to-add-tests)
 - WHEN assessing E2E coverage or contracts → [E2E coverage and contracts](#e2e-coverage-and-contracts)
+- WHEN onboarding or changing a Seaplane feature → [Seaplane test requirements](seaplane.md#required-test-layers-for-new-seaplane-features)
 - WHEN registering a new `rhcs_*` type → [Subsystem registry](#subsystem-registry)
 - DEFAULT: Open [When to add tests](#when-to-add-tests) for behavior changes; [Subsystem registry](#subsystem-registry) for new types.
 

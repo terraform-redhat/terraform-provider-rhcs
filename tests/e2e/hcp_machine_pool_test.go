@@ -1420,6 +1420,43 @@ var _ = Describe("Shared nodepool workflow", ci.Day2, ci.FeatureMachinepool, ci.
 		},
 	)
 
+	It("preserves custom root volume size when scaling a Seaplane nodepool", ci.High, func(ctx SpecContext) {
+		profile, err := profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).NotTo(HaveOccurred())
+		if profile.Profile().GetClusterType() != constants.SEAPLANE {
+			Skip("custom root volume test requires a Seaplane profile")
+		}
+		if clusterID == "" {
+			Skip("an existing cluster ID is required for the nodepool day-2 workflow")
+		}
+		nodePool, err := clusterworkflow.NewNodePool(profile, clusterID, helper.GenerateRandomName("np-root-volume", 2))
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(func(cleanupCtx SpecContext) {
+			Expect(nodePool.Destroy()).To(Succeed())
+			if config.IsWaitForNodePoolDeletion() {
+				Expect(nodePool.WaitDeleted(cleanupCtx)).To(Succeed())
+			}
+		}, GracePeriod(90*time.Minute))
+
+		diskSize, replicas := 500, 1
+		Expect(nodePool.Create(exec.NodePoolSpec{DiskSize: &diskSize, Replicas: &replicas})).To(Succeed())
+		Expect(nodePool.WaitReady(ctx)).To(Succeed())
+		state, err := nodePool.Read(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(state.DiskSize).NotTo(BeNil())
+		Expect(*state.DiskSize).To(Equal(diskSize))
+
+		replicas = 2
+		Expect(nodePool.Update(exec.NodePoolSpec{Replicas: &replicas})).To(Succeed())
+		Expect(nodePool.WaitReady(ctx)).To(Succeed())
+		state, err = nodePool.Read(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(state.Replicas).NotTo(BeNil())
+		Expect(*state.Replicas).To(Equal(replicas))
+		Expect(state.DiskSize).NotTo(BeNil())
+		Expect(*state.DiskSize).To(Equal(diskSize))
+	})
+
 	It("creates and updates nodepool autoscaling through the selected backend", ci.High, func(ctx SpecContext) {
 		profile, err := profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).NotTo(HaveOccurred())

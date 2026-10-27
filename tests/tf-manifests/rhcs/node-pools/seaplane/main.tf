@@ -34,6 +34,7 @@ resource "rhcs_nodepool_seaplane" "nodepool" {
   auto_repair                       = var.auto_repair
   replicas                          = var.replicas
   instance_type                     = var.instance_type
+  disk_size                         = var.disk_size
   ec2_instance_metadata_http_tokens = var.ec2_instance_metadata_http_tokens
   image_type                        = var.image_type
   placement_market_type             = var.placement_market_type

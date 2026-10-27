@@ -40,7 +40,7 @@ resource "rhcs_nodepool_seaplane" "nodepool" {
   image_type                        = var.image_type
   placement_market_type             = var.placement_market_type
   max_price                         = var.max_price
-  node_drain_timeout                = var.node_drain_timeout
+  node_drain_grace_period           = var.node_drain_grace_period
   labels                            = var.labels
   tags                              = var.tags
   autoscaling                       = var.autoscaling

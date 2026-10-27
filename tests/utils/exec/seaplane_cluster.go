@@ -36,6 +36,12 @@ type SeaplaneClusterArgs struct {
 	// Immutable.
 	EnabledCapabilities  *string `hcl:"enabled_capabilities"`
 	DisabledCapabilities *string `hcl:"disabled_capabilities"`
+	// HostPrefix is the prefix size allocated to each node from the pod CIDR
+	// at creation. Immutable.
+	HostPrefix *int64 `hcl:"host_prefix"`
+	// APIAllowedCIDRBlocks is the JSON-encoded allow list for the hosted API
+	// server load balancer (networking.apiServer.allowedCIDRBlocks).
+	APIAllowedCIDRBlocks *string `hcl:"api_allowed_cidr_blocks"`
 	// Tags are customer AWS tags applied to resources for this cluster. Changes
 	// are propagated to the HostedCluster and NodePools in place.
 	Tags                        *map[string]string `hcl:"tags"`
@@ -60,6 +66,10 @@ type SeaplaneClusterOutput struct {
 	ComponentRoutes                string `json:"component_routes,omitempty"`
 	EnabledCapabilities            string `json:"cluster_enabled_capabilities,omitempty"`
 	DisabledCapabilities           string `json:"cluster_disabled_capabilities,omitempty"`
+	MachineCIDR                    string `json:"cluster_machine_cidr,omitempty"`
+	PodCIDR                        string `json:"cluster_pod_cidr,omitempty"`
+	ServiceCIDR                    string `json:"cluster_service_cidr,omitempty"`
+	HostPrefix                     *int64 `json:"cluster_host_prefix,omitempty"`
 }
 
 // SeaplaneClusterService manages the lifecycle of an rhcs_cluster_seaplane

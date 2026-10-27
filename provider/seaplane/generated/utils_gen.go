@@ -46,6 +46,286 @@ func mergeTerraformObject(plan, response types.Object, fields []string) types.Ob
 	return merged
 }
 
+// partialUpdateDocument builds a raw update document from Terraform plan/state
+// differences. Explicit removal of a populated collection is represented as an
+// empty collection; removed scalar and object fields remain omitted.
+func partialUpdateDocument(
+	ctx context.Context,
+	plan any,
+	priorState any,
+	nativeType reflect.Type,
+	updatablePaths map[string]bool,
+	clearablePaths map[string]bool,
+) (map[string]any, diag.Diagnostics) {
+	document := map[string]any{}
+	var diagnostics diag.Diagnostics
+	planValue := reflect.ValueOf(plan)
+	stateValue := reflect.ValueOf(priorState)
+	if planValue.Kind() != reflect.Pointer || planValue.Elem().Kind() != reflect.Struct ||
+		stateValue.Kind() != reflect.Pointer || stateValue.Elem().Kind() != reflect.Struct {
+		diagnostics.AddError("Invalid partial update state", "plan and prior state must be pointers to structs")
+		return nil, diagnostics
+	}
+	planValue = planValue.Elem()
+	stateValue = stateValue.Elem()
+
+	for fieldIndex := 0; fieldIndex < nativeType.NumField(); fieldIndex++ {
+		nativeField := nativeType.Field(fieldIndex)
+		path := nativeField.Tag.Get("hfsdk")
+		if path == "-" || !strings.HasPrefix(path, "spec.") {
+			continue
+		}
+		if !updatablePaths[path] {
+			continue
+		}
+		planField := planValue.FieldByName(nativeField.Name)
+		stateField := stateValue.FieldByName(nativeField.Name)
+		if !planField.IsValid() || !stateField.IsValid() {
+			continue
+		}
+		appendPartialUpdatePath(ctx, planField, stateField, strings.Split(path, "."), document, clearablePaths, &diagnostics)
+	}
+	return document, diagnostics
+}
+
+func appendPartialUpdateBundle(
+	ctx context.Context,
+	planObject types.Object,
+	stateObject types.Object,
+	bundleType reflect.Type,
+	attributeNames map[string]string,
+	updatablePaths map[string]bool,
+	clearablePaths map[string]bool,
+	document map[string]any,
+	diagnostics *diag.Diagnostics,
+) {
+	hasUpdatableField := false
+	for fieldIndex := 0; fieldIndex < bundleType.NumField(); fieldIndex++ {
+		nativeField := bundleType.Field(fieldIndex)
+		path := nativeField.Tag.Get("hfsdk")
+		if path != "-" && strings.HasPrefix(path, "spec.") && updatablePaths[path] {
+			hasUpdatableField = true
+			break
+		}
+	}
+	if !hasUpdatableField {
+		return
+	}
+	if planObject.IsUnknown() || stateObject.IsUnknown() {
+		diagnostics.Append(unknownPartialUpdateValueDiagnostics()...)
+		return
+	}
+	planAttributes := planObject.Attributes()
+	stateAttributes := stateObject.Attributes()
+	for fieldIndex := 0; fieldIndex < bundleType.NumField(); fieldIndex++ {
+		nativeField := bundleType.Field(fieldIndex)
+		path := nativeField.Tag.Get("hfsdk")
+		if path == "-" || !strings.HasPrefix(path, "spec.") || !updatablePaths[path] {
+			continue
+		}
+		attributeName, ok := attributeNames[nativeField.Name]
+		if !ok {
+			diagnostics.AddError(
+				"Invalid partial update bundle",
+				fmt.Sprintf("field %s has no Terraform attribute mapping", nativeField.Name),
+			)
+			return
+		}
+		planField, planOK := planAttributes[attributeName]
+		if !planOK && !planObject.IsNull() {
+			diagnostics.AddError(
+				"Invalid partial update bundle",
+				fmt.Sprintf("Terraform attribute %s is missing from the plan", attributeName),
+			)
+			return
+		}
+		stateField, stateOK := stateAttributes[attributeName]
+		if !stateOK && !stateObject.IsNull() {
+			diagnostics.AddError(
+				"Invalid partial update bundle",
+				fmt.Sprintf("Terraform attribute %s is missing from the prior state", attributeName),
+			)
+			return
+		}
+		var planReflect, stateReflect reflect.Value
+		if planOK {
+			planReflect = reflect.ValueOf(planField)
+		}
+		if stateOK {
+			stateReflect = reflect.ValueOf(stateField)
+		}
+		appendPartialUpdatePath(
+			ctx,
+			planReflect,
+			stateReflect,
+			strings.Split(path, "."),
+			document,
+			clearablePaths,
+			diagnostics,
+		)
+	}
+}
+
+func appendPartialUpdatePath(
+	ctx context.Context,
+	planField reflect.Value,
+	stateField reflect.Value,
+	path []string,
+	document map[string]any,
+	clearablePaths map[string]bool,
+	diagnostics *diag.Diagnostics,
+) {
+	planValue, planPresent, planDiagnostics := partialUpdateValue(ctx, planField)
+	diagnostics.Append(planDiagnostics...)
+	stateValue, statePresent, stateDiagnostics := partialUpdateValue(ctx, stateField)
+	diagnostics.Append(stateDiagnostics...)
+	if diagnostics.HasError() {
+		return
+	}
+
+	if !planPresent {
+		if statePresent {
+			pathName := strings.Join(path, ".")
+			if !clearablePaths[pathName] {
+				diagnostics.AddError(
+					"Invalid partial update",
+					fmt.Sprintf("field %s cannot be removed because the API does not support clearing it", pathName),
+				)
+				return
+			}
+			if emptyValue, isCollection := emptyPartialUpdateCollection(stateField); isCollection {
+				setPartialUpdateValue(document, path, emptyValue)
+				return
+			}
+			setPartialUpdateValue(document, path, nil)
+		}
+		return
+	}
+	if !statePresent || !reflect.DeepEqual(planValue, stateValue) {
+		setPartialUpdateValue(document, path, planValue)
+	}
+}
+
+func partialUpdateValue(ctx context.Context, field reflect.Value) (any, bool, diag.Diagnostics) {
+	if !field.IsValid() {
+		return nil, false, nil
+	}
+	switch value := field.Interface().(type) {
+	case types.String:
+		return partialUpdateScalar(value.IsUnknown(), value.IsNull(), value.ValueString())
+	case types.Bool:
+		return partialUpdateScalar(value.IsUnknown(), value.IsNull(), value.ValueBool())
+	case types.Int64:
+		return partialUpdateScalar(value.IsUnknown(), value.IsNull(), value.ValueInt64())
+	case types.Float64:
+		return partialUpdateScalar(value.IsUnknown(), value.IsNull(), value.ValueFloat64())
+	case types.Map:
+		if value.IsUnknown() {
+			return nil, false, unknownPartialUpdateValueDiagnostics()
+		}
+		if value.IsNull() {
+			return nil, false, nil
+		}
+		values := map[string]string{}
+		var diagnostics diag.Diagnostics
+		diagnostics.Append(value.ElementsAs(ctx, &values, false)...)
+		return values, true, diagnostics
+	case types.List:
+		return partialUpdateElements(ctx, value.IsUnknown(), value.IsNull(), value.Elements())
+	case types.Set:
+		return partialUpdateElements(ctx, value.IsUnknown(), value.IsNull(), value.Elements())
+	case types.Object:
+		if value.IsUnknown() {
+			return nil, false, unknownPartialUpdateValueDiagnostics()
+		}
+		if value.IsNull() {
+			return nil, false, nil
+		}
+		values := map[string]any{}
+		var diagnostics diag.Diagnostics
+		for attributeName, attribute := range value.Attributes() {
+			attributeValue, _, attributeDiagnostics := partialUpdateValue(ctx, reflect.ValueOf(attribute))
+			diagnostics.Append(attributeDiagnostics...)
+			if diagnostics.HasError() {
+				return nil, false, diagnostics
+			}
+			values[attributeName] = attributeValue
+		}
+		return values, true, diagnostics
+	default:
+		var diagnostics diag.Diagnostics
+		diagnostics.AddError("Invalid partial update value", fmt.Sprintf("unsupported Terraform value %T", value))
+		return nil, false, diagnostics
+	}
+}
+
+func partialUpdateScalar(unknown, null bool, value any) (any, bool, diag.Diagnostics) {
+	if unknown {
+		return nil, false, unknownPartialUpdateValueDiagnostics()
+	}
+	if null {
+		return nil, false, nil
+	}
+	return value, true, nil
+}
+
+func partialUpdateElements(
+	ctx context.Context,
+	unknown, null bool,
+	elements []attr.Value,
+) (any, bool, diag.Diagnostics) {
+	if unknown {
+		return nil, false, unknownPartialUpdateValueDiagnostics()
+	}
+	if null {
+		return nil, false, nil
+	}
+	values := []any{}
+	var diagnostics diag.Diagnostics
+	for _, element := range elements {
+		elementValue, _, elementDiagnostics := partialUpdateValue(ctx, reflect.ValueOf(element))
+		diagnostics.Append(elementDiagnostics...)
+		if diagnostics.HasError() {
+			return nil, false, diagnostics
+		}
+		values = append(values, elementValue)
+	}
+	return values, true, diagnostics
+}
+
+func emptyPartialUpdateCollection(field reflect.Value) (any, bool) {
+	switch field.Interface().(type) {
+	case types.Map:
+		return map[string]any{}, true
+	case types.List, types.Set:
+		return []any{}, true
+	default:
+		return nil, false
+	}
+}
+
+func setPartialUpdateValue(document map[string]any, path []string, value any) {
+	current := document
+	for _, segment := range path[:len(path)-1] {
+		nested, ok := current[segment].(map[string]any)
+		if !ok {
+			nested = map[string]any{}
+			current[segment] = nested
+		}
+		current = nested
+	}
+	current[path[len(path)-1]] = value
+}
+
+func unknownPartialUpdateValueDiagnostics() diag.Diagnostics {
+	var diagnostics diag.Diagnostics
+	diagnostics.AddError(
+		"Invalid partial update value",
+		"Terraform planned an unknown value for a partial update.",
+	)
+	return diagnostics
+}
+
 // Type conversion utilities
 
 // toTerraformString converts a Go string to a Terraform types.String.

@@ -109,6 +109,24 @@ func (n *hcpNodePoolReplica) apply(spec exec.NodePoolSpec) error {
 	if spec.Tags != nil {
 		n.args.Tags = spec.Tags
 	}
+	if spec.Labels != nil {
+		labels := maps.Clone(*spec.Labels)
+		n.args.Labels = &labels
+	}
+	if spec.Taints != nil {
+		taints := make([]map[string]string, len(*spec.Taints))
+		for i, taint := range *spec.Taints {
+			taints[i] = map[string]string{
+				"key":           taint.Key,
+				"value":         taint.Value,
+				"schedule_type": taint.Effect,
+			}
+		}
+		n.args.Taints = &taints
+	}
+	if spec.AutoRepair != nil {
+		n.args.AutoRepair = spec.AutoRepair
+	}
 	if spec.DiskSize != nil {
 		n.args.DiskSize = spec.DiskSize
 	}
@@ -122,7 +140,11 @@ func (n *hcpNodePoolReplica) Read(_ context.Context) (exec.NodePoolState, error)
 		return exec.NodePoolState{}, err
 	}
 	replicas := nodePool.Replicas()
-	state := exec.NodePoolState{Replicas: &replicas}
+	state := exec.NodePoolState{
+		Replicas:   &replicas,
+		Labels:     nodePool.Labels(),
+		AutoRepair: new(nodePool.AutoRepair()),
+	}
 	if autoscaling := nodePool.Autoscaling(); autoscaling != nil {
 		state.Autoscaling = &exec.NodePoolAutoscalingState{
 			Enabled:     true,
@@ -137,6 +159,13 @@ func (n *hcpNodePoolReplica) Read(_ context.Context) (exec.NodePoolState, error)
 		}
 		state.EC2InstanceMetadataHttpTokens = string(nodePool.AWSNodePool().Ec2MetadataHttpTokens())
 		state.Tags = nodePool.AWSNodePool().Tags()
+	}
+	for _, taint := range nodePool.Taints() {
+		state.Taints = append(state.Taints, exec.NodePoolTaint{
+			Key:    taint.Key(),
+			Value:  taint.Value(),
+			Effect: taint.Effect(),
+		})
 	}
 	return state, nil
 }

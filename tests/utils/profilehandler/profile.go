@@ -3,6 +3,7 @@
 
 package profilehandler
 
+//nolint:lll // Paired INI and JSON serialization tags need to stay together.
 type Profile struct {
 	Name         string `ini:"name,omitempty" json:"name,omitempty"`
 	ClusterName  string `ini:"cluster_name,omitempty" json:"cluster_name,omitempty"`

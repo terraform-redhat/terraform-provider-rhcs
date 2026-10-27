@@ -257,7 +257,7 @@ This decision is part of the feature's E2E coverage requirement: a matching HCP 
 | Unit (nodepool) | `provider/seaplane/nodepool_resource_test.go` | Nodepool schema, validation, expansion, and state mapping |
 | Subsystem (cluster) | `subsystem/seaplane/cluster_resource_test.go` | Provider diagnostics and stubbed Platform API create/read/update/delete flows, including proxy and tag behavior |
 | Subsystem (nodepool/OIDC) | `subsystem/seaplane/nodepool_resource_test.go`, `oidcconfig_resource_test.go` | Stubbed nodepool lifecycle and updates, OIDC config creation, and validation diagnostics |
-| E2E shared workflow | `tests/e2e/hcp_machine_pool_test.go` | Backend-neutral nodepool workflows selected for ROSA HCP or Seaplane profiles, including scaling, IMDSv2, autoscaling, and tags |
+| E2E shared workflow | `tests/e2e/hcp_machine_pool_test.go` | Backend-neutral nodepool workflows selected for ROSA HCP or Seaplane profiles, including scaling, labels/taints/auto-repair, IMDSv2, autoscaling, and tags |
 | E2E Seaplane-specific | `tests/e2e/seaplane/` | Seaplane cluster create/destroy sanity, proxy behavior, and scheduler-profile configuration |
 
 Run the E2E suite:

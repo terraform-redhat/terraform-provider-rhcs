@@ -24,7 +24,6 @@ type SeaplaneNodePoolArgs struct {
 	MaxPrice                      *string              `hcl:"max_price"`
 	DiskSize                      *int                 `hcl:"disk_size"`
 	EC2InstanceMetadataHttpTokens *string              `hcl:"ec2_instance_metadata_http_tokens"`
-
 	// Operating system image family for the nodes in this pool. The image family
 	// is baked into every instance the pool launches, so it can only be set on
 	// create; changing it would replace the pool. Valid values: "Linux" (RHCOS)
@@ -35,8 +34,9 @@ type SeaplaneNodePoolArgs struct {
 	// replacement, as a Go duration string (e.g., "5m", "1h").
 	NodeDrainGracePeriod *string `hcl:"node_drain_grace_period"`
 
-	Tags   map[string]string `hcl:"tags"`
-	Labels map[string]string `hcl:"labels"`
+	Tags   map[string]string    `hcl:"tags"`
+	Labels map[string]string    `hcl:"labels"`
+	Taints *[]map[string]string `hcl:"taints"`
 }
 
 type NodePoolAutoscaling struct {

@@ -18,6 +18,7 @@ package seaplane
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -163,7 +164,8 @@ func validateNodeDrainGracePeriod(input *NodePoolState) diag.Diagnostics {
 			path.Root("node_drain_grace_period"),
 			"Invalid node_drain_grace_period",
 			fmt.Sprintf(
-				"node_drain_grace_period must be a valid Go duration string (for example \"5m\" for 5 minutes, \"1h\" for 1 hour, \"0s\" for immediate termination), got %q: %v",
+				"node_drain_grace_period must be a valid Go duration string "+
+					"(for example \"5m\" for 5 minutes, \"1h\" for 1 hour, \"0s\" for immediate termination), got %q: %v",
 				value, err,
 			),
 		)
@@ -248,6 +250,71 @@ func (h *NodePoolHandlerImpl) PostExpand(
 	}
 
 	return diags
+}
+
+// PostPartialExpand allows the raw partial-update document to be customized.
+func (h *NodePoolHandlerImpl) PostPartialExpand(
+	ctx context.Context,
+	input *NodePoolState,
+	document map[string]any,
+) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if len(document) == 0 {
+		return diags
+	}
+	partialSpec, ok := document["spec"].(map[string]any)
+	if !ok || len(partialSpec) == 0 {
+		return diags
+	}
+
+	current, err := h.client.SeaplaneV1alpha1().NodePools().Get(
+		ctx,
+		input.Name.ValueString(),
+		spplatform.GetOptions{},
+	)
+	if err != nil {
+		diags.AddError("Failed to read NodePool for update", err.Error())
+		return diags
+	}
+
+	currentSpecJSON, err := json.Marshal(current.Spec)
+	if err != nil {
+		diags.AddError("Failed to encode NodePool update", err.Error())
+		return diags
+	}
+
+	currentSpec := map[string]any{}
+	if err := json.Unmarshal(currentSpecJSON, &currentSpec); err != nil {
+		diags.AddError("Failed to decode NodePool update", err.Error())
+		return diags
+	}
+
+	mergePartialNodePoolSpec(currentSpec, partialSpec, "spec")
+	document["spec"] = currentSpec
+	return diags
+}
+
+// mergePartialNodePoolSpec overlays changed fields onto the live spec. Sending
+// the complete spec keeps required service-set fields unchanged so the API's
+// update validation does not treat decoded zero values as modifications.
+// Map collections use replacement semantics, matching the API's merge behaviour.
+func mergePartialNodePoolSpec(current, update map[string]any, path string) {
+	for key, updateValue := range update {
+		childPath := path + "." + key
+		replaceCollection := childPath == "spec.labels" ||
+			childPath == "spec.tags" ||
+			childPath == "spec.nodePool.nodeLabels"
+		if !replaceCollection {
+			currentMap, currentIsMap := current[key].(map[string]any)
+			updateMap, updateIsMap := updateValue.(map[string]any)
+			if currentIsMap && updateIsMap {
+				mergePartialNodePoolSpec(currentMap, updateMap, childPath)
+				continue
+			}
+		}
+		current[key] = updateValue
+	}
 }
 
 // PostResponse is called after API operations

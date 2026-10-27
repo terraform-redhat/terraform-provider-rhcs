@@ -81,6 +81,7 @@ type Config struct {
 	ClientSecret types.String `tfsdk:"client_secret"`
 	TrustedCAs   types.String `tfsdk:"trusted_cas"`
 	Insecure     types.Bool   `tfsdk:"insecure"`
+	AllowTLS12   types.Bool   `tfsdk:"allow_tls12"`
 }
 
 // New creates the provider.
@@ -138,6 +139,11 @@ func (p *Provider) Schema(ctx context.Context, req tfprovider.SchemaRequest, res
 					"with the server. This disables verification of TLS " +
 					"certificates and host names, and it is not recommended " +
 					"for production environments.",
+				Optional: true,
+			},
+			"allow_tls12": tfpschema.BoolAttribute{
+				Description: "Allow TLS 1.2 connections instead of requiring " +
+					"TLS 1.3 minimum. Default is false (TLS 1.3 enforced).",
 				Optional: true,
 			},
 		},
@@ -207,6 +213,9 @@ func (p *Provider) Configure(ctx context.Context, req tfprovider.ConfigureReques
 	}
 	if !config.Insecure.IsNull() {
 		builder.Insecure(config.Insecure.ValueBool())
+	}
+	if !config.AllowTLS12.IsNull() {
+		builder.AllowTLS12(config.AllowTLS12.ValueBool())
 	}
 
 	// Create the connection:

@@ -226,6 +226,7 @@ resources:
         description: "Current lifecycle phase of the cluster (WaitingForPlacement, Provisioning, Ready, Deleting)."
 
   nodePool:
+    partialUpdate: true
     aliases:
       - path: metadata.name
         alias: name

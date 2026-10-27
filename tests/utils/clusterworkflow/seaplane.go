@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -30,6 +31,8 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
+
+const seaplaneConditionSynced = "Synced"
 
 var seaplaneAWSRegionRE = regexp.MustCompile(`[a-z]+-(?:[a-z]+-)+\d+`)
 
@@ -255,6 +258,7 @@ func newSeaplaneFetcher(profile profilehandler.ProfileHandler) (*seaplaneFetcher
 
 func (f *seaplaneFetcher) FetchClusterID(ctx context.Context) (string, error) {
 	clusterID := os.Getenv(config.EnvClusterID)
+	source := config.EnvClusterID
 	if clusterID == "" {
 		output, err := f.service.Output()
 		if err != nil {
@@ -262,12 +266,26 @@ func (f *seaplaneFetcher) FetchClusterID(ctx context.Context) (string, error) {
 			return "", nil
 		}
 		clusterID = output.ClusterID
+		source = "Terraform state"
 	}
 	if clusterID == "" {
 		return "", nil
 	}
 	cluster, err := f.client.SeaplaneV1alpha1().Clusters().Get(ctx, f.clusterName, spplatform.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			if source == config.EnvClusterID {
+				return "", fmt.Errorf(
+					"seaplane cluster %q configured by %s=%q was not found; unset %s or point it at an existing cluster: %w",
+					f.clusterName, source, clusterID, config.EnvClusterID, err,
+				)
+			}
+			return "", fmt.Errorf(
+				"terraform state for workspace %q references missing Seaplane cluster %q (ID %q); "+
+					"recreate the cluster or remove the stale workspace state: %w",
+				f.clusterName, f.clusterName, clusterID, err,
+			)
+		}
 		return "", err
 	}
 	if string(cluster.UID) != clusterID {
@@ -309,7 +327,14 @@ func newExistingSeaplaneBackend(profile profilehandler.ProfileHandler) (*Backend
 		return nil, err
 	}
 	backend := &seaplaneBackend{service: service, client: client, args: args}
-	return &Backend{Lifecycle: backend, Fetcher: backend}, nil
+	clusterName := config.GetRHCSClusterName()
+	if clusterName == "" {
+		clusterName = profile.Profile().GetName()
+	}
+	return &Backend{
+		Lifecycle: backend,
+		Fetcher:   &seaplaneFetcher{client: client, service: service, clusterName: clusterName},
+	}, nil
 }
 
 func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string) (*Backend, error) {

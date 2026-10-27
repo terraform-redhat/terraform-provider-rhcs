@@ -56,27 +56,21 @@ func NewSeaplaneNodePoolReplica(
 	if workspace == "" {
 		workspace = clusterName + "-seaplane"
 	}
+	client, err := buildSeaplaneClient(seaplaneURL, region)
+	if err != nil {
+		return nil, err
+	}
 	subnetIDs := config.GetSubnetIDList()
 	subnetID := ""
 	if len(subnetIDs) > 0 {
 		subnetID = subnetIDs[0]
 	} else {
-		vpcService, vpcErr := exec.NewSeaplaneVPCService(workspace + "-vpc")
-		if vpcErr != nil {
-			return nil, vpcErr
+		lookupCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		subnetID, err = seaplaneNodePoolSubnetID(lookupCtx, client, clusterName, clusterID)
+		if err != nil {
+			return nil, err
 		}
-		output, outputErr := vpcService.Output()
-		if outputErr != nil {
-			return nil, outputErr
-		}
-		subnetID = output.PrivateSubnetID
-	}
-	if subnetID == "" {
-		return nil, fmt.Errorf("no subnet available for Seaplane nodepool")
-	}
-	client, err := buildSeaplaneClient(seaplaneURL, region)
-	if err != nil {
-		return nil, err
 	}
 	instanceType := config.GetComputeMachineType()
 	if instanceType == "" {
@@ -117,6 +111,33 @@ func NewSeaplaneNodePoolReplica(
 	}, nil
 }
 
+func seaplaneNodePoolSubnetID(
+	ctx context.Context,
+	client *seaplane.Clientset,
+	clusterName, clusterID string,
+) (string, error) {
+	cluster, err := client.SeaplaneV1alpha1().Clusters().Get(ctx, clusterName, spplatform.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("get Seaplane cluster %q for nodepool subnet: %w", clusterName, err)
+	}
+	if string(cluster.UID) != clusterID {
+		return "", fmt.Errorf(
+			"seaplane cluster %q UID %q does not match configured cluster ID %q",
+			clusterName,
+			cluster.UID,
+			clusterID,
+		)
+	}
+	if cluster.Spec.HostedCluster.Platform.AWS == nil ||
+		cluster.Spec.HostedCluster.Platform.AWS.CloudProviderConfig == nil ||
+		cluster.Spec.HostedCluster.Platform.AWS.CloudProviderConfig.Subnet == nil ||
+		cluster.Spec.HostedCluster.Platform.AWS.CloudProviderConfig.Subnet.ID == nil ||
+		*cluster.Spec.HostedCluster.Platform.AWS.CloudProviderConfig.Subnet.ID == "" {
+		return "", fmt.Errorf("seaplane cluster %q does not expose a nodepool subnet", clusterName)
+	}
+	return *cluster.Spec.HostedCluster.Platform.AWS.CloudProviderConfig.Subnet.ID, nil
+}
+
 func (n *seaplaneNodePoolReplica) Create(spec exec.NodePoolSpec) error { return n.apply(spec) }
 
 func (n *seaplaneNodePoolReplica) WaitReady(ctx context.Context) error {
@@ -128,12 +149,35 @@ func (n *seaplaneNodePoolReplica) WaitReady(ctx context.Context) error {
 				log.Logger.Infof("[seaplane] nodepool %s not found while waiting for Ready", n.name)
 				return false
 			}
-			log.Logger.Infof("[seaplane] nodepool %s phase: %s", n.name, nodePool.Status.Phase)
-			return nodePool.Status.Phase == v1alpha1.NodePoolPhaseReady
+			ready := seaplaneNodePoolReadyForUpdate(nodePool)
+			log.Logger.Infof(
+				"[seaplane] nodepool %s phase: %s generation=%d observedGeneration=%d ready=%t",
+				n.name,
+				nodePool.Status.Phase,
+				nodePool.Generation,
+				nodePool.Status.ObservedGeneration,
+				ready,
+			)
+			return ready
 		},
 		30*time.Second,
 		45*time.Minute,
 	)
+}
+
+func seaplaneNodePoolReadyForUpdate(nodePool *v1alpha1.NodePool) bool {
+	if nodePool == nil ||
+		nodePool.Status.Phase != v1alpha1.NodePoolPhaseReady ||
+		nodePool.Status.ObservedGeneration != nodePool.Generation {
+		return false
+	}
+	for _, condition := range nodePool.Status.Conditions {
+		if condition.Type == seaplaneConditionSynced {
+			return condition.Status == metav1.ConditionTrue &&
+				condition.ObservedGeneration == nodePool.Generation
+		}
+	}
+	return false
 }
 
 func (n *seaplaneNodePoolReplica) Update(spec exec.NodePoolSpec) error { return n.apply(spec) }
@@ -156,6 +200,23 @@ func (n *seaplaneNodePoolReplica) apply(spec exec.NodePoolSpec) error {
 	if spec.Tags != nil {
 		n.args.Tags = *spec.Tags
 	}
+	if spec.Labels != nil {
+		n.args.Labels = maps.Clone(*spec.Labels)
+	}
+	if spec.Taints != nil {
+		taints := make([]map[string]string, len(*spec.Taints))
+		for i, taint := range *spec.Taints {
+			taints[i] = map[string]string{
+				"key":    taint.Key,
+				"value":  taint.Value,
+				"effect": taint.Effect,
+			}
+		}
+		n.args.Taints = &taints
+	}
+	if spec.AutoRepair != nil {
+		n.args.AutoRepair = spec.AutoRepair
+	}
 	if spec.DiskSize != nil {
 		n.args.DiskSize = spec.DiskSize
 	}
@@ -171,6 +232,18 @@ func (n *seaplaneNodePoolReplica) Read(ctx context.Context) (exec.NodePoolState,
 	state := exec.NodePoolState{
 		EC2InstanceMetadataHttpTokens: string(nodePool.Spec.EC2InstanceMetadataHttpTokens),
 		Tags:                          nodePool.Spec.Tags,
+		Labels:                        maps.Clone(nodePool.Spec.Labels),
+	}
+	if nodePool.Spec.AutoRepair != nil {
+		autoRepair := *nodePool.Spec.AutoRepair
+		state.AutoRepair = &autoRepair
+	}
+	for _, taint := range nodePool.Spec.NodePool.Taints {
+		state.Taints = append(state.Taints, exec.NodePoolTaint{
+			Key:    taint.Key,
+			Value:  taint.Value,
+			Effect: string(taint.Effect),
+		})
 	}
 	if aws := nodePool.Spec.NodePool.Platform.AWS; aws != nil && aws.RootVolume != nil {
 		diskSize := int(aws.RootVolume.Size)
@@ -202,7 +275,7 @@ func (n *seaplaneNodePoolReplica) WaitTagsApplied(ctx context.Context, expected 
 
 			synced := false
 			for _, condition := range nodePool.Status.Conditions {
-				if condition.Type == "Synced" {
+				if condition.Type == seaplaneConditionSynced {
 					synced = condition.Status == metav1.ConditionTrue &&
 						condition.ObservedGeneration == nodePool.Generation
 					break

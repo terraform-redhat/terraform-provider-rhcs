@@ -104,7 +104,7 @@ func (u *SeaplaneClusterTagsUpdater) WaitTagsApplied(ctx context.Context, expect
 
 			synced := false
 			for _, condition := range cluster.Status.Conditions {
-				if condition.Type == "Synced" {
+				if condition.Type == seaplaneConditionSynced {
 					synced = condition.Status == metav1.ConditionTrue &&
 						condition.ObservedGeneration == cluster.Generation
 					break

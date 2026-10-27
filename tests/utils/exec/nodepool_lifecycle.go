@@ -17,6 +17,16 @@ type NodePoolSpec struct {
 	Autoscaling                   *NodePoolAutoscaling
 	EC2InstanceMetadataHttpTokens *string
 	Tags                          *map[string]string
+	Labels                        *map[string]string
+	Taints                        *[]NodePoolTaint
+	AutoRepair                    *bool
+}
+
+// NodePoolTaint is the backend-neutral representation of a node-pool taint.
+type NodePoolTaint struct {
+	Key    string
+	Value  string
+	Effect string
 }
 
 // NodePoolState is the backend-neutral representation returned by Read.
@@ -26,6 +36,9 @@ type NodePoolState struct {
 	Autoscaling                   *NodePoolAutoscalingState
 	EC2InstanceMetadataHttpTokens string
 	Tags                          map[string]string
+	Labels                        map[string]string
+	Taints                        []NodePoolTaint
+	AutoRepair                    *bool
 }
 
 type NodePoolAutoscalingState struct {

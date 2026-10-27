@@ -42,5 +42,6 @@ resource "rhcs_nodepool_seaplane" "nodepool" {
   node_drain_grace_period           = var.node_drain_grace_period
   labels                            = var.labels
   tags                              = var.tags
+  taints                            = var.taints
   autoscaling                       = var.autoscaling
 }

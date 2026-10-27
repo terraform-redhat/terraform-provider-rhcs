@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"net"
 	"regexp"
 	"slices"
 	"strings"
@@ -32,6 +33,7 @@ import (
 	v1alpha1 "github.com/openshift-online/rosa-seaplane-api/api/v1alpha1/public"
 	seaplane "github.com/openshift-online/rosa-seaplane-api/clientset"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
+	"github.com/openshift/hypershift/api/util/ipnet"
 )
 
 // awsReservedTagPrefix marks tag keys AWS reserves for its own use.
@@ -114,6 +116,7 @@ func (h *ClusterHandlerImpl) PreExpand(ctx context.Context, input *ClusterState)
 
 	diags.Append(validateClusterTags(ctx, input.Tags)...)
 	diags.Append(validateClusterCapabilities(input.Enabled_capabilities, input.Disabled_capabilities)...)
+	diags.Append(validateClusterNetwork(input)...)
 
 	return diags
 }
@@ -212,6 +215,185 @@ func validateClusterCapabilities(enabled, disabled types.String) diag.Diagnostic
 	return diags
 }
 
+const (
+	machineCIDRAttribute = "machine_cidr"
+	podCIDRAttribute     = "pod_cidr"
+	serviceCIDRAttribute = "service_cidr"
+)
+
+// cidrLabels maps the friendly networking attributes to the wording used in
+// the V1 provider overlap errors.
+var cidrLabels = map[string]string{
+	machineCIDRAttribute: "Machine",
+	podCIDRAttribute:     "pod",
+	serviceCIDRAttribute: "service",
+}
+
+// validateClusterNetwork checks the friendly networking attributes
+// (machine_cidr, pod_cidr, service_cidr, host_prefix) so a bad value fails
+// during apply instead of on the API round trip, and enforces mutual
+// exclusion with the raw network bundle passthrough. The attributes are
+// consumer-only: applyClusterNetworking encodes them onto the SDK object in
+// PostExpand.
+func validateClusterNetwork(input *ClusterState) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	stringValue := func(value types.String) string {
+		if value.IsNull() || value.IsUnknown() {
+			return ""
+		}
+		return value.ValueString()
+	}
+	machineCIDR := stringValue(input.Machine_cidr)
+	podCIDR := stringValue(input.Pod_cidr)
+	serviceCIDR := stringValue(input.Service_cidr)
+	hasHostPrefix := !input.Host_prefix.IsNull() && !input.Host_prefix.IsUnknown()
+
+	if machineCIDR == "" && podCIDR == "" && serviceCIDR == "" && !hasHostPrefix {
+		return diags
+	}
+
+	// The friendly attributes and the raw network bundle describe the same SDK
+	// fields; setting both is ambiguous.
+	for _, attribute := range []string{machineCIDRAttribute, podCIDRAttribute, serviceCIDRAttribute} {
+		if awsBundleStringValue(input.Network, attribute) != "" {
+			diags.AddError(
+				"Conflicting attributes",
+				fmt.Sprintf(
+					"%s and network.%s are mutually exclusive: use the top-level CIDR attribute "+
+						"or the raw network bundle passthrough, not both",
+					attribute, attribute,
+				),
+			)
+		}
+	}
+	if diags.HasError() {
+		return diags
+	}
+
+	if hasHostPrefix && podCIDR == "" {
+		diags.AddError(
+			"Invalid cluster networking",
+			"host_prefix requires pod_cidr: the prefix is carved out of the pod network",
+		)
+		return diags
+	}
+
+	parsed := make(map[string]*net.IPNet)
+	for _, cidr := range []struct {
+		attribute string
+		value     string
+	}{
+		{machineCIDRAttribute, machineCIDR},
+		{podCIDRAttribute, podCIDR},
+		{serviceCIDRAttribute, serviceCIDR},
+	} {
+		if cidr.value == "" {
+			continue
+		}
+		_, network, err := net.ParseCIDR(cidr.value)
+		if err != nil {
+			diags.AddAttributeError(
+				path.Root(cidr.attribute),
+				"Invalid cluster network CIDR",
+				fmt.Sprintf("invalid CIDR address: %s", cidr.value),
+			)
+			continue
+		}
+		parsed[cidr.attribute] = network
+	}
+	if diags.HasError() {
+		return diags
+	}
+
+	// Overlap checks mirror the V1 provider so the same misconfiguration fails
+	// with the same wording on either platform.
+	checkOverlap := func(first, second string) {
+		a, b := parsed[first], parsed[second]
+		if a == nil || b == nil {
+			return
+		}
+		if a.Contains(b.IP) || b.Contains(a.IP) {
+			diags.AddError(
+				"Invalid cluster network CIDR",
+				fmt.Sprintf(
+					"%s CIDR '%s' and %s CIDR '%s' overlap",
+					cidrLabels[first], a.String(), cidrLabels[second], b.String(),
+				),
+			)
+		}
+	}
+	checkOverlap(machineCIDRAttribute, serviceCIDRAttribute)
+	checkOverlap(machineCIDRAttribute, podCIDRAttribute)
+	checkOverlap(serviceCIDRAttribute, podCIDRAttribute)
+
+	// The per-node pod subnet must be strictly smaller than the pod network.
+	if pod := parsed[podCIDRAttribute]; pod != nil && hasHostPrefix {
+		hostPrefix := input.Host_prefix.ValueInt64()
+		podPrefix, _ := pod.Mask.Size()
+		if hostPrefix <= int64(podPrefix) {
+			diags.AddAttributeError(
+				path.Root("host_prefix"),
+				"Invalid cluster network host prefix",
+				fmt.Sprintf("host_prefix %d must be greater than the pod CIDR prefix %d", hostPrefix, podPrefix),
+			)
+		}
+	}
+
+	return diags
+}
+
+// applyClusterNetworking encodes the friendly networking attributes onto the
+// HostedCluster spec as single-entry network arrays, mirroring the rosa CLI
+// bridge (--machine-cidr/--pod-cidr/--service-cidr/--host-prefix). Immutable
+// plan modifiers guarantee the values never change after creation, so the
+// arrays are only set when present in the plan; an unset host_prefix is left
+// for the platform to default.
+func applyClusterNetworking(input *ClusterState, obj *v1alpha1.Cluster) {
+	stringValue := func(value types.String) string {
+		if value.IsNull() || value.IsUnknown() {
+			return ""
+		}
+		return value.ValueString()
+	}
+	machineCIDR := stringValue(input.Machine_cidr)
+	podCIDR := stringValue(input.Pod_cidr)
+	serviceCIDR := stringValue(input.Service_cidr)
+	if machineCIDR == "" && podCIDR == "" && serviceCIDR == "" {
+		return
+	}
+
+	parse := func(value string) ipnet.IPNet {
+		_, network, err := net.ParseCIDR(value)
+		if err != nil || network == nil {
+			// Should never happen: validateClusterNetwork rejects unparseable
+			// CIDRs in PreExpand, which always runs before PostExpand. A clear
+			// panic is easier to debug than a nil dereference if that ordering
+			// ever changes.
+			panic(fmt.Sprintf("BUG: unparseable cluster network CIDR %q passed validation", value))
+		}
+		return ipnet.IPNet(*network)
+	}
+
+	if machineCIDR != "" {
+		obj.Spec.HostedCluster.Networking.MachineNetwork = []hypershiftv1beta1.MachineNetworkEntry{
+			{CIDR: parse(machineCIDR)},
+		}
+	}
+	if podCIDR != "" {
+		entry := hypershiftv1beta1.ClusterNetworkEntry{CIDR: parse(podCIDR)}
+		if !input.Host_prefix.IsNull() && !input.Host_prefix.IsUnknown() {
+			entry.HostPrefix = int32(input.Host_prefix.ValueInt64())
+		}
+		obj.Spec.HostedCluster.Networking.ClusterNetwork = []hypershiftv1beta1.ClusterNetworkEntry{entry}
+	}
+	if serviceCIDR != "" {
+		obj.Spec.HostedCluster.Networking.ServiceNetwork = []hypershiftv1beta1.ServiceNetworkEntry{
+			{CIDR: parse(serviceCIDR)},
+		}
+	}
+}
+
 // PostExpand synchronizes proxy settings and builds the Platform spec with
 // RolesRef and AWS configuration.
 func (h *ClusterHandlerImpl) PostExpand(
@@ -254,6 +436,11 @@ func (h *ClusterHandlerImpl) PostExpand(
 		dnsPrefix := input.BaseDomainPrefix.ValueString()
 		obj.Spec.HostedCluster.DNS.BaseDomainPrefix = &dnsPrefix
 	}
+
+	// Networking CIDRs are consumer-only friendly attributes; the raw network
+	// bundle passthrough stays available for advanced use.
+	applyClusterNetworking(input, obj)
+
 	prefix := input.Operator_roles_prefix.ValueString()
 	partition := awsBundleStringValue(input.Aws, "aws_partition")
 	if partition == "" {
@@ -432,6 +619,36 @@ func (h *ClusterHandlerImpl) PostFlatten(ctx context.Context, state *ClusterStat
 		principals = resp.Spec.HostedCluster.Platform.AWS.AdditionalAllowedPrincipals
 	}
 	state.Aws = awsBundleWithStringList(state.Aws, "additional_allowed_principals", principals)
+
+	// Refresh the friendly networking attributes from the API response. Each
+	// attribute is only refreshed when managed (non-null in state) so the
+	// platform defaults (e.g. the default pod network) never leak into an
+	// unmanaged attribute and report phantom drift on the next plan.
+	networking := resp.Spec.HostedCluster.Networking
+	if !state.Machine_cidr.IsNull() {
+		if len(networking.MachineNetwork) > 0 {
+			state.Machine_cidr = types.StringValue(networking.MachineNetwork[0].CIDR.String())
+		} else {
+			state.Machine_cidr = types.StringNull()
+		}
+	}
+	if !state.Pod_cidr.IsNull() {
+		if len(networking.ClusterNetwork) > 0 {
+			state.Pod_cidr = types.StringValue(networking.ClusterNetwork[0].CIDR.String())
+		} else {
+			state.Pod_cidr = types.StringNull()
+		}
+	}
+	if !state.Service_cidr.IsNull() {
+		if len(networking.ServiceNetwork) > 0 {
+			state.Service_cidr = types.StringValue(networking.ServiceNetwork[0].CIDR.String())
+		} else {
+			state.Service_cidr = types.StringNull()
+		}
+	}
+	if !state.Host_prefix.IsNull() && len(networking.ClusterNetwork) > 0 {
+		state.Host_prefix = types.Int64Value(int64(networking.ClusterNetwork[0].HostPrefix))
+	}
 }
 
 // computeRolesRef builds the RolesRef from operator prefix and account ID

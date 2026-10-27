@@ -134,19 +134,31 @@ variable "component_routes" {
 
 variable "machine_cidr" {
   type        = string
-  description = "JSON-encoded machine network entries; changing them requires cluster replacement"
+  description = "IP address pool for machines (e.g. 10.0.0.0/16). Must contain the VPC CIDR when using byovpc"
   default     = null
 }
 
 variable "pod_cidr" {
   type        = string
-  description = "JSON-encoded pod network entries, including hostPrefix; changing them requires cluster replacement"
+  description = "IP address pool for pods (e.g. 10.128.0.0/14)"
   default     = null
 }
 
 variable "service_cidr" {
   type        = string
-  description = "JSON-encoded service network entries; changing them requires cluster replacement"
+  description = "IP address pool for services (e.g. 172.31.0.0/16)"
+  default     = null
+}
+
+variable "host_prefix" {
+  type        = number
+  description = "Prefix size allocated to each node from the pod CIDR. If unset the platform default (23) applies. Requires pod_cidr"
+  default     = null
+}
+
+variable "api_allowed_cidr_blocks" {
+  type        = string
+  description = "JSON-encoded allow list of CIDR blocks that can access the API server (e.g. jsonencode([\"0.0.0.0/0\"]))"
   default     = null
 }
 

@@ -46,6 +46,23 @@ profiles:
     # instances in the region above.
     windows: true
 
+- as: sp-cidrs
+  cluster:
+    cluster_type: seaplane
+    product_id: rosa
+    cloud_provider: aws
+    region: us-east-1
+    multi_az: false
+    byovpc: true
+    private: false
+    oidc_config: managed
+    tagging: true
+    machine_cidr: "10.0.0.0/16" # ROSAENG-65120 Custom Network CIDRs (must contain the VPC CIDR)
+    pod_cidr: "10.200.0.0/16"
+    service_cidr: "172.30.0.0/16"
+    host_prefix: 24
+    version: latest
+
 - as: sp-optional-conf
   cluster:
     cluster_type: seaplane

@@ -85,6 +85,10 @@ type ClusterState struct {
 	Operator_roles_prefix          types.String `tfsdk:"operator_roles_prefix"`
 	Cloud_region                   types.String `tfsdk:"cloud_region"`
 	No_cni                         types.Bool   `tfsdk:"no_cni"`
+	Machine_cidr                   types.String `tfsdk:"machine_cidr"`
+	Pod_cidr                       types.String `tfsdk:"pod_cidr"`
+	Service_cidr                   types.String `tfsdk:"service_cidr"`
+	Host_prefix                    types.Int64  `tfsdk:"host_prefix"`
 	Api_url                        types.String `tfsdk:"api_url"`
 	Phase                          types.String `tfsdk:"phase"`
 	Network                        types.Object `tfsdk:"network"`

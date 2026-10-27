@@ -100,6 +100,36 @@ resources:
           - create
         description: "Disable CNI creation to let users bring their own CNI. Cannot be changed after creation."
 
+      # provider-only fields — encoded by the cluster handler into the
+      # HostedCluster networking arrays (V1 parity, same as the rosa CLI bridge)
+      - alias: machine_cidr
+        type: string
+        immutable: true
+        operations:
+          - create
+        description: "IP address pool for machines (e.g. 10.0.0.0/16). With a byovpc VPC this must contain the VPC CIDR. Only one entry is supported. Immutable after creation; changing it replaces the cluster. Mutually exclusive with network.machine_cidr."
+
+      - alias: pod_cidr
+        type: string
+        immutable: true
+        operations:
+          - create
+        description: "IP address pool for pods (e.g. 10.128.0.0/14). Only one entry is supported. Immutable after creation; changing it replaces the cluster. Mutually exclusive with network.pod_cidr."
+
+      - alias: service_cidr
+        type: string
+        immutable: true
+        operations:
+          - create
+        description: "IP address pool for services (e.g. 172.31.0.0/16). Only one entry is supported. Immutable after creation; changing it replaces the cluster. Mutually exclusive with network.service_cidr."
+
+      - alias: host_prefix
+        type: int64
+        immutable: true
+        operations:
+          - create
+        description: "Prefix size allocated to each node from the pod CIDR (e.g. 23 grants 2^(32-23)=512 addresses per node). If unset the platform default (23) applies. Requires pod_cidr. Immutable after creation; changing it replaces the cluster."
+
       # optional mutable fields
       - path: spec.expirationTimestamp
         alias: expiration_timestamp

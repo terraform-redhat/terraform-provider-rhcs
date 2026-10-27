@@ -948,6 +948,168 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 		})
 	})
 
+	Context("Cluster network CIDRs", func() {
+		var seaplaneServer *Server
+
+		// clusterWithNetworking is the Platform API representation of a cluster
+		// created with custom machine/pod/service CIDRs and host prefix 24.
+		clusterWithNetworking := `{"metadata":{"uid":"test-cluster-id","name":"my-cluster","creationTimestamp":"2024-01-01T00:00:00Z"},"spec":{"hostedCluster":{"networking":{"machineNetwork":[{"cidr":"10.0.0.0/16"}],"clusterNetwork":[{"cidr":"10.200.0.0/16","hostPrefix":24}],"serviceNetwork":[{"cidr":"172.30.0.0/16"}]},"platform":{"type":"AWS","aws":{"region":"us-east-1","cloudProviderConfig":{"vpc":"vpc-0def456","zone":"us-east-1a","subnet":{"id":"subnet-0abc123"}}}}}},"status":{"phase":"Ready","controlPlaneEndpoint":{"host":"api.my-cluster.example.com","port":6443}}}`
+
+		header := http.Header{"Content-Type": []string{"application/json"}}
+
+		// clusterNetworkSource renders the cluster configuration with the given
+		// networking block (HCL, may be empty).
+		clusterNetworkSource := func(url, networking string) string {
+			return fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "hf"
+					seaplane_url = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_cluster_seaplane" "test" {
+					provider              = rhcs.hf
+					name                  = "my-cluster"
+					operator_roles_prefix = "my-cluster"
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
+					%s
+				}
+			`, url, networking)
+		}
+
+		BeforeEach(func() {
+			seaplaneServer = NewServer()
+		})
+
+		AfterEach(func() {
+			seaplaneServer.Close()
+		})
+
+		It("sends the CIDRs as networking arrays on create", func() {
+			// Route every cluster read (post-create refresh, the drift check
+			// plan) to the same response so queued handlers are only consumed
+			// by the create.
+			seaplaneServer.RouteToHandler(
+				http.MethodGet, "/api/v0/clusters/my-cluster",
+				RespondWith(http.StatusOK, clusterWithNetworking, header),
+			)
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					VerifyJQ(`.spec.hostedCluster.networking.machineNetwork[0].cidr`, "10.0.0.0/16"),
+					VerifyJQ(`.spec.hostedCluster.networking.clusterNetwork[0].cidr`, "10.200.0.0/16"),
+					VerifyJQ(`.spec.hostedCluster.networking.clusterNetwork[0].hostPrefix | tostring`, "24"),
+					VerifyJQ(`.spec.hostedCluster.networking.serviceNetwork[0].cidr`, "172.30.0.0/16"),
+					RespondWith(http.StatusCreated, clusterWithNetworking, header),
+				),
+			)
+
+			Terraform.Source(clusterNetworkSource(seaplaneServer.URL(), `
+					machine_cidr = "10.0.0.0/16"
+					pod_cidr     = "10.200.0.0/16"
+					service_cidr = "172.30.0.0/16"
+					host_prefix  = 24`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			By("Planning again to confirm the CIDRs round-trip without drift")
+			planOutput := Terraform.Run("plan", "-no-color")
+			Expect(planOutput.ExitCode).To(BeZero())
+			planOutput.VerifyOutputContainsSubstring("No changes. Your infrastructure matches the configuration")
+		})
+
+		It("replaces the cluster when a CIDR changes", func() {
+			// Network CIDRs can only be set at cluster creation, so changing
+			// one must be planned as a replacement rather than an update.
+			seaplaneServer.RouteToHandler(
+				http.MethodGet, "/api/v0/clusters/my-cluster",
+				RespondWith(http.StatusOK, clusterWithNetworking, header),
+			)
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					RespondWith(http.StatusCreated, clusterWithNetworking, header),
+				),
+			)
+
+			Terraform.Source(clusterNetworkSource(seaplaneServer.URL(), `
+					machine_cidr = "10.0.0.0/16"
+					pod_cidr     = "10.200.0.0/16"
+					service_cidr = "172.30.0.0/16"
+					host_prefix  = 24`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			Terraform.Source(clusterNetworkSource(seaplaneServer.URL(), `
+					machine_cidr = "10.0.0.0/16"
+					pod_cidr     = "10.201.0.0/16"
+					service_cidr = "172.30.0.0/16"
+					host_prefix  = 24`))
+
+			runOutput = Terraform.Run("plan", "-no-color")
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("must be replaced")
+		})
+
+		It("rejects an invalid CIDR", func() {
+			Terraform.Source(clusterNetworkSource(seaplaneServer.URL(), `
+					machine_cidr = "10111.0.0.0/16"`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("invalid CIDR address: 10111.0.0.0/16")
+		})
+
+		It("rejects overlapping CIDRs", func() {
+			Terraform.Source(clusterNetworkSource(seaplaneServer.URL(), `
+					machine_cidr = "10.0.0.0/16"
+					pod_cidr     = "10.0.0.0/18"
+					service_cidr = "172.30.0.0/16"`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Machine CIDR '10.0.0.0/16' and pod CIDR '10.0.0.0/18' overlap")
+		})
+
+		It("rejects host_prefix without pod_cidr", func() {
+			Terraform.Source(clusterNetworkSource(seaplaneServer.URL(), `
+					host_prefix = 24`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("host_prefix requires pod_cidr")
+		})
+
+		It("rejects host_prefix smaller than the pod CIDR prefix", func() {
+			Terraform.Source(clusterNetworkSource(seaplaneServer.URL(), `
+					pod_cidr    = "10.200.0.0/16"
+					host_prefix = 16`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("host_prefix 16 must be greater than the pod CIDR prefix 16")
+		})
+
+		It("rejects the friendly CIDR together with the raw network bundle", func() {
+			Terraform.Source(clusterNetworkSource(seaplaneServer.URL(), `
+					machine_cidr = "10.0.0.0/16"
+					network = {
+						machine_cidr = jsonencode([{ cidr = "10.0.0.0/16" }])
+					}`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("machine_cidr and network.machine_cidr are mutually exclusive")
+		})
+	})
+
 	Context("Update operation", func() {
 		var seaplaneServer *Server
 

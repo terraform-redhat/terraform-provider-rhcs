@@ -32,23 +32,25 @@ resource "rhcs_cluster_seaplane" "cluster" {
   dns_reservation_id    = var.dns_reservation_id
   base_domain_prefix    = var.base_domain_prefix
   version               = var.release_image
-  network = var.machine_cidr == null && var.pod_cidr == null && var.service_cidr == null ? null : {
-    machine_cidr = var.machine_cidr
-    pod_cidr     = var.pod_cidr
-    service_cidr = var.service_cidr
-  }
   aws = {
     aws_subnet_ids                = [var.subnet_id]
     vpc_id                        = var.vpc_id
     availability_zones            = [var.availability_zone]
     additional_allowed_principals = var.additional_allowed_principals
   }
-  expiration_timestamp               = var.expiration_timestamp
-  oidc_config_id                     = var.oidc_config_id != "" ? var.oidc_config_id : null
-  scheduler_profile                  = var.scheduler_profile
-  tags                               = var.tags
-  enabled_capabilities               = var.enabled_capabilities
-  disabled_capabilities              = var.disabled_capabilities
+  expiration_timestamp  = var.expiration_timestamp
+  oidc_config_id        = var.oidc_config_id != "" ? var.oidc_config_id : null
+  scheduler_profile     = var.scheduler_profile
+  tags                  = var.tags
+  enabled_capabilities  = var.enabled_capabilities
+  disabled_capabilities = var.disabled_capabilities
+  machine_cidr          = var.machine_cidr
+  pod_cidr              = var.pod_cidr
+  service_cidr          = var.service_cidr
+  host_prefix           = var.host_prefix
+  network = {
+    api_allowed_cidr_blocks = var.api_allowed_cidr_blocks
+  }
   http_proxy                         = var.http_proxy
   https_proxy                        = var.https_proxy
   no_proxy                           = var.no_proxy

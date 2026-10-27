@@ -46,7 +46,7 @@ Thin entrypoints `CLAUDE.md` and `GEMINI.md` should only point here to avoid dri
 
 1. Confirm ROSA/OCM support — [`developer-docs/architecture.md`](developer-docs/architecture.md).
 2. Resource? — [`developer-docs/resources/resource-overview.md`](developer-docs/resources/resource-overview.md). Data source? — [`developer-docs/datasources/datasource-overview.md`](developer-docs/datasources/datasource-overview.md). Follow an analogous package under `provider/`.
-3. Tests — [`developer-docs/testing.md`](developer-docs/testing.md); commands in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+3. Tests — [`developer-docs/testing.md`](developer-docs/testing.md); for Seaplane feature coverage and E2E placement, follow [`developer-docs/seaplane.md`](developer-docs/seaplane.md#required-test-layers-for-new-seaplane-features); commands in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 4. Docs/examples — [`developer-docs/docs-and-examples.md`](developer-docs/docs-and-examples.md).
 5. Security — [`developer-docs/security.md`](developer-docs/security.md).
 6. Breaking or high-risk? — [`developer-docs/breaking-changes.md`](developer-docs/breaking-changes.md).

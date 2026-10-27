@@ -17,6 +17,14 @@ output "nodepool_replicas" {
   value = rhcs_nodepool_seaplane.nodepool.replicas
 }
 
+output "nodepool_placement_market_type" {
+  value = rhcs_nodepool_seaplane.nodepool.placement_market_type == null ? "" : rhcs_nodepool_seaplane.nodepool.placement_market_type
+}
+
+output "nodepool_max_price" {
+  value = rhcs_nodepool_seaplane.nodepool.max_price == null ? "" : rhcs_nodepool_seaplane.nodepool.max_price
+}
+
 output "nodepool_min_replicas" {
   value = rhcs_nodepool_seaplane.nodepool.autoscaling == null ? null : rhcs_nodepool_seaplane.nodepool.autoscaling.min_replicas
 }

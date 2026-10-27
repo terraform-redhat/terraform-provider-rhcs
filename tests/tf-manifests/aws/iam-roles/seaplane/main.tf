@@ -110,7 +110,7 @@ data "aws_iam_policy_document" "operator_trust" {
 
     principals {
       type        = "Federated"
-		identifiers = [aws_iam_openid_connect_provider.seaplane.arn]
+      identifiers = [aws_iam_openid_connect_provider.seaplane.arn]
     }
 
     condition {
@@ -126,7 +126,7 @@ resource "aws_iam_role" "operator" {
 
   name               = "${var.operator_roles_prefix}${each.key}"
   assume_role_policy = data.aws_iam_policy_document.operator_trust[each.key].json
-	description        = "ROSA HCP operator role for Seaplane cluster ${var.operator_roles_prefix}"
+  description        = "ROSA HCP operator role for Seaplane cluster ${var.operator_roles_prefix}"
   tags               = { Cluster = var.operator_roles_prefix }
 }
 
@@ -153,7 +153,7 @@ data "aws_iam_policy_document" "worker_trust" {
 resource "aws_iam_role" "worker" {
   name               = local.worker_role_name
   assume_role_policy = data.aws_iam_policy_document.worker_trust.json
-	description        = "ROSA HCP worker node role for Seaplane cluster ${var.operator_roles_prefix}"
+  description        = "ROSA HCP worker node role for Seaplane cluster ${var.operator_roles_prefix}"
   tags               = { Cluster = var.operator_roles_prefix }
 }
 

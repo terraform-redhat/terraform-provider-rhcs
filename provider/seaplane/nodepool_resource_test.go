@@ -136,22 +136,22 @@ func TestNodePoolResourceSchema_EC2InstanceMetadataHttpTokens(t *testing.T) {
 	}
 }
 
-func TestNodePoolResourceSchema_NodeDrainTimeout(t *testing.T) {
+func TestNodePoolResourceSchema_NodeDrainGracePeriod(t *testing.T) {
 	var resp resource.SchemaResponse
 	NewNodePool().Schema(context.Background(), resource.SchemaRequest{}, &resp)
 
-	attribute, ok := resp.Schema.Attributes["node_drain_timeout"].(schema.StringAttribute)
+	attribute, ok := resp.Schema.Attributes["node_drain_grace_period"].(schema.StringAttribute)
 	if !ok {
-		t.Fatal("node_drain_timeout is not a string attribute")
+		t.Fatal("node_drain_grace_period is not a string attribute")
 	}
 	if !attribute.Optional {
-		t.Error("node_drain_timeout should be optional")
+		t.Error("node_drain_grace_period should be optional")
 	}
 	if attribute.Computed {
-		t.Error("node_drain_timeout should not be provider-computed")
+		t.Error("node_drain_grace_period should not be provider-computed")
 	}
 	if attribute.Required {
-		t.Error("node_drain_timeout should not be required (defaults to 0s when unset)")
+		t.Error("node_drain_grace_period should not be required (defaults to 0s when unset)")
 	}
 }
 
@@ -239,9 +239,9 @@ func TestNodePoolRootVolumeBinding(t *testing.T) {
 	}
 }
 
-// ── validateNodeDrainTimeout ──────────────────────────────────────────────────
+// ── validateNodeDrainGracePeriod ──────────────────────────────────────────────────
 
-func TestValidateNodeDrainTimeout_Valid(t *testing.T) {
+func TestValidateNodeDrainGracePeriod_Valid(t *testing.T) {
 	cases := []struct {
 		name    string
 		timeout types.String
@@ -255,14 +255,14 @@ func TestValidateNodeDrainTimeout_Valid(t *testing.T) {
 		{"combined", types.StringValue("1h30m")},
 	}
 	for _, tc := range cases {
-		diags := validateNodeDrainTimeout(&NodePoolState{NodeDrainTimeout: tc.timeout})
+		diags := validateNodeDrainGracePeriod(&NodePoolState{NodeDrainGracePeriod: tc.timeout})
 		if diags.HasError() {
 			t.Errorf("%s: unexpected error: %v", tc.name, diags.Errors())
 		}
 	}
 }
 
-func TestValidateNodeDrainTimeout_Invalid(t *testing.T) {
+func TestValidateNodeDrainGracePeriod_Invalid(t *testing.T) {
 	cases := []struct {
 		name         string
 		timeout      string
@@ -274,7 +274,7 @@ func TestValidateNodeDrainTimeout_Invalid(t *testing.T) {
 		{"empty string", "", "invalid duration"},
 	}
 	for _, tc := range cases {
-		diags := validateNodeDrainTimeout(&NodePoolState{NodeDrainTimeout: types.StringValue(tc.timeout)})
+		diags := validateNodeDrainGracePeriod(&NodePoolState{NodeDrainGracePeriod: types.StringValue(tc.timeout)})
 		if !diags.HasError() {
 			t.Errorf("%s: expected an error, got none", tc.name)
 			continue

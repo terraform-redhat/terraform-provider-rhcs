@@ -17,8 +17,8 @@ import (
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
-var _ = Describe("NodePool node_drain_timeout", func() {
-	It("creates and updates nodepool with node_drain_timeout", func() {
+var _ = Describe("NodePool node_drain_grace_period", func() {
+	It("creates and updates nodepool with node_drain_grace_period", func() {
 		seaplaneURL := requireEnv("SEAPLANE_URL")
 		clusterName := requireEnv("SEAPLANE_CLUSTER_NAME")
 		clusterID := requireEnv("SEAPLANE_CLUSTER_ID")
@@ -38,25 +38,25 @@ var _ = Describe("NodePool node_drain_timeout", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		DeferCleanup(func(_ SpecContext) {
-			By("Teardown: destroy nodepool with node_drain_timeout")
+			By("Teardown: destroy nodepool with node_drain_grace_period")
 			_, err := npSvc.Destroy()
 			Expect(err).NotTo(HaveOccurred())
 		}, GracePeriod(45*time.Minute))
 
-		// ── Phase 1: Create nodepool with 5m drain timeout ────────────────
-		By("Phase 1: create nodepool with node_drain_timeout='5m'")
-		nodeDrainTimeout := "5m"
+		// ── Phase 1: Create nodepool with 5m drain grace period ────────────────
+		By("Phase 1: create nodepool with node_drain_grace_period='5m'")
+		nodeDrainGracePeriod := "5m"
 		replicas := 1
 		_, err = npSvc.Apply(&exec.SeaplaneNodePoolArgs{
-			SeaplaneURL:      &seaplaneURL,
-			AWSRegion:        &awsRegion,
-			ClusterID:        &clusterID,
-			ClusterName:      &clusterName,
-			Name:             &npName,
-			SubnetID:         &subnetID,
-			InstanceType:     &instanceType,
-			Replicas:         &replicas,
-			NodeDrainTimeout: &nodeDrainTimeout,
+			SeaplaneURL:          &seaplaneURL,
+			AWSRegion:            &awsRegion,
+			ClusterID:            &clusterID,
+			ClusterName:          &clusterName,
+			Name:                 &npName,
+			SubnetID:             &subnetID,
+			InstanceType:         &instanceType,
+			Replicas:             &replicas,
+			NodeDrainGracePeriod: &nodeDrainGracePeriod,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -82,38 +82,38 @@ var _ = Describe("NodePool node_drain_timeout", func() {
 		)
 		Expect(err).NotTo(HaveOccurred())
 
-		// ── Verify node_drain_timeout was set via Platform API ─────────────
-		By("Verifying node_drain_timeout='5m' was set via Platform API")
+		// ── Verify node_drain_grace_period was set via Platform API ─────────────
+		By("Verifying node_drain_grace_period='5m' was set via Platform API")
 		npObj, err := nodepools.Get(ctx, npName, spplatform.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(npObj.Spec.NodePool.NodeDrainTimeout).To(Equal("5m"))
-		Logger.Infof("[verify] nodepool %s has node_drain_timeout='%v'", npName, npObj.Spec.NodePool.NodeDrainTimeout)
+		Logger.Infof("[verify] nodepool %s has node_drain_grace_period='%v'", npName, npObj.Spec.NodePool.NodeDrainTimeout)
 
-		// ── Phase 2: Update drain timeout to 10m ───────────────────────────
-		By("Phase 2: update node_drain_timeout to '10m'")
-		updatedTimeout := "10m"
+		// ── Phase 2: Update drain grace period to 10m ───────────────────────────
+		By("Phase 2: update node_drain_grace_period to '10m'")
+		updatedGracePeriod := "10m"
 		_, err = npSvc.Apply(&exec.SeaplaneNodePoolArgs{
-			SeaplaneURL:      &seaplaneURL,
-			AWSRegion:        &awsRegion,
-			ClusterID:        &clusterID,
-			ClusterName:      &clusterName,
-			Name:             &npName,
-			SubnetID:         &subnetID,
-			InstanceType:     &instanceType,
-			Replicas:         &replicas,
-			NodeDrainTimeout: &updatedTimeout,
+			SeaplaneURL:          &seaplaneURL,
+			AWSRegion:            &awsRegion,
+			ClusterID:            &clusterID,
+			ClusterName:          &clusterName,
+			Name:                 &npName,
+			SubnetID:             &subnetID,
+			InstanceType:         &instanceType,
+			Replicas:             &replicas,
+			NodeDrainGracePeriod: &updatedGracePeriod,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		// ── Verify updated timeout ─────────────────────────────────────────
-		By("Verifying node_drain_timeout was updated to '10m' via Platform API")
+		// ── Verify updated grace period ─────────────────────────────────────────
+		By("Verifying node_drain_grace_period was updated to '10m' via Platform API")
 		err = nodepools.WaitUntil(
 			ctx, npName,
 			func(np *v1alpha1.NodePool) bool {
 				if np == nil {
 					return false
 				}
-				Logger.Infof("[wait] nodepool %s phase: %s, node_drain_timeout: %v",
+				Logger.Infof("[wait] nodepool %s phase: %s, node_drain_grace_period: %v",
 					npName, np.Status.Phase, np.Spec.NodePool.NodeDrainTimeout)
 				return np.Status.Phase == v1alpha1.NodePoolPhaseReady
 			},
@@ -125,21 +125,21 @@ var _ = Describe("NodePool node_drain_timeout", func() {
 		npUpdated, err := nodepools.Get(ctx, npName, spplatform.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(npUpdated.Spec.NodePool.NodeDrainTimeout).To(Equal("10m"))
-		Logger.Infof("[verify] nodepool %s node_drain_timeout successfully updated to '%v'",
+		Logger.Infof("[verify] nodepool %s node_drain_grace_period successfully updated to '%v'",
 			npName, npUpdated.Spec.NodePool.NodeDrainTimeout)
 
 		// ── Phase 3: Verify clean plan after update ────────────────────────
 		By("Phase 3: verify terraform plan is clean after update")
 		_, err = npSvc.Apply(&exec.SeaplaneNodePoolArgs{
-			SeaplaneURL:      &seaplaneURL,
-			AWSRegion:        &awsRegion,
-			ClusterID:        &clusterID,
-			ClusterName:      &clusterName,
-			Name:             &npName,
-			SubnetID:         &subnetID,
-			InstanceType:     &instanceType,
-			Replicas:         &replicas,
-			NodeDrainTimeout: &updatedTimeout,
+			SeaplaneURL:          &seaplaneURL,
+			AWSRegion:            &awsRegion,
+			ClusterID:            &clusterID,
+			ClusterName:          &clusterName,
+			Name:                 &npName,
+			SubnetID:             &subnetID,
+			InstanceType:         &instanceType,
+			Replicas:             &replicas,
+			NodeDrainGracePeriod: &updatedGracePeriod,
 		})
 		Expect(err).NotTo(HaveOccurred())
 

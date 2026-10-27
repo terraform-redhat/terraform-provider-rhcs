@@ -21,7 +21,7 @@ type NodePoolState struct {
 	MaxUnavailable                types.String `tfsdk:"max_unavailable"`
 	ClusterName                   types.String `tfsdk:"cluster_name"`
 	Config                        types.List   `tfsdk:"config"`
-	NodeDrainTimeout              types.String `tfsdk:"node_drain_timeout"`
+	NodeDrainGracePeriod          types.String `tfsdk:"node_drain_grace_period"`
 	NodeLabels                    types.Map    `tfsdk:"node_labels"`
 	NodeVolumeDetachTimeout       types.String `tfsdk:"node_volume_detach_timeout"`
 	Ami                           types.String `tfsdk:"ami"`

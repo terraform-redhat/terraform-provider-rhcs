@@ -921,7 +921,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 			runOutput.VerifyErrorContainsSubstring(`must be "Linux" or "Windows"`)
 		})
 
-		Context("node_drain_timeout validation", func() {
+		Context("node_drain_grace_period validation", func() {
 			It("accepts valid duration strings", func() {
 				clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"nodePoolManagementARN": "arn:aws:iam::123456789012:role/roles-prefix-node-pool-management"}}}}}}`
 				nodepoolResponse := `{"metadata": {"uid": "np-123", "name": "test-cluster.pool"}, "spec": {"autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 2, "nodeDrainTimeout": "5m", "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
@@ -952,7 +952,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 						cluster_name       = "test-cluster"
 						name               = "test-cluster.pool"
 						replicas           = 2
-						node_drain_timeout = "5m"
+						node_drain_grace_period ="5m"
 						auto_repair        = true
 						subnet_id          = "subnet-0abc123"
 						instance_type      = "m5.xlarge"
@@ -999,7 +999,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 						cluster_name       = "test-cluster"
 						name               = "test-cluster.pool"
 						replicas           = 2
-						node_drain_timeout = "1h30m"
+						node_drain_grace_period ="1h30m"
 						auto_repair        = true
 						subnet_id          = "subnet-0abc123"
 						instance_type      = "m5.xlarge"
@@ -1013,7 +1013,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 				Expect(runOutput.ExitCode).To(BeZero())
 			})
 
-			It("allows in-place update of node_drain_timeout", func() {
+			It("allows in-place update of node_drain_grace_period", func() {
 				clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"nodePoolManagementARN": "arn:aws:iam::123456789012:role/roles-prefix-node-pool-management"}}}}}}`
 				responseWith5m := `{"metadata": {"uid": "np-123", "name": "test-cluster.pool"}, "spec": {"autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 2, "nodeDrainTimeout": "5m", "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
 				responseWith10m := `{"metadata": {"uid": "np-123", "name": "test-cluster.pool"}, "spec": {"autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 2, "nodeDrainTimeout": "10m", "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
@@ -1044,7 +1044,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 						cluster_name       = "test-cluster"
 						name               = "test-cluster.pool"
 						replicas           = 2
-						node_drain_timeout = "5m"
+						node_drain_grace_period ="5m"
 						auto_repair        = true
 						subnet_id          = "subnet-0abc123"
 						instance_type      = "m5.xlarge"
@@ -1080,7 +1080,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 						cluster_name       = "test-cluster"
 						name               = "test-cluster.pool"
 						replicas           = 2
-						node_drain_timeout = "10m"
+						node_drain_grace_period ="10m"
 						auto_repair        = true
 						subnet_id          = "subnet-0abc123"
 						instance_type      = "m5.xlarge"
@@ -1108,7 +1108,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 						cluster_name       = "test-cluster"
 						name               = "test-cluster.pool"
 						replicas           = 2
-						node_drain_timeout = "invalid"
+						node_drain_grace_period ="invalid"
 						auto_repair        = true
 						subnet_id          = "subnet-0abc123"
 						instance_type      = "m5.xlarge"

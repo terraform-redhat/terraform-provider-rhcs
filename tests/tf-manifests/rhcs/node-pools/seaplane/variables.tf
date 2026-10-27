@@ -65,9 +65,9 @@ variable "image_type" {
   default     = null
 }
 
-variable "node_drain_timeout" {
+variable "node_drain_grace_period" {
   type        = string
-  description = "Maximum time to wait for a node to drain during upgrade (e.g. 5m, 1h)"
+  description = "Grace period before a node is forcibly drained during upgrade (e.g. 5m, 1h)"
   default     = null
 }
 

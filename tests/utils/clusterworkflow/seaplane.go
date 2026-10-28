@@ -496,7 +496,10 @@ func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string)
 		}
 		encoded, err := json.Marshal(values)
 		if err != nil {
-			return nil
+			// json.Marshal on a []string cannot practically fail; treat it as a
+			// test-harness bug rather than silently creating a cluster without
+			// the requested capabilities.
+			panic(fmt.Sprintf("jsonList: %v", err))
 		}
 		encodedStr := string(encoded)
 		return &encodedStr

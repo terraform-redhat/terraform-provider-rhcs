@@ -65,8 +65,8 @@ type Profile struct {
 	AdditionalSGNumber         int      `ini:"additional_sg_number,omitempty" json:"additional_sg_number,omitempty"`
 	UnifiedAccRolesPath        string   `ini:"unified_acc_role_path,omitempty" json:"unified_acc_role_path,omitempty"`
 	SharedVpc                  bool     `ini:"shared_vpc,omitempty" json:"shared_vpc,omitempty"`
-	DisableClusterCapabilities []string `json:"disable_cluster_capabilities,omitempty"`
-	EnableClusterCapabilities  []string `json:"enable_cluster_capabilities,omitempty"`
+	DisableClusterCapabilities []string `ini:"disable_cluster_capabilities,omitempty" json:"disable_cluster_capabilities,omitempty"`
+	EnableClusterCapabilities  []string `ini:"enable_cluster_capabilities,omitempty" json:"enable_cluster_capabilities,omitempty"`
 	MachineCIDR                string   `ini:"machine_cidr,omitempty" json:"machine_cidr,omitempty"`
 	ServiceCIDR                string   `ini:"service_cidr,omitempty" json:"service_cidr,omitempty"`
 	PodCIDR                    string   `ini:"pod_cidr,omitempty" json:"pod_cidr,omitempty"`

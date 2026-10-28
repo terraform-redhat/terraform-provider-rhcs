@@ -166,8 +166,8 @@ func (r *NodePoolResource) Schema(
 				},
 				Optional: true,
 			},
-			"node_drain_timeout": schema.StringAttribute{
-				MarkdownDescription: "NodeDrainTimeout.",
+			"node_drain_grace_period": schema.StringAttribute{
+				MarkdownDescription: "Grace period before a node is forcibly drained during upgrade or replacement, as a Go duration string (for example `5m` for 5 minutes, `1h` for 1 hour). Defaults to `0s` when unset: the node is drained indefinitely. Increase this to prevent a misbehaving workload from blocking node replacement indefinitely.",
 				Optional:            true,
 			},
 			"node_labels": schema.MapAttribute{
@@ -695,8 +695,8 @@ func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Di
 		diags = append(diags, collectionDiags...)
 		native.Config = encoded
 	}
-	if !tf.NodeDrainTimeout.IsNull() && !tf.NodeDrainTimeout.IsUnknown() {
-		native.NodeDrainTimeout = tf.NodeDrainTimeout.ValueString()
+	if !tf.NodeDrainGracePeriod.IsNull() && !tf.NodeDrainGracePeriod.IsUnknown() {
+		native.NodeDrainGracePeriod = tf.NodeDrainGracePeriod.ValueString()
 	}
 	if !tf.NodeLabels.IsNull() && !tf.NodeLabels.IsUnknown() {
 		values, collectionDiags := terraformMapToStringMap(tf.NodeLabels)
@@ -821,7 +821,7 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) (*NodePoolState, dia
 		})
 		diags = append(diags, collectionDiags...)
 	}
-	tf.NodeDrainTimeout = toTerraformString(native.NodeDrainTimeout)
+	tf.NodeDrainGracePeriod = toTerraformString(native.NodeDrainGracePeriod)
 	tf.NodeLabels = toTerraformMap(native.NodeLabels)
 	tf.NodeVolumeDetachTimeout = toTerraformString(native.NodeVolumeDetachTimeout)
 	tf.Ami = toTerraformString(native.Ami)

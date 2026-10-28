@@ -59,6 +59,12 @@ variable "image_type" {
   default     = null
 }
 
+variable "node_drain_grace_period" {
+  type        = string
+  description = "Grace period before a node is forcibly drained during upgrade (e.g. 5m, 1h)"
+  default     = null
+}
+
 variable "instance_type" {
   type        = string
   description = "EC2 instance type (e.g. m5.xlarge)"

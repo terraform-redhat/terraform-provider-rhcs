@@ -136,6 +136,25 @@ func TestNodePoolResourceSchema_EC2InstanceMetadataHttpTokens(t *testing.T) {
 	}
 }
 
+func TestNodePoolResourceSchema_NodeDrainGracePeriod(t *testing.T) {
+	var resp resource.SchemaResponse
+	NewNodePool().Schema(context.Background(), resource.SchemaRequest{}, &resp)
+
+	attribute, ok := resp.Schema.Attributes["node_drain_grace_period"].(schema.StringAttribute)
+	if !ok {
+		t.Fatal("node_drain_grace_period is not a string attribute")
+	}
+	if !attribute.Optional {
+		t.Error("node_drain_grace_period should be optional")
+	}
+	if attribute.Computed {
+		t.Error("node_drain_grace_period should not be provider-computed")
+	}
+	if attribute.Required {
+		t.Error("node_drain_grace_period should not be required (defaults to 0s when unset)")
+	}
+}
+
 // ── validateImageType ─────────────────────────────────────────────────────────
 
 func TestValidateImageType_Valid(t *testing.T) {
@@ -217,5 +236,52 @@ func TestNodePoolRootVolumeBinding(t *testing.T) {
 	}
 	if native.DiskSize == nil || *native.DiskSize != size {
 		t.Fatalf("flattened size = %v, want %d", native.DiskSize, size)
+	}
+}
+
+// ── validateNodeDrainGracePeriod ──────────────────────────────────────────────────
+
+func TestValidateNodeDrainGracePeriod_Valid(t *testing.T) {
+	cases := []struct {
+		name    string
+		timeout types.String
+	}{
+		{"null", types.StringNull()},
+		{"unknown", types.StringUnknown()},
+		{"zero", types.StringValue("0s")},
+		{"seconds", types.StringValue("30s")},
+		{"minutes", types.StringValue("5m")},
+		{"hours", types.StringValue("1h")},
+		{"combined", types.StringValue("1h30m")},
+	}
+	for _, tc := range cases {
+		diags := validateNodeDrainGracePeriod(&NodePoolState{NodeDrainGracePeriod: tc.timeout})
+		if diags.HasError() {
+			t.Errorf("%s: unexpected error: %v", tc.name, diags.Errors())
+		}
+	}
+}
+
+func TestValidateNodeDrainGracePeriod_Invalid(t *testing.T) {
+	cases := []struct {
+		name         string
+		timeout      string
+		wantContains string
+	}{
+		{"not a duration", "abc", "invalid duration"},
+		{"just a number", "123", "missing unit"},
+		{"bad unit", "5x", "unknown unit"},
+		{"empty string", "", "invalid duration"},
+	}
+	for _, tc := range cases {
+		diags := validateNodeDrainGracePeriod(&NodePoolState{NodeDrainGracePeriod: types.StringValue(tc.timeout)})
+		if !diags.HasError() {
+			t.Errorf("%s: expected an error, got none", tc.name)
+			continue
+		}
+		detail := diags.Errors()[0].Detail()
+		if !strings.Contains(detail, tc.wantContains) {
+			t.Errorf("%s: detail = %q, want it to contain %q", tc.name, detail, tc.wantContains)
+		}
 	}
 }

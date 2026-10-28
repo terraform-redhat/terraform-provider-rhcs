@@ -17,7 +17,7 @@ type NodePoolStateNative struct {
 	MaxUnavailable                string            `hfsdk:"spec.maxUnavailable"`
 	ClusterName                   string            `hfsdk:"spec.nodePool.clusterName"`
 	Config                        string            `hfsdk:"spec.nodePool.config"`
-	NodeDrainTimeout              string            `hfsdk:"spec.nodePool.nodeDrainTimeout"`
+	NodeDrainGracePeriod          string            `hfsdk:"spec.nodePool.nodeDrainTimeout"`
 	NodeLabels                    map[string]string `hfsdk:"spec.nodePool.nodeLabels"`
 	NodeVolumeDetachTimeout       string            `hfsdk:"spec.nodePool.nodeVolumeDetachTimeout"`
 	Ami                           string            `hfsdk:"spec.nodePool.platform.aws.ami"`

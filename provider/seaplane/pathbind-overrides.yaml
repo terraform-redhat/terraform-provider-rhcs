@@ -190,6 +190,8 @@ resources:
         bundle: aws
       - path: spec.hostedCluster.platform.aws.serviceEndpoints
         type: string
+      - path: spec.hostedCluster.platform.aws.resourceTags
+        type: string
       - path: spec.properties
         type: map
       - path: spec.tags
@@ -270,6 +272,11 @@ resources:
               type: string
               required: true
               description: "Name of the ConfigMap containing serialized nodepool configuration."
+      - path: spec.nodePool.nodeDrainTimeout
+        alias: node_drain_grace_period
+        goName: NodeDrainGracePeriod
+        type: string
+        description: "Grace period before a node is forcibly drained during upgrade or replacement, as a Go duration string (for example `5m` for 5 minutes, `1h` for 1 hour). Defaults to `0s` when unset: the node is drained indefinitely. Increase this to prevent a misbehaving workload from blocking node replacement indefinitely."
       - path: spec.nodePool.taints
         description: "Node taints applied to nodes in this pool."
         type: list(object)

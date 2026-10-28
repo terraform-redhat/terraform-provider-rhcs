@@ -206,15 +206,19 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "Scaling.",
 				Optional:            true,
 			},
-			"disabled": schema.ListAttribute{
-				MarkdownDescription: "Disabled.",
+			"disabled_capabilities": schema.StringAttribute{
+				MarkdownDescription: "JSON-encoded list of cluster capabilities explicitly disabled at install time (for example [\"ImageRegistry\"] to disable the in-cluster image registry). Capabilities can only be set at cluster creation; changing them replaces the cluster. Capability names are validated by the Platform API.",
 				Optional:            true,
-				ElementType:         types.StringType,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"enabled": schema.ListAttribute{
-				MarkdownDescription: "Enabled.",
+			"enabled_capabilities": schema.StringAttribute{
+				MarkdownDescription: "JSON-encoded list of cluster capabilities explicitly enabled at install time (for example [\"ImageRegistry\", \"Console\"]). Capabilities can only be set at cluster creation; changing them replaces the cluster. Capability names are validated by the Platform API.",
 				Optional:            true,
-				ElementType:         types.StringType,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"channel": schema.StringAttribute{
 				MarkdownDescription: "Channel.",
@@ -971,15 +975,11 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 	if !tf.Scaling.IsNull() && !tf.Scaling.IsUnknown() {
 		native.Scaling = tf.Scaling.ValueString()
 	}
-	if !tf.Disabled.IsNull() && !tf.Disabled.IsUnknown() {
-		items, collectionDiags := terraformListToStringSlice(tf.Disabled)
-		diags = append(diags, collectionDiags...)
-		native.Disabled = items
+	if !tf.Disabled_capabilities.IsNull() && !tf.Disabled_capabilities.IsUnknown() {
+		native.Disabled_capabilities = tf.Disabled_capabilities.ValueString()
 	}
-	if !tf.Enabled.IsNull() && !tf.Enabled.IsUnknown() {
-		items, collectionDiags := terraformListToStringSlice(tf.Enabled)
-		diags = append(diags, collectionDiags...)
-		native.Enabled = items
+	if !tf.Enabled_capabilities.IsNull() && !tf.Enabled_capabilities.IsUnknown() {
+		native.Enabled_capabilities = tf.Enabled_capabilities.ValueString()
 	}
 	if !tf.Channel.IsNull() && !tf.Channel.IsUnknown() {
 		native.Channel = tf.Channel.ValueString()
@@ -1240,8 +1240,8 @@ func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.D
 	tf.UnneededDurationSeconds = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.UnneededDurationSeconds))
 	tf.UtilizationThresholdPercent = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.UtilizationThresholdPercent))
 	tf.Scaling = toTerraformString(native.Scaling)
-	tf.Disabled = toTerraformList(native.Disabled)
-	tf.Enabled = toTerraformList(native.Enabled)
+	tf.Disabled_capabilities = toTerraformString(native.Disabled_capabilities)
+	tf.Enabled_capabilities = toTerraformString(native.Enabled_capabilities)
 	tf.Channel = toTerraformString(native.Channel)
 	tf.OidcProviders = toTerraformString(native.OidcProviders)
 	tf.AuthenticationType = toTerraformString(native.AuthenticationType)

@@ -56,25 +56,27 @@ type Profile struct {
 	ComponentRoutes                string `ini:"component_routes,omitempty" json:"component_routes,omitempty"`
 	ProvisionShard                 string `ini:"provisionShard,omitempty" json:"provisionShard,omitempty"`
 	//nolint:lll
-	Ec2MetadataHttpTokens string   `ini:"ec2_metadata_http_tokens,omitempty" json:"ec2_metadata_http_tokens,omitempty"`
-	ComputeReplicas       int      `ini:"compute_replicas,omitempty" json:"compute_replicas,omitempty"`
-	ComputeMachineType    string   `ini:"compute_machine_type,omitempty" json:"compute_machine_type,omitempty"`
-	AuditLogForward       bool     `ini:"auditlog_forward,omitempty" json:"auditlog_forward,omitempty"`
-	AdminEnabled          bool     `ini:"admin_enabled,omitempty" json:"admin_enabled,omitempty"`
-	ManagedPolicies       bool     `ini:"managed_policies,omitempty" json:"managed_policies,omitempty"`
-	WorkerDiskSize        int      `ini:"worker_disk_size,omitempty" json:"worker_disk_size,omitempty"`
-	AdditionalSGNumber    int      `ini:"additional_sg_number,omitempty" json:"additional_sg_number,omitempty"`
-	UnifiedAccRolesPath   string   `ini:"unified_acc_role_path,omitempty" json:"unified_acc_role_path,omitempty"`
-	SharedVpc             bool     `ini:"shared_vpc,omitempty" json:"shared_vpc,omitempty"`
-	MachineCIDR           string   `ini:"machine_cidr,omitempty" json:"machine_cidr,omitempty"`
-	ServiceCIDR           string   `ini:"service_cidr,omitempty" json:"service_cidr,omitempty"`
-	PodCIDR               string   `ini:"pod_cidr,omitempty" json:"pod_cidr,omitempty"`
-	HostPrefix            int      `ini:"host_prefix,omitempty" json:"host_prefix,omitempty"`
-	FullResources         bool     `ini:"full_resources,omitempty" json:"full_resources,omitempty"`
-	DontWaitForCluster    bool     `ini:"no_wait_cluster,omitempty" json:"no_wait_cluster,omitempty"`
-	UseRegistryConfig     bool     `ini:"use_registry_config,omitempty" json:"use_registry_config,omitempty"`
-	AllowedRegistries     []string `ini:"allowed_registries,omitempty" json:"allowed_registries,omitempty"`
-	BlockedRegistries     []string `ini:"blocked_registries,omitempty" json:"blocked_registries,omitempty"`
-	ExternalAuthEnabled   bool     `ini:"external_auth_enabled,omitempty" json:"external_auth_enabled,omitempty"`
-	Windows               bool     `ini:"windows,omitempty" json:"windows,omitempty"`
+	Ec2MetadataHttpTokens      string   `ini:"ec2_metadata_http_tokens,omitempty" json:"ec2_metadata_http_tokens,omitempty"`
+	ComputeReplicas            int      `ini:"compute_replicas,omitempty" json:"compute_replicas,omitempty"`
+	ComputeMachineType         string   `ini:"compute_machine_type,omitempty" json:"compute_machine_type,omitempty"`
+	AuditLogForward            bool     `ini:"auditlog_forward,omitempty" json:"auditlog_forward,omitempty"`
+	AdminEnabled               bool     `ini:"admin_enabled,omitempty" json:"admin_enabled,omitempty"`
+	ManagedPolicies            bool     `ini:"managed_policies,omitempty" json:"managed_policies,omitempty"`
+	WorkerDiskSize             int      `ini:"worker_disk_size,omitempty" json:"worker_disk_size,omitempty"`
+	AdditionalSGNumber         int      `ini:"additional_sg_number,omitempty" json:"additional_sg_number,omitempty"`
+	UnifiedAccRolesPath        string   `ini:"unified_acc_role_path,omitempty" json:"unified_acc_role_path,omitempty"`
+	SharedVpc                  bool     `ini:"shared_vpc,omitempty" json:"shared_vpc,omitempty"`
+	DisableClusterCapabilities []string `json:"disable_cluster_capabilities,omitempty"`
+	EnableClusterCapabilities  []string `json:"enable_cluster_capabilities,omitempty"`
+	MachineCIDR                string   `ini:"machine_cidr,omitempty" json:"machine_cidr,omitempty"`
+	ServiceCIDR                string   `ini:"service_cidr,omitempty" json:"service_cidr,omitempty"`
+	PodCIDR                    string   `ini:"pod_cidr,omitempty" json:"pod_cidr,omitempty"`
+	HostPrefix                 int      `ini:"host_prefix,omitempty" json:"host_prefix,omitempty"`
+	FullResources              bool     `ini:"full_resources,omitempty" json:"full_resources,omitempty"`
+	DontWaitForCluster         bool     `ini:"no_wait_cluster,omitempty" json:"no_wait_cluster,omitempty"`
+	UseRegistryConfig          bool     `ini:"use_registry_config,omitempty" json:"use_registry_config,omitempty"`
+	AllowedRegistries          []string `ini:"allowed_registries,omitempty" json:"allowed_registries,omitempty"`
+	BlockedRegistries          []string `ini:"blocked_registries,omitempty" json:"blocked_registries,omitempty"`
+	ExternalAuthEnabled        bool     `ini:"external_auth_enabled,omitempty" json:"external_auth_enabled,omitempty"`
+	Windows                    bool     `ini:"windows,omitempty" json:"windows,omitempty"`
 }

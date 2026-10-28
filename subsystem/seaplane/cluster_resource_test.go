@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
+	. "github.com/openshift-online/ocm-sdk-go/testing"
 
 	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
@@ -749,6 +750,124 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).ToNot(BeZero())
 			runOutput.VerifyErrorContainsSubstring("reserved for AWS use")
+		})
+	})
+
+	Context("Cluster capabilities", func() {
+		var seaplaneServer *Server
+
+		// clusterWithCapabilities is the Platform API representation of a cluster
+		// created with the ImageRegistry capability disabled.
+		clusterWithCapabilities := `{"metadata":{"uid":"test-cluster-id","name":"my-cluster","creationTimestamp":"2024-01-01T00:00:00Z"},"spec":{"hostedCluster":{"capabilities":{"disabled":["ImageRegistry"]},"platform":{"type":"AWS","aws":{"region":"us-east-1","cloudProviderConfig":{"vpc":"vpc-0def456","zone":"us-east-1a","subnet":{"id":"subnet-0abc123"}}}}}},"status":{"phase":"Ready","controlPlaneEndpoint":{"host":"api.my-cluster.example.com","port":6443}}}`
+
+		header := http.Header{"Content-Type": []string{"application/json"}}
+
+		// clusterCapabilitiesSource renders the cluster configuration with the
+		// given capabilities block (HCL, may be empty).
+		clusterCapabilitiesSource := func(url, capabilities string) string {
+			return fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "sp"
+					seaplane_url = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_cluster_seaplane" "test" {
+					provider              = rhcs.sp
+					name                  = "my-cluster"
+					operator_roles_prefix = "my-cluster"
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
+					%s
+				}
+			`, url, capabilities)
+		}
+
+		BeforeEach(func() {
+			seaplaneServer = NewServer()
+		})
+
+		AfterEach(func() {
+			seaplaneServer.Close()
+		})
+
+		It("sends disabled capabilities on create", func() {
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					VerifyJQ(`.spec.hostedCluster.capabilities.disabled[0]`, "ImageRegistry"),
+					VerifyJQ(`.spec.hostedCluster.capabilities.disabled | length`, 1),
+					RespondWith(http.StatusCreated, clusterWithCapabilities, header),
+				),
+			)
+
+			Terraform.Source(clusterCapabilitiesSource(seaplaneServer.URL(), `
+					disabled_capabilities = jsonencode(["ImageRegistry"])`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("replaces the cluster when the capabilities change", func() {
+			// Capabilities can only be set at cluster creation, so changing them
+			// must be planned as a replacement rather than an update.
+			seaplaneServer.RouteToHandler(
+				http.MethodGet, "/api/v0/clusters/my-cluster",
+				RespondWith(http.StatusOK, clusterWithCapabilities, header),
+			)
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					RespondWith(http.StatusCreated, clusterWithCapabilities, header),
+				),
+			)
+
+			Terraform.Source(clusterCapabilitiesSource(seaplaneServer.URL(), `
+					disabled_capabilities = jsonencode(["ImageRegistry"])`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			Terraform.Source(clusterCapabilitiesSource(seaplaneServer.URL(), `
+					disabled_capabilities = jsonencode([])`))
+
+			runOutput = Terraform.Run("plan", "-no-color")
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("must be replaced")
+		})
+
+		It("passes unknown capabilities through to the API", func() {
+			// Capability names are validated server side, not by the provider,
+			// so an unrecognized value must be sent in the create request
+			// unchanged and the API response surfaced to the user.
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					VerifyJQ(`.spec.hostedCluster.capabilities.disabled[0]`, "NotACapability"),
+					RespondWith(http.StatusUnprocessableEntity, `{"reason":"InvalidRequest","message":"invalid capability \"NotACapability\""}`, header),
+				),
+			)
+
+			Terraform.Source(clusterCapabilitiesSource(seaplaneServer.URL(), `
+					disabled_capabilities = jsonencode(["NotACapability"])`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("server rejected our request")
+		})
+
+		It("rejects a capability both enabled and disabled", func() {
+			Terraform.Source(clusterCapabilitiesSource(seaplaneServer.URL(), `
+					enabled_capabilities  = jsonencode(["ImageRegistry"])
+					disabled_capabilities = jsonencode(["ImageRegistry"])`))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("capability \"ImageRegistry\" cannot be both enabled and disabled at once")
 		})
 	})
 

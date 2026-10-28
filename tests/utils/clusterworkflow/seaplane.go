@@ -5,6 +5,7 @@ package clusterworkflow
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -512,6 +513,19 @@ func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string)
 	if componentRoutes != "" {
 		componentRoutesValue = &componentRoutes
 	}
+	// Capabilities are JSON-encoded lists (matching the cluster manifest
+	// variables); an empty profile list leaves the attribute unset.
+	jsonList := func(values []string) *string {
+		if len(values) == 0 {
+			return nil
+		}
+		encoded, err := json.Marshal(values)
+		if err != nil {
+			return nil
+		}
+		encodedStr := string(encoded)
+		return &encodedStr
+	}
 	clusterArgs := &exec.SeaplaneClusterArgs{
 		SeaplaneURL:                    &seaplaneURL,
 		ReleaseImage:                   &releaseImage,
@@ -528,6 +542,8 @@ func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string)
 		AutoscalerMaxPodGracePeriod:    maxGrace,
 		AutoscalerPodPriorityThreshold: podPriority,
 		ComponentRoutes:                componentRoutesValue,
+		EnabledCapabilities:            jsonList(profile.Profile().GetEnableClusterCapabilities()),
+		DisabledCapabilities:           jsonList(profile.Profile().GetDisableClusterCapabilities()),
 	}
 	if cidr := profile.Profile().GetMachineCIDR(); cidr != "" {
 		clusterArgs.MachineCIDR = new(fmt.Sprintf(`[{"cidr":%q}]`, cidr))

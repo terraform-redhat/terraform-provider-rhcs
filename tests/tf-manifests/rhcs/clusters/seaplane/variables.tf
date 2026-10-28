@@ -53,6 +53,18 @@ variable "tags" {
   default     = null
 }
 
+variable "enabled_capabilities" {
+  type        = string
+  description = "JSON-encoded list of cluster capabilities explicitly enabled at install time (e.g. jsonencode([\"ImageRegistry\"])). Immutable after creation"
+  default     = null
+}
+
+variable "disabled_capabilities" {
+  type        = string
+  description = "JSON-encoded list of cluster capabilities explicitly disabled at install time (e.g. jsonencode([\"ImageRegistry\"])). Immutable after creation"
+  default     = null
+}
+
 variable "oidc_config_id" {
   type        = string
   description = "Optional OIDC config ID (e.g., from OidcConfig resource)"

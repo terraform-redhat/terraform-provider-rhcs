@@ -30,8 +30,8 @@ type ClusterStateNative struct {
 	UnneededDurationSeconds        *int32            `hfsdk:"spec.hostedCluster.autoscaling.scaleDown.unneededDurationSeconds"`
 	UtilizationThresholdPercent    *int32            `hfsdk:"spec.hostedCluster.autoscaling.scaleDown.utilizationThresholdPercent"`
 	Scaling                        string            `hfsdk:"spec.hostedCluster.autoscaling.scaling"`
-	Disabled                       []string          `hfsdk:"spec.hostedCluster.capabilities.disabled"`
-	Enabled                        []string          `hfsdk:"spec.hostedCluster.capabilities.enabled"`
+	Disabled_capabilities          string            `hfsdk:"spec.hostedCluster.capabilities.disabled"`
+	Enabled_capabilities           string            `hfsdk:"spec.hostedCluster.capabilities.enabled"`
 	Channel                        string            `hfsdk:"spec.hostedCluster.channel"`
 	OidcProviders                  string            `hfsdk:"spec.hostedCluster.configuration.authentication.oidcProviders"`
 	AuthenticationType             string            `hfsdk:"spec.hostedCluster.configuration.authentication.type"`

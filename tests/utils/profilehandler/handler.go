@@ -93,6 +93,8 @@ type ProfileSpec interface {
 	GetAutoscalerMaxPodGracePeriod() int64
 	GetAutoscalerPodPriorityThreshold() int64
 	GetComponentRoutes() string
+	GetDisableClusterCapabilities() []string
+	GetEnableClusterCapabilities() []string
 	GetAdditionalSGNumber() int
 	GetComputeReplicas() int
 	GetWorkerDiskSize() int
@@ -133,6 +135,21 @@ type profileContext struct {
 
 func NewProfileHandlerFromYamlFile() (handler ProfileHandler, err error) {
 	profile, err := LoadProfileYamlFileByENV()
+	if err != nil {
+		return
+	}
+	handler = newProfileHandler(profile, profile.Name)
+	return
+}
+
+// NewProfileHandlerByName loads a profile by name from the profiles directory
+// without consulting the CLUSTER_PROFILE environment variable. Feature specs
+// that require a specific profile pin it explicitly instead of skipping when
+// the ambient profile does not enable the feature, so a single suite run can
+// exercise specs with different profile requirements. Unlike setting
+// CLUSTER_PROFILE in a BeforeEach, it does not leak state to later specs.
+func NewProfileHandlerByName(profileName string) (handler ProfileHandler, err error) {
+	profile, err := loadProfileYamlFile(profileName)
 	if err != nil {
 		return
 	}
@@ -236,6 +253,14 @@ func (ctx *profileContext) GetAutoscalerPodPriorityThreshold() int64 {
 	return ctx.profile.AutoscalerPodPriorityThreshold
 }
 func (ctx *profileContext) GetComponentRoutes() string { return ctx.profile.ComponentRoutes }
+
+func (ctx *profileContext) GetDisableClusterCapabilities() []string {
+	return ctx.profile.DisableClusterCapabilities
+}
+
+func (ctx *profileContext) GetEnableClusterCapabilities() []string {
+	return ctx.profile.EnableClusterCapabilities
+}
 
 func (ctx *profileContext) GetAdditionalSGNumber() int {
 	return ctx.profile.AdditionalSGNumber

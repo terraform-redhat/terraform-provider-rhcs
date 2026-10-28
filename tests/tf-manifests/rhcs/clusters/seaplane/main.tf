@@ -45,6 +45,8 @@ resource "rhcs_cluster_seaplane" "cluster" {
   oidc_config_id                     = var.oidc_config_id != "" ? var.oidc_config_id : null
   scheduler_profile                  = var.scheduler_profile
   tags                               = var.tags
+  enabled_capabilities               = var.enabled_capabilities
+  disabled_capabilities              = var.disabled_capabilities
   http_proxy                         = var.http_proxy
   https_proxy                        = var.https_proxy
   no_proxy                           = var.no_proxy

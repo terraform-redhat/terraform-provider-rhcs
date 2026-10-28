@@ -31,6 +31,7 @@ var FeatureExternalAuth = Label("feature-external-auth")
 var FeatureBreakGlassCredential = Label("feature-break-glass-credential")
 var FeatureImageMirror = Label("feature-image-mirror")
 var SeaplaneValidated = Label("seaplane-validated")
+var FeatureCapabilities = Label("feature-capabilities") // V2 only
 
 // day1/day1-post and day2
 var Day1 = Label("day1")

@@ -110,6 +110,20 @@ resources:
         alias: autoscalerPodPriorityThreshold
         type: "*int32"
         description: "Pod priority threshold for cluster autoscaler scale-up."
+      - path: spec.hostedCluster.capabilities.enabled
+        alias: enabled_capabilities
+        type: string
+        immutable: true
+        operations:
+          - create
+        description: "JSON-encoded list of cluster capabilities explicitly enabled at install time (for example [\"ImageRegistry\", \"Console\"]). Capabilities can only be set at cluster creation; changing them replaces the cluster. Capability names are validated by the Platform API."
+      - path: spec.hostedCluster.capabilities.disabled
+        alias: disabled_capabilities
+        type: string
+        immutable: true
+        operations:
+          - create
+        description: "JSON-encoded list of cluster capabilities explicitly disabled at install time (for example [\"ImageRegistry\"] to disable the in-cluster image registry). Capabilities can only be set at cluster creation; changing them replaces the cluster. Capability names are validated by the Platform API."
       - path: spec.hostedCluster.configuration.authentication.oidcProviders
         alias: oidc_providers
         goName: OidcProviders

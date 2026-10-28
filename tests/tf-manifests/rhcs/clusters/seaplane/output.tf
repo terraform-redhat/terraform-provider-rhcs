@@ -35,3 +35,11 @@ output "autoscaler_pod_priority_threshold" {
 output "component_routes" {
   value = rhcs_cluster_seaplane.cluster.component_routes
 }
+
+output "cluster_enabled_capabilities" {
+  value = rhcs_cluster_seaplane.cluster.enabled_capabilities
+}
+
+output "cluster_disabled_capabilities" {
+  value = rhcs_cluster_seaplane.cluster.disabled_capabilities
+}

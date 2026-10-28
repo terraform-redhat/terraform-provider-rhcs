@@ -348,8 +348,12 @@ func validateClusterNetwork(input *ClusterState) diag.Diagnostics {
 // bridge (--machine-cidr/--pod-cidr/--service-cidr/--host-prefix). Immutable
 // plan modifiers guarantee the values never change after creation, so the
 // arrays are only set when present in the plan; an unset host_prefix is left
-// for the platform to default.
-func applyClusterNetworking(input *ClusterState, obj *v1alpha1.Cluster) {
+// for the platform to default. Unparseable CIDRs are rejected by
+// validateClusterNetwork in PreExpand; if one still reaches here the error is
+// reported as a diagnostic instead of crashing the provider process.
+func applyClusterNetworking(input *ClusterState, obj *v1alpha1.Cluster) diag.Diagnostics {
+	var diags diag.Diagnostics
+
 	stringValue := func(value types.String) string {
 		if value.IsNull() || value.IsUnknown() {
 			return ""
@@ -360,38 +364,52 @@ func applyClusterNetworking(input *ClusterState, obj *v1alpha1.Cluster) {
 	podCIDR := stringValue(input.Pod_cidr)
 	serviceCIDR := stringValue(input.Service_cidr)
 	if machineCIDR == "" && podCIDR == "" && serviceCIDR == "" {
-		return
+		return diags
 	}
 
-	parse := func(value string) ipnet.IPNet {
+	parse := func(value string) (ipnet.IPNet, bool) {
 		_, network, err := net.ParseCIDR(value)
 		if err != nil || network == nil {
 			// Should never happen: validateClusterNetwork rejects unparseable
-			// CIDRs in PreExpand, which always runs before PostExpand. A clear
-			// panic is easier to debug than a nil dereference if that ordering
-			// ever changes.
-			panic(fmt.Sprintf("BUG: unparseable cluster network CIDR %q passed validation", value))
+			// CIDRs in PreExpand, which always runs before PostExpand. Report it
+			// as an internal error rather than panicking so a broken ordering
+			// cannot take down the provider process.
+			diags.AddError(
+				"Internal error",
+				fmt.Sprintf("BUG: unparseable cluster network CIDR %q passed validation", value),
+			)
+			return ipnet.IPNet{}, false
 		}
-		return ipnet.IPNet(*network)
+		return ipnet.IPNet(*network), true
 	}
 
 	if machineCIDR != "" {
-		obj.Spec.HostedCluster.Networking.MachineNetwork = []hypershiftv1beta1.MachineNetworkEntry{
-			{CIDR: parse(machineCIDR)},
+		if cidr, ok := parse(machineCIDR); ok {
+			obj.Spec.HostedCluster.Networking.MachineNetwork = []hypershiftv1beta1.MachineNetworkEntry{
+				{CIDR: cidr},
+			}
 		}
 	}
 	if podCIDR != "" {
-		entry := hypershiftv1beta1.ClusterNetworkEntry{CIDR: parse(podCIDR)}
+		entry := hypershiftv1beta1.ClusterNetworkEntry{}
+		if cidr, ok := parse(podCIDR); ok {
+			entry.CIDR = cidr
+		}
 		if !input.Host_prefix.IsNull() && !input.Host_prefix.IsUnknown() {
 			entry.HostPrefix = int32(input.Host_prefix.ValueInt64())
 		}
-		obj.Spec.HostedCluster.Networking.ClusterNetwork = []hypershiftv1beta1.ClusterNetworkEntry{entry}
-	}
-	if serviceCIDR != "" {
-		obj.Spec.HostedCluster.Networking.ServiceNetwork = []hypershiftv1beta1.ServiceNetworkEntry{
-			{CIDR: parse(serviceCIDR)},
+		if entry.CIDR.IP != nil {
+			obj.Spec.HostedCluster.Networking.ClusterNetwork = []hypershiftv1beta1.ClusterNetworkEntry{entry}
 		}
 	}
+	if serviceCIDR != "" {
+		if cidr, ok := parse(serviceCIDR); ok {
+			obj.Spec.HostedCluster.Networking.ServiceNetwork = []hypershiftv1beta1.ServiceNetworkEntry{
+				{CIDR: cidr},
+			}
+		}
+	}
+	return diags
 }
 
 // PostExpand synchronizes proxy settings and builds the Platform spec with
@@ -439,7 +457,7 @@ func (h *ClusterHandlerImpl) PostExpand(
 
 	// Networking CIDRs are consumer-only friendly attributes; the raw network
 	// bundle passthrough stays available for advanced use.
-	applyClusterNetworking(input, obj)
+	diags.Append(applyClusterNetworking(input, obj)...)
 
 	prefix := input.Operator_roles_prefix.ValueString()
 	partition := awsBundleStringValue(input.Aws, "aws_partition")

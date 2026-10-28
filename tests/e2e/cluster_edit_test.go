@@ -156,6 +156,45 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			Expect(enabled).To(BeFalse())
 		})
 
+		It("tags - [id:67856]", ci.High, ci.FeatureClusterMisc, func() {
+			if !profileHandler.Profile().IsHCP() {
+				Skip("Editing AWS tags is only supported on Hosted clusters")
+			}
+			supported, err := cms.SupportsDay2AWSTags(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			if !supported {
+				Skip("Editing AWS tags requires OpenShift 4.20.0 or greater")
+			}
+
+			By("Retrieve current tags")
+			out, err := clusterService.Output()
+			Expect(err).ToNot(HaveOccurred())
+			tags := helper.CopyStringMap(out.UserTags)
+			var removedKey string
+			for k := range tags {
+				removedKey = k
+				break
+			}
+
+			By("Edit tags: remove one, add one with spaces")
+			if removedKey != "" {
+				delete(tags, removedKey)
+			}
+			tags["Cost Center"] = "Finance Team"
+			clusterArgs.Tags = new(tags)
+			_, err = clusterService.Apply(clusterArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify tags are updated in OCM")
+			userTags, err := cms.RetrieveClusterUserTags(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userTags).To(HaveKeyWithValue("Cost Center", "Finance Team"))
+			if removedKey != "" {
+				Expect(userTags[removedKey]).To(BeEmpty())
+			}
+			// AfterEach restores the original tags, which also exercises a day-2 edit.
+		})
+
 		It("registry config - [id:76500]", ci.High, ci.FeatureClusterRegistryConfig, func() {
 			if !profileHandler.Profile().IsHCP() {
 				Skip("Test can run only on Hosted cluster")
@@ -655,9 +694,20 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			// Add new key
 			tags["newTag"] = "appendTag"
 
+			supported, err := cms.SupportsDay2AWSTags(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			if !supported {
+				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+					args.Tags = new(tags)
+				}, "editing AWS tags requires OpenShift version 4.20.0 or greater")
+				return
+			}
+
+			By("Try to edit tags with an empty value")
+			tags["newTag"] = ""
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Tags = new(tags)
-			}, "Attribute tags, cannot be changed from")
+			}, "AWS tag value for key 'newTag' cannot be empty")
 		})
 
 		// Skip this tests until OCM-5079 fixed

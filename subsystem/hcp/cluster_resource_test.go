@@ -17,6 +17,7 @@ limitations under the License.
 package hcp
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11431,6 +11432,441 @@ var _ = Describe("HCP Cluster", func() {
 			runOutput := Terraform.Run("plan")
 			Expect(runOutput.ExitCode).ToNot(BeZero())
 			runOutput.VerifyErrorContainsSubstring("Output refers to sensitive values")
+		})
+	})
+
+	Context("Day-2 AWS tags", func() {
+		// clusterResponse renders the cluster with the given control-plane version and AWS tags.
+		// clusterResponseWithAWS renders the cluster with the given control-plane version, AWS tags,
+		// and extra AWS fields (a JSON fragment starting with a comma, or empty).
+		clusterResponseWithAWS := func(rawVersion string, tags map[string]string, extraAWS string) http.HandlerFunc {
+			tagsJSON, err := json.Marshal(tags)
+			Expect(err).NotTo(HaveOccurred())
+			return RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+			{
+				"op": "add",
+				"path": "/aws",
+				"value": {
+					"ec2_metadata_http_tokens": "required",
+					"sts" : {
+						"oidc_endpoint_url": "https://127.0.0.1",
+						"thumbprint": "111111",
+						"role_arn": "",
+						"support_role_arn": "",
+						"instance_iam_roles" : {
+							"worker_role_arn" : ""
+						},
+						"operator_role_prefix" : "test"
+					},
+					"tags": %s%s
+				}
+			},
+			{
+				"op": "replace",
+				"path": "/version/raw_id",
+				"value": "%s"
+			}]`, tagsJSON, extraAWS, rawVersion))
+		}
+		// clusterResponse renders the cluster with the given control-plane version and AWS tags.
+		clusterResponse := func(rawVersion string, tags map[string]string) http.HandlerFunc {
+			return clusterResponseWithAWS(rawVersion, tags, "")
+		}
+		// refreshCluster expects the Read GET to request customer-only tags.
+		refreshCluster := func(rawVersion string, tags map[string]string) http.HandlerFunc {
+			return CombineHandlers(
+				VerifyRequest(http.MethodGet, cluster123Route, "fetchUserTagsOnly=true"),
+				clusterResponse(rawVersion, tags),
+			)
+		}
+		clusterSource := func(tags string) string {
+			return fmt.Sprintf(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				%s
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`, tags)
+		}
+		createdTags := map[string]string{"team": "platform", "old": "value"}
+		createdTagsSource := `tags = {
+					team = "platform"
+					old  = "value"
+				}`
+		createClusterWithTags := func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.aws.tags.team`, "platform"),
+					VerifyJQ(`.aws.tags.old`, "value"),
+					clusterResponse("4.14.0", createdTags),
+				),
+			)
+			Terraform.Source(clusterSource(createdTagsSource))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+		}
+
+		It("Updates and removes cluster tags on OpenShift 4.20 and later", func() {
+			createClusterWithTags()
+
+			// Replace tags: update one, add one with spaces, remove one.
+			updatedTags := map[string]string{"team": "data", "Cost Center": "Finance Team"}
+			TestServer.AppendHandlers(
+				refreshCluster("4.20.1", createdTags),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route, "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `{"aws":{"tags":{"team":"platform","old":"value"}}}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route, "fetchUserTagsOnly=true"),
+					VerifyJQ(`.aws.tags | length`, 3),
+					VerifyJQ(`.aws.tags.team`, "data"),
+					VerifyJQ(`.aws.tags["Cost Center"]`, "Finance Team"),
+					VerifyJQ(`.aws.tags | has("old")`, true),
+					VerifyJQ(`.aws.tags.old == null`, true),
+					clusterResponse("4.20.1", updatedTags),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					clusterResponse("4.20.1", updatedTags),
+				),
+			)
+			Terraform.Source(clusterSource(`tags = {
+					team = "data"
+					"Cost Center" = "Finance Team"
+				}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.tags | length`, 2))
+			Expect(resource).To(MatchJQ(`.attributes.tags.team`, "data"))
+			Expect(resource).To(MatchJQ(`.attributes.tags["Cost Center"]`, "Finance Team"))
+
+			// Removing the attribute removes all customer tags.
+			TestServer.AppendHandlers(
+				refreshCluster("4.20.1", updatedTags),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route, "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `{"aws":{"tags":{"team":"data","Cost Center":"Finance Team"}}}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route, "fetchUserTagsOnly=true"),
+					VerifyJQ(`.aws.tags | length`, 2),
+					VerifyJQ(`[.aws.tags[]] | all(. == null)`, true),
+					clusterResponse("4.20.1", nil),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					clusterResponse("4.20.1", nil),
+				),
+			)
+			Terraform.Source(clusterSource(""))
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource = Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.tags`, nil))
+
+			// A refresh with no tags on either side stays clean.
+			TestServer.AppendHandlers(refreshCluster("4.20.1", nil))
+			runOutput = Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("Detects out-of-band tag changes and reverts them on OpenShift 4.20 and later", func() {
+			createClusterWithTags()
+
+			// Unchanged tags produce an empty plan.
+			TestServer.AppendHandlers(refreshCluster("4.20.1", createdTags))
+			runOutput := Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Tags edited outside Terraform show up as drift.
+			outOfBand := map[string]string{"team": "data", "added": "elsewhere"}
+			TestServer.AppendHandlers(refreshCluster("4.20.1", outOfBand))
+			runOutput = Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(Equal(2))
+			runOutput.VerifyOutputContainsSubstring("tags")
+
+			// Apply restores the configured tags.
+			TestServer.AppendHandlers(
+				refreshCluster("4.20.1", outOfBand),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route, "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `{"aws":{"tags":{"team":"data","added":"elsewhere"}}}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route, "fetchUserTagsOnly=true"),
+					VerifyJQ(`.aws.tags | length`, 3),
+					VerifyJQ(`.aws.tags.team`, "platform"),
+					VerifyJQ(`.aws.tags.old`, "value"),
+					VerifyJQ(`.aws.tags | has("added")`, true),
+					VerifyJQ(`.aws.tags.added == null`, true),
+					clusterResponse("4.20.1", createdTags),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					clusterResponse("4.20.1", createdTags),
+				),
+			)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.tags.team`, "platform"))
+			Expect(resource).To(MatchJQ(`.attributes.tags.old`, "value"))
+		})
+
+		It("Keeps configured empty tags without drift", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					clusterResponse("4.14.0", nil),
+				),
+			)
+			Terraform.Source(clusterSource(`tags = {}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			TestServer.AppendHandlers(refreshCluster("4.20.1", nil))
+			runOutput = Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		createClusterWithoutTags := func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					clusterResponse("4.14.0", nil),
+				),
+			)
+			Terraform.Source(clusterSource(""))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+		}
+		unmanagedTags := map[string]string{"added": "elsewhere"}
+
+		It("Removes unmanaged tags when the configuration starts managing an empty tag set", func() {
+			createClusterWithoutTags()
+
+			TestServer.AppendHandlers(
+				refreshCluster("4.20.1", unmanagedTags),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route, "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `{"aws":{"tags":{"added":"elsewhere"}}}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route, "fetchUserTagsOnly=true"),
+					VerifyJQ(`.aws.tags | length`, 1),
+					VerifyJQ(`.aws.tags | has("added")`, true),
+					VerifyJQ(`.aws.tags.added == null`, true),
+					clusterResponse("4.20.1", nil),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					clusterResponse("4.20.1", nil),
+				),
+			)
+			Terraform.Source(clusterSource(`tags = {}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.tags | length`, 0))
+
+			TestServer.AppendHandlers(refreshCluster("4.20.1", nil))
+			runOutput = Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("Removes unmanaged tags when an empty tag set is adopted alongside another change", func() {
+			createClusterWithoutTags()
+
+			principals := `, "additional_allowed_principals": ["arn:aws:iam::123456789012:role/allowed"]`
+			TestServer.AppendHandlers(
+				refreshCluster("4.20.1", unmanagedTags),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route, "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `{"aws":{"tags":{"added":"elsewhere"}}}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route, "fetchUserTagsOnly=true"),
+					VerifyJQ(`.aws.additional_allowed_principals[0]`, "arn:aws:iam::123456789012:role/allowed"),
+					VerifyJQ(`.aws.tags | length`, 1),
+					VerifyJQ(`.aws.tags.added == null`, true),
+					clusterResponseWithAWS("4.20.1", nil, principals),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					clusterResponseWithAWS("4.20.1", nil, principals),
+				),
+			)
+			Terraform.Source(clusterSource(`tags = {}
+				aws_additional_allowed_principals = ["arn:aws:iam::123456789012:role/allowed"]`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.tags | length`, 0))
+			Expect(resource).To(MatchJQ(`.attributes.aws_additional_allowed_principals[0]`,
+				"arn:aws:iam::123456789012:role/allowed"))
+		})
+
+		It("Adopts matching tags without an edit on clusters older than 4.20", func() {
+			createClusterWithoutTags()
+
+			TestServer.AppendHandlers(
+				refreshCluster("4.19.12", map[string]string{"team": "platform"}),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route, "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `{"aws":{"tags":{"team":"platform"}}}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					clusterResponse("4.19.12", map[string]string{"team": "platform"}),
+				),
+			)
+			Terraform.Source(clusterSource(`tags = {
+					team = "platform"
+				}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.tags.team`, "platform"))
+		})
+
+		It("Rejects adopting different tags on clusters older than 4.20", func() {
+			createClusterWithoutTags()
+
+			TestServer.AppendHandlers(
+				refreshCluster("4.19.12", map[string]string{"team": "platform"}),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route, "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `{"aws":{"tags":{"team":"platform"}}}`),
+				),
+			)
+			Terraform.Source(clusterSource(`tags = {}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("editing AWS tags requires OpenShift version 4.20.0 or greater")
+		})
+
+		It("Keeps detecting drift after all managed tags are removed outside Terraform", func() {
+			createClusterWithTags()
+
+			// All managed tags removed externally, persisted with a refresh-only apply.
+			TestServer.AppendHandlers(refreshCluster("4.20.1", nil))
+			runOutput := Terraform.Run("apply", "-refresh-only", "-auto-approve")
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.tags | length`, 0))
+
+			// Tags added externally again are still reported.
+			TestServer.AppendHandlers(refreshCluster("4.20.1", map[string]string{"added": "elsewhere"}))
+			runOutput = Terraform.Run("plan", "-refresh-only", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(Equal(2))
+		})
+
+		It("Does not detect tag drift before OpenShift 4.20", func() {
+			createClusterWithTags()
+
+			TestServer.AppendHandlers(refreshCluster("4.19.12", map[string]string{"team": "data"}))
+			runOutput := Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.tags.team`, "platform"))
+		})
+
+		It("Leaves tags unmanaged on import", func() {
+			TestServer.AppendHandlers(refreshCluster("4.20.1", map[string]string{"team": "platform"}))
+			Terraform.Source(`resource "rhcs_cluster_rosa_hcp" "my_cluster" {}`)
+			runOutput := Terraform.Import("rhcs_cluster_rosa_hcp.my_cluster", "123")
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.tags`, nil))
+		})
+
+		It("Does not manage tags when the configuration omits them", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					clusterResponse("4.14.0", nil),
+				),
+			)
+			Terraform.Source(clusterSource(""))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Tags added outside Terraform are neither reported nor removed.
+			TestServer.AppendHandlers(refreshCluster("4.20.1", map[string]string{"added": "elsewhere"}))
+			runOutput = Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.tags`, nil))
+		})
+
+		It("Reports customer tags in the data source", func() {
+			TestServer.AppendHandlers(refreshCluster("4.19.12", map[string]string{"team": "platform"}))
+			Terraform.Source(`data "rhcs_cluster_rosa_hcp" "my_cluster" {
+				id = "123"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.tags.team`, "platform"))
+		})
+
+		It("Fails to update cluster tags before OpenShift 4.20", func() {
+			createClusterWithTags()
+
+			TestServer.AppendHandlers(refreshCluster("4.19.12", createdTags))
+			Terraform.Source(clusterSource(`tags = {
+					team = "data"
+				}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("editing AWS tags requires OpenShift version 4.20.0 or greater")
+		})
+
+		It("Fails to update cluster tags with an empty value", func() {
+			createClusterWithTags()
+
+			TestServer.AppendHandlers(refreshCluster("4.20.1", createdTags))
+			Terraform.Source(clusterSource(`tags = {
+					team = ""
+				}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("AWS tag value for key 'team' cannot be empty")
 		})
 	})
 })

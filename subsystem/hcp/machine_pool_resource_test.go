@@ -35,6 +35,35 @@ const (
 )
 
 var _ = Describe("Hcp Machine pool", func() {
+	prepareClusterReadWithVersion := func(clusterId, rawVersion string) {
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, clusterUri+clusterId),
+				RespondWithJSONTemplate(http.StatusOK, `{
+				  "id": "{{.ClusterId}}",
+				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
+				  "state": "ready",
+				  "version": {
+					"channel_group": "stable",
+					"raw_id": "{{.RawVersion}}"
+				  },
+				  "aws": {
+					"tags": {
+						"cluster-tag": "cluster-value"
+					}
+				  }
+				}`, "ClusterId", clusterId, "RawVersion", rawVersion),
+			),
+		)
+	}
 	prepareClusterRead := func(clusterId string) {
 		TestServer.AppendHandlers(
 			CombineHandlers(
@@ -1748,119 +1777,576 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
-		It("Can create machine pool with aws tags, but cannot edit", func() {
-			// Prepare the server:
-			TestServer.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(
-						http.MethodPost,
-						"/api/clusters_mgmt/v1/clusters/123/node_pools",
-					),
-					RespondWithJSON(http.StatusOK, `{
-				  "id": "my-pool",
-				  "availability_zone": "us-east-1a",
-				  "replicas": 12,
-				  "aws_node_pool": {
+		// nodePoolWithTags renders my-pool with the given effective AWS tags JSON object.
+		nodePoolWithTags := func(tags string) string {
+			return `{
+				"id": "my-pool",
+				"kind": "MachinePool",
+				"href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+				"replicas": 12,
+				"availability_zone": "us-east-1a",
+				"aws_node_pool": {
 					"instance_type": "r5.xlarge",
 					"instance_profile": "bla",
-					"tags": {
-						"test-label":"test-value"
-					},
+					"tags": ` + tags + `,
 					"ec2_metadata_http_tokens": "required"
-				  },
-				  "auto_repair": true,
-				  "version": {
-					  "raw_id": "4.14.10"
-				  },
-				  "subnet": "subnet-123"
-				}`),
-				),
-			)
-
-			// Run the apply command:
-			Terraform.Source(`
+				},
+				"auto_repair": true,
+				"version": {
+					"raw_id": "4.20.1"
+				},
+				"subnet": "subnet-123"
+			}`
+		}
+		machinePoolSource := func(tags string) string {
+			return `
 		  resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    aws_node_pool = {
 				instance_type = "r5.xlarge"
-				tags = {
-					"test-label" = "test-value"
-				}
+				` + tags + `
 			}
 			autoscaling = {
 				enabled = false
 			}
 		    replicas     = 12
-			version = "4.14.10"
+			version = "4.20.1"
 			subnet_id = "subnet-123"
 			auto_repair = true
 		  }
-		`)
+		`
+		}
+		createMachinePoolWithTags := func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/node_pools"),
+					VerifyJQ(`.aws_node_pool.tags["test-label"]`, "test-value"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(
+						`{"cluster-tag": "mp-value", "test-label": "test-value", "old": "value"}`)),
+				),
+			)
+			Terraform.Source(machinePoolSource(`tags = {
+					"cluster-tag" = "mp-value"
+					"test-label" = "test-value"
+					"old" = "value"
+				}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 3))
+		}
+		// prepareMachinePoolRefreshAndUpdate queues the Read and pre-PATCH Update requests.
+		prepareMachinePoolRefreshAndUpdate := func(rawVersion, effectiveTags string) {
+			prepareClusterReadWithVersion("123", rawVersion)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(effectiveTags)),
+				),
+			)
+			prepareClusterReadWithVersion("123", rawVersion)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(effectiveTags)),
+				),
+			)
+		}
+		// prepareTagReads queues the customer-only tag reads used to diff tags.
+		prepareTagReads := func(effectiveTags string) {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, clusterUri+"123", "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `{"aws":{"tags":{"cluster-tag":"cluster-value"}}}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(effectiveTags)),
+				),
+			)
+		}
+		const createdEffectiveTags = `{"cluster-tag": "mp-value", "test-label": "test-value", "old": "value"}`
+
+		It("Can create machine pool with aws tags, but cannot edit them before OpenShift 4.20", func() {
+			createMachinePoolWithTags()
+
+			prepareMachinePoolRefreshAndUpdate("4.19.12", createdEffectiveTags)
+			Terraform.Source(machinePoolSource(`tags = {
+					"test-label" = "new-value"
+				}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("editing AWS tags requires OpenShift version 4.20.0 or greater")
+		})
+
+		It("Can edit machine pool aws tags on OpenShift 4.20 and later", func() {
+			createMachinePoolWithTags()
+
+			// Update a value, add a key with spaces, remove a key, and drop the cluster-tag override.
+			prepareMachinePoolRefreshAndUpdate("4.20.1", createdEffectiveTags)
+			prepareTagReads(createdEffectiveTags)
+			updatedEffectiveTags := `{"cluster-tag": "cluster-value", "test-label": "new-value", "Cost Center": "Finance Team"}`
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					VerifyJQ(`.aws_node_pool.instance_type`, "r5.xlarge"),
+					VerifyJQ(`.aws_node_pool.tags | length`, 4),
+					VerifyJQ(`.aws_node_pool.tags["test-label"]`, "new-value"),
+					VerifyJQ(`.aws_node_pool.tags["Cost Center"]`, "Finance Team"),
+					VerifyJQ(`.aws_node_pool.tags | has("old") and has("cluster-tag")`, true),
+					VerifyJQ(`.aws_node_pool.tags.old == null and .aws_node_pool.tags["cluster-tag"] == null`, true),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(updatedEffectiveTags)),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(updatedEffectiveTags)),
+				),
+			)
+			Terraform.Source(machinePoolSource(`tags = {
+					"test-label" = "new-value"
+					"Cost Center" = "Finance Team"
+				}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 2))
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags["test-label"]`, "new-value"))
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags["Cost Center"]`, "Finance Team"))
+		})
+
+		It("Removing machine pool aws tags clears pool overrides and keeps inherited cluster tags", func() {
+			createMachinePoolWithTags()
+
+			prepareMachinePoolRefreshAndUpdate("4.20.1", createdEffectiveTags)
+			prepareTagReads(createdEffectiveTags)
+			inheritedOnly := `{"cluster-tag": "cluster-value"}`
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					VerifyJQ(`.aws_node_pool.tags | length`, 3),
+					VerifyJQ(`[.aws_node_pool.tags[]] | all(. == null)`, true),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(inheritedOnly)),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(inheritedOnly)),
+				),
+			)
+			Terraform.Source(machinePoolSource(""))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags`, nil))
+		})
+
+		It("Does not manage machine pool tags when the configuration omits them", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/node_pools"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(`{"cluster-tag": "cluster-value"}`)),
+				),
+			)
+			Terraform.Source(machinePoolSource(""))
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			// Check the state:
-			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
-			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
-			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
-			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
-			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
-			Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
-			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 1))
-
-			prepareClusterRead("123")
+			// A pool tag added outside Terraform is neither reported nor removed.
+			prepareClusterReadWithVersion("123", "4.20.1")
 			TestServer.AppendHandlers(
-				// First get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
-					RespondWithJSON(http.StatusOK, `{
-						"id": "my-pool",
-						"kind": "MachinePool",
-						"href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
-						"replicas": 12,
-						"availability_zone": "us-east-1a",
-						"aws_node_pool": {
-							"instance_type": "r5.xlarge",
-							"instance_profile": "bla",
-							"tags": {
-								"test-label":"test-value"
-							},
-							"ec2_metadata_http_tokens": "required"
-						},
-						"auto_repair": true,
-						"version": {
-							"raw_id": "4.14.10"
-						},
-						"subnet": "subnet-123"
-					}`,
-					),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(
+						`{"cluster-tag": "cluster-value", "added": "elsewhere"}`)),
 				),
 			)
+			runOutput = Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags`, nil))
+		})
 
-			Terraform.Source(`
-		  resource "rhcs_hcp_machine_pool" "my_pool" {
-		    cluster      = "123"
-		    name         = "my-pool"
-		    aws_node_pool = {
-				instance_type = "r5.xlarge"
-				tags = {
-					"test-label" = "new-value"
-				}
-			}
-		    replicas     = 12
-			autoscaling = {
-				enabled = false
-			}
-			version = "4.14.10"
-			subnet_id = "subnet-123"
-			auto_repair = true
-		  }
-		`)
+		It("Detects removal of managed machine pool tags made outside Terraform", func() {
+			createMachinePoolWithTags()
 
+			prepareClusterReadWithVersion("123", "4.20.1")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(`{"cluster-tag": "cluster-value"}`)),
+				),
+			)
+			runOutput := Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(Equal(2))
+			runOutput.VerifyOutputContainsSubstring("test-label")
+		})
+
+		// createMachinePoolWithoutTags creates my-pool with tags omitted from the configuration.
+		createMachinePoolWithoutTags := func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/node_pools"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(`{"cluster-tag": "cluster-value"}`)),
+				),
+			)
+			Terraform.Source(machinePoolSource(""))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+		}
+		const unmanagedPoolTags = `{"cluster-tag": "cluster-value", "added": "elsewhere"}`
+		const inheritedOnlyTags = `{"cluster-tag": "cluster-value"}`
+
+		It("Removes unmanaged machine pool tags when the configuration starts managing an empty tag set", func() {
+			createMachinePoolWithoutTags()
+
+			prepareMachinePoolRefreshAndUpdate("4.20.1", unmanagedPoolTags)
+			prepareTagReads(unmanagedPoolTags)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					VerifyJQ(`.aws_node_pool.tags | has("added")`, true),
+					VerifyJQ(`.aws_node_pool.tags.added == null`, true),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(inheritedOnlyTags)),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(inheritedOnlyTags)),
+				),
+			)
+			Terraform.Source(machinePoolSource(`tags = {}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 0))
+
+			prepareClusterReadWithVersion("123", "4.20.1")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(inheritedOnlyTags)),
+				),
+			)
+			runOutput = Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("Removes unmanaged machine pool tags when an empty tag set is adopted alongside another change", func() {
+			createMachinePoolWithoutTags()
+
+			prepareMachinePoolRefreshAndUpdate("4.20.1", unmanagedPoolTags)
+			prepareTagReads(unmanagedPoolTags)
+			scaled := strings.Replace(nodePoolWithTags(inheritedOnlyTags), `"replicas": 12`, `"replicas": 13`, 1)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					VerifyJQ(`.replicas`, 13.0),
+					VerifyJQ(`.aws_node_pool.tags.added == null`, true),
+					RespondWithJSON(http.StatusOK, scaled),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, scaled),
+				),
+			)
+			Terraform.Source(strings.Replace(machinePoolSource(`tags = {}`), "replicas     = 12", "replicas     = 13", 1))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 0))
+			Expect(resource).To(MatchJQ(`.attributes.replicas`, 13.0))
+		})
+
+		It("Keeps detecting machine pool drift after all managed tags are removed outside Terraform", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/node_pools"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(
+						`{"cluster-tag": "cluster-value", "test-label": "test-value"}`)),
+				),
+			)
+			Terraform.Source(machinePoolSource(`tags = {
+					"test-label" = "test-value"
+				}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// All pool tags removed externally, persisted with a refresh-only apply.
+			prepareClusterReadWithVersion("123", "4.20.1")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(`{"cluster-tag": "cluster-value"}`)),
+				),
+			)
+			runOutput = Terraform.Run("apply", "-refresh-only", "-auto-approve")
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 0))
+			Expect(resource).NotTo(MatchJQ(`.attributes.aws_node_pool.tags`, nil))
+
+			// A pool tag added externally again is still reported.
+			prepareClusterReadWithVersion("123", "4.20.1")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(
+						`{"cluster-tag": "cluster-value", "added": "elsewhere"}`)),
+				),
+			)
+			runOutput = Terraform.Run("plan", "-refresh-only", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(Equal(2))
+		})
+
+		It("Detects an external override of an inherited cluster tag on a pool managing an empty tag set", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/node_pools"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(`{"cluster-tag": "cluster-value"}`)),
+				),
+			)
+			Terraform.Source(machinePoolSource(`tags = {}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// The pool now overrides the inherited cluster tag with a different value.
+			overridden := `{"cluster-tag": "pool-value"}`
+			prepareClusterReadWithVersion("123", "4.20.1")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(overridden)),
+				),
+			)
+			runOutput = Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(Equal(2))
+			runOutput.VerifyOutputContainsSubstring("cluster-tag")
+
+			// Apply removes the override and restores inheritance.
+			prepareMachinePoolRefreshAndUpdate("4.20.1", overridden)
+			prepareTagReads(overridden)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					VerifyJQ(`.aws_node_pool.tags | has("cluster-tag")`, true),
+					VerifyJQ(`.aws_node_pool.tags["cluster-tag"] == null`, true),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(`{"cluster-tag": "cluster-value"}`)),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(`{"cluster-tag": "cluster-value"}`)),
+				),
+			)
 			runOutput = Terraform.Apply()
-			Expect(runOutput.ExitCode).ToNot(BeZero())
-			runOutput.VerifyErrorContainsSubstring("Attribute aws_node_pool.tags, cannot be changed from")
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 0))
+		})
+
+		It("Filters a cluster tag value changed by a concurrent cluster update from machine pool state", func() {
+			createMachinePoolWithTags()
+
+			prepareMachinePoolRefreshAndUpdate("4.20.1", createdEffectiveTags)
+			prepareTagReads(createdEffectiveTags)
+			// The pool now inherits a new value for a cluster tag that the earlier cluster read had.
+			afterConcurrentClusterEdit := `{"cluster-tag": "changed-value", "test-label": "new-value"}`
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(afterConcurrentClusterEdit)),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(afterConcurrentClusterEdit)),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, clusterUri+"123"),
+					RespondWithJSON(http.StatusOK, `{
+						"id": "123",
+						"state": "ready",
+						"version": {"channel_group": "stable", "raw_id": "4.20.1"},
+						"aws": {"tags": {"cluster-tag": "changed-value"}}
+					}`),
+				),
+			)
+			Terraform.Source(machinePoolSource(`tags = {
+					"test-label" = "new-value"
+				}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 1))
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags["test-label"]`, "new-value"))
+		})
+
+		It("Hides an inherited cluster tag override on a pool managing an empty tag set before OpenShift 4.20", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/node_pools"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(`{"cluster-tag": "cluster-value"}`)),
+				),
+			)
+			Terraform.Source(machinePoolSource(`tags = {}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// The override cannot be removed before 4.20, so it is not reported as drift.
+			prepareClusterReadWithVersion("123", "4.19.12")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(`{"cluster-tag": "pool-value"}`)),
+				),
+			)
+			runOutput = Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		// updateReplicasWithConcurrentClusterTag scales my-pool while the read after the PATCH
+		// reports a cluster tag added by a concurrent cluster update.
+		updateReplicasWithConcurrentClusterTag := func(tags string, expectClusterReread bool) {
+			prepareMachinePoolRefreshAndUpdate("4.20.1", inheritedOnlyTags)
+			afterConcurrentClusterEdit := strings.Replace(
+				nodePoolWithTags(`{"cluster-tag": "cluster-value", "new-cluster-tag": "added"}`),
+				`"replicas": 12`, `"replicas": 13`, 1)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					VerifyJQ(`.replicas`, 13.0),
+					RespondWithJSON(http.StatusOK, afterConcurrentClusterEdit),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, afterConcurrentClusterEdit),
+				),
+			)
+			if expectClusterReread {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, clusterUri+"123"),
+						RespondWithJSON(http.StatusOK, `{
+							"id": "123",
+							"state": "ready",
+							"version": {"channel_group": "stable", "raw_id": "4.20.1"},
+							"aws": {"tags": {"cluster-tag": "cluster-value", "new-cluster-tag": "added"}}
+						}`),
+					),
+				)
+			}
+			Terraform.Source(strings.Replace(machinePoolSource(tags), "replicas     = 12", "replicas     = 13", 1))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+		}
+
+		It("Re-reads the cluster for a concurrent cluster tag on a pool managing an empty tag set", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/node_pools"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(inheritedOnlyTags)),
+				),
+			)
+			Terraform.Source(machinePoolSource(`tags = {}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			updateReplicasWithConcurrentClusterTag(`tags = {}`, true)
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 0))
+		})
+
+		It("Does not re-read the cluster for a concurrent cluster tag on a pool with unmanaged tags", func() {
+			createMachinePoolWithoutTags()
+
+			// No cluster GET handler is queued; an unexpected re-read would fail the request.
+			updateReplicasWithConcurrentClusterTag("", false)
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags`, nil))
+		})
+
+		It("Filters cluster tags added by a concurrent cluster update from machine pool state", func() {
+			createMachinePoolWithTags()
+
+			prepareMachinePoolRefreshAndUpdate("4.20.1", createdEffectiveTags)
+			prepareTagReads(createdEffectiveTags)
+			// The pool now inherits a cluster tag that the earlier cluster read did not include.
+			afterConcurrentClusterEdit := `{"cluster-tag": "cluster-value", "test-label": "new-value", "new-cluster-tag": "added"}`
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(afterConcurrentClusterEdit)),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(afterConcurrentClusterEdit)),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, clusterUri+"123"),
+					RespondWithJSON(http.StatusOK, `{
+						"id": "123",
+						"state": "ready",
+						"version": {"channel_group": "stable", "raw_id": "4.20.1"},
+						"aws": {"tags": {"cluster-tag": "cluster-value", "new-cluster-tag": "added"}}
+					}`),
+				),
+			)
+			Terraform.Source(machinePoolSource(`tags = {
+					"test-label" = "new-value"
+				}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 1))
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags["test-label"]`, "new-value"))
+		})
+
+		It("Warns when a machine pool tag matches an inherited cluster tag", func() {
+			createMachinePoolWithTags()
+
+			prepareMachinePoolRefreshAndUpdate("4.20.1", createdEffectiveTags)
+			prepareTagReads(createdEffectiveTags)
+			updatedEffectiveTags := `{"cluster-tag": "cluster-value", "test-label": "test-value", "old": "value"}`
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					VerifyJQ(`.aws_node_pool.tags | length`, 1),
+					VerifyJQ(`.aws_node_pool.tags | has("cluster-tag")`, true),
+					VerifyJQ(`.aws_node_pool.tags["cluster-tag"] == null`, true),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(updatedEffectiveTags)),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, nodePoolWithTags(updatedEffectiveTags)),
+				),
+			)
+			Terraform.Source(machinePoolSource(`tags = {
+					"cluster-tag" = "cluster-value"
+					"test-label" = "test-value"
+					"old" = "value"
+				}`))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("matches an existing cluster tag")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 3))
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags["cluster-tag"]`, "cluster-value"))
 		})
 
 		It("Can create machine pool without supplying tags even though cluster has tags", func() {
@@ -6212,6 +6698,53 @@ var _ = Describe("Hcp Machine pool", func() {
 
 			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.management", nil))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.tags", nil))
+		})
+
+		It("Reports the pool's own tags via data source", func() {
+			nodePoolResponse := `{
+				"id":"my-pool",
+				"aws_node_pool":{
+				   "instance_type":"r5.xlarge",
+				   "instance_profile": "bla",
+				   "ec2_metadata_http_tokens": "required",
+				   "tags": {"cluster-tag": "cluster-value", "pool-tag": "x"}
+				},
+				"auto_repair": true,
+				"replicas":4,
+				"subnet":"id-1",
+				"availability_zone":"us-east-1a",
+				"version": {
+					"raw_id": "4.14.10"
+				}
+			}`
+			// Read for plan phase
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolResponse),
+				),
+			)
+			// Read for apply phase
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolResponse),
+				),
+			)
+
+			Terraform.Source(`
+			data "rhcs_hcp_machine_pool" "my_pool" {
+				cluster = "123"
+				name    = "my-pool"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 1))
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags["pool-tag"]`, "x"))
 		})
 	})
 

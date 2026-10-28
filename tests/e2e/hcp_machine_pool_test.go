@@ -612,6 +612,64 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			Expect(len(output.MachinePools[0].Tags)).To(Equal(0))
 		})
 
+	It("can edit tags - [id:67856]",
+		ci.High, func() {
+			supported, err := cms.SupportsDay2AWSTags(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			if !supported {
+				Skip("Editing AWS tags requires OpenShift 4.20.0 or greater")
+			}
+
+			By("Create machinepool with tags")
+			name := helper.GenerateRandomName("np-tags", 2)
+			mpArgs := getDefaultMPArgs(name)
+			mpArgs.Tags = new(map[string]string{
+				"aaa": "bbb",
+				"ccc": "ddd",
+			})
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+			defer func() {
+				By("Remove machinepool")
+				_, err = mpService.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			}()
+
+			By("Edit tags: update one, remove one, add one with spaces")
+			mpArgs.Tags = new(map[string]string{
+				"aaa":         "new",
+				"Cost Center": "Finance Team",
+			})
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify tags are updated in OCM")
+			mpResponseBody, err := cms.RetrieveNodePool(cms.RHCSConnection, clusterID, name,
+				map[string]any{"fetchUserTagsOnly": true})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("aaa", "new"))
+			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("Cost Center", "Finance Team"))
+			Expect(mpResponseBody.AWSNodePool().Tags()["ccc"]).To(BeEmpty())
+
+			By("Remove all machine pool tags")
+			mpArgs.Tags = new(map[string]string{})
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify machine pool tags are removed and cluster tags are kept")
+			clusterTags, err := cms.RetrieveClusterUserTags(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			mpResponseBody, err = cms.RetrieveNodePool(cms.RHCSConnection, clusterID, name,
+				map[string]any{"fetchUserTagsOnly": true})
+			Expect(err).ToNot(HaveOccurred())
+			for key, value := range mpResponseBody.AWSNodePool().Tags() {
+				if value == "" {
+					continue
+				}
+				Expect(clusterTags).To(HaveKeyWithValue(key, value))
+			}
+		})
+
 	It("can be created with tuning configs - [id:72508]",
 		ci.High, func() {
 			var tuningconfigs []string
@@ -1181,11 +1239,21 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			}, "Attribute aws_node_pool.subnet_id, cannot be changed from")
 
 			By("Try to edit tags")
-			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
-				args.Tags = new(map[string]string{
-					"tag1": "value1",
-				})
-			}, "Attribute aws_node_pool.tags, cannot be changed from")
+			supported, err := cms.SupportsDay2AWSTags(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			if supported {
+				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+					args.Tags = new(map[string]string{
+						"tag1": "",
+					})
+				}, "AWS tag value for key 'tag1' cannot be empty")
+			} else {
+				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+					args.Tags = new(map[string]string{
+						"tag1": "value1",
+					})
+				}, "editing AWS tags requires OpenShift version 4.20.0 or greater")
+			}
 
 			By("Try to edit compute machine type")
 			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {

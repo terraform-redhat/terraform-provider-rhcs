@@ -22,7 +22,7 @@ var _ = Describe("Trusted IPs", func() {
 	)
 
 	BeforeEach(func() {
-		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		profileHandler, err = profilehandler.NewRandomProfileHandler()
 		Expect(err).ToNot(HaveOccurred())
 
 		trustedIPsService, err = profileHandler.Services().GetTrustedIPsService()

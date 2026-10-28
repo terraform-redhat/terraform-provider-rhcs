@@ -712,7 +712,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			By("Create machinepool with kubeletconfig")
 			replicas := 1
 			machineType := profileHandler.Profile().GetComputeMachineType()
-			name := helper.GenerateRandomName("np-72504", 2)
+			name := helper.GenerateRandomName("np-74520", 2)
 			subnetId := vpcOutput.PrivateSubnets[0]
 			mpArgs := &exec.MachinePoolArgs{
 				Cluster:            &clusterID,

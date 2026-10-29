@@ -77,6 +77,7 @@ type ClusterStateNative struct {
 	OidcConfigId                   string            `hfsdk:"spec.oidcConfigId"`
 	Properties                     map[string]string `hfsdk:"spec.properties"`
 	Tags                           map[string]string `hfsdk:"spec.tags"`
+	BaseDomainPrefix               string            `hfsdk:"-"`
 	Operator_roles_prefix          string            `hfsdk:"-"`
 	Cloud_region                   string            `hfsdk:"-"`
 	No_cni                         bool              `hfsdk:"-"`

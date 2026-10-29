@@ -248,7 +248,8 @@ func validateNodeDrainGracePeriod(input *NodePoolState) diag.Diagnostics {
 			path.Root("node_drain_grace_period"),
 			"Invalid node_drain_grace_period",
 			fmt.Sprintf(
-				"node_drain_grace_period must be a valid Go duration string (for example \"5m\" for 5 minutes, \"1h\" for 1 hour, \"0s\" for immediate termination), got %q: %v",
+				"node_drain_grace_period must be a valid Go duration string "+
+					"(for example \"5m\" for 5 minutes, \"1h\" for 1 hour, \"0s\" for immediate termination), got %q: %v",
 				value, err,
 			),
 		)

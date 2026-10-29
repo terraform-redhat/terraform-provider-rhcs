@@ -346,6 +346,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		seaplaneProvider.NewCluster,
 		seaplaneProvider.NewNodePool,
 		seaplaneProvider.NewOidcConfig,
+		seaplaneProvider.NewDNSDomain,
 		nodepool.New,
 		hcpingress.New,
 		tuningconfigs.New,

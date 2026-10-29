@@ -29,6 +29,8 @@ provider "rhcs" {
 resource "rhcs_cluster_seaplane" "cluster" {
   name                  = var.cluster_name
   operator_roles_prefix = var.operator_roles_prefix
+  dns_reservation_id    = var.dns_reservation_id
+  base_domain_prefix    = var.base_domain_prefix
   version               = var.release_image
   network = var.machine_cidr == null && var.pod_cidr == null && var.service_cidr == null ? null : {
     machine_cidr = var.machine_cidr

@@ -1,6 +1,6 @@
 # Seaplane resources
 
-This document covers the architecture, file layout, schema design, and test strategy for the Seaplane resources (`rhcs_cluster_seaplane` and `rhcs_nodepool_seaplane`). It also records the deliberate gaps relative to their HCP equivalents and the reasons behind them.
+This document covers the architecture, file layout, schema design, and test strategy for the Seaplane resources (`rhcs_cluster_seaplane`, `rhcs_nodepool_seaplane`, `rhcs_oidcconfig_seaplane`, and `rhcs_dns_domain_seaplane`). It also records the deliberate gaps relative to their HCP equivalents and the reasons behind them.
 
 ## What is Seaplane
 
@@ -29,8 +29,29 @@ The Seaplane API annotates every HyperShift field with `+seaplane:write-mode`:
 
 Fields marked `service-set` cannot be exposed as writable resource attributes. See the gap tables below for the full breakdown.
 
+### Custom DNS domains use the Platform API reservation flow
+`rhcs_dns_domain_seaplane` reserves an account-scoped HCP DNS domain through
+`/api/v0/dns_reservations`. The customer supplies `name` (`metadata.name`);
+Terraform exposes the platform UID as `id`, the allocated domain as
+`base_domain`, and the lifecycle phase as `phase`. Create waits for the
+reservation to become `Ready` before returning. Terraform refreshes and imports
+by reservation name, while `id` remains the UID used by cluster creation.
+
+Pass the reservation UID to `rhcs_cluster_seaplane.dns_reservation_id`.
+`base_domain_prefix` optionally controls the subdomain prefix; an explicitly
+empty string omits the prefix. Both cluster fields are create-only, so changing
+either value replaces the cluster. Destroy the cluster before deleting the
+reservation, because the Platform API rejects deletion of a claimed reservation
+with HTTP 409.
+
 ### Subsystem tests use a local Platform API stub
 The standard `subsystem/hcp/` and `subsystem/classic/` suites rely on a stubbed OCM HTTP server (`TestServer`). The Seaplane Platform API uses a Kubernetes-style API protocol, so tests under `subsystem/seaplane/` exercise the Terraform provider against a local Seaplane HTTP stub instead. The suite setup in `seaplane_test.go` still provides fake AWS credentials and a local OCM server for provider initialization; feature tests use the subsystem framework's local server for Seaplane requests.
+
+The subsystem suite covers provider-config diagnostics and DNS-domain lifecycle behavior:
+- `seaplane_url` absent from the provider block → descriptive error.
+- `seaplane_url` set but `aws_account_id` missing → descriptive error.
+- `aws_region` contradicting the region in `seaplane_url` → "AWS region mismatch" error.
+- `rhcs_dns_domain_seaplane` create, readiness wait, refresh, import, and delete against a local HTTP stub.
 
 Subsystem tests cover more than provider configuration: they can verify Terraform configuration sent to the Platform API, response-to-state mapping, resource lifecycle behavior, and diagnostics without a live Seaplane environment. Use the existing local-server patterns in `cluster_resource_test.go`, `nodepool_resource_test.go`, and `oidcconfig_resource_test.go`.
 
@@ -64,12 +85,12 @@ Both resources implement `ResourceWithImportState`. The cluster resource imports
 
 ```
 provider/seaplane/
-├── resource.go               # rhcs_cluster_seaplane — Schema, CRUD, ImportState
-├── state.go                  # ClusterSeaplaneState struct with tfsdk tags
-├── resource_test.go          # Unit tests for populateState, computeRolesRef
-├── nodepool_resource.go      # rhcs_nodepool_seaplane — Schema, CRUD, ImportState
-├── nodepool_state.go         # NodePoolSeaplaneState, NPAWSNodePool structs
-└── nodepool_resource_test.go # Unit tests for buildNodePoolSpec, populateNodePoolState
+├── generated/                # pathbind-generated cluster, nodepool, and OIDC resources
+├── cluster_handler.go        # rhcs_cluster_seaplane handler and validation
+├── nodepool_handler.go       # rhcs_nodepool_seaplane handler and validation
+├── dnsdomain_resource.go     # rhcs_dns_domain_seaplane — Schema, CRUD, ImportState
+├── dnsdomain_client.go       # Platform API DNS-domain reservation client
+└── dnsdomain_resource_test.go
 
 tests/e2e/seaplane/
 ├── suite_test.go             # Ginkgo suite registration (TestSeaplaneSanity)
@@ -107,6 +128,8 @@ The `manifests.GetSeaplane*ManifestsDir()` helpers in `tests/utils/exec/manifest
 | `aws_subnet_ids` | list(string) | R | yes | Worker subnet IDs; first entry used as cluster subnet |
 | `vpc_id` | string | R | yes | VPC containing the worker subnet |
 | `availability_zones` | list(string) | R | yes | Worker AZs; first entry used |
+| `dns_reservation_id` | string | O | yes | UID from `rhcs_dns_domain_seaplane.id`; selects the cluster base domain |
+| `base_domain_prefix` | string | O | yes | Optional subdomain prefix; empty string omits the prefix |
 | `expiration_timestamp` | string | O | no | RFC3339; platform auto-deletes cluster at this time |
 | `aws_partition` | string | O/C | yes | Default `aws`; set to `aws-us-gov` for GovCloud |
 | `cloud_region` | string | O/C | yes | Derived from `availability_zones` if unset |
@@ -118,6 +141,17 @@ The `manifests.GetSeaplane*ManifestsDir()` helpers in `tests/utils/exec/manifest
 | `oidc_issuer` | string | C | — | OIDC issuer URL; use to create OIDC provider + trust policies |
 
 R=Required, O=Optional, C=Computed.
+
+### `rhcs_dns_domain_seaplane`
+
+| Attribute | Type | R/O/C | Immutable | Notes |
+|---|---|---|---|---|
+| `name` | string | R | yes | Customer-selected reservation name (`metadata.name`) |
+| `id` | string | C | — | Reservation UID (`metadata.uid`) used by `rhcs_cluster_seaplane.dns_reservation_id` |
+| `base_domain` | string | C | — | Allocated base domain (`status.baseDomain`) |
+| `phase` | string | C | — | Reservation lifecycle phase; create waits for `Ready` |
+
+Import format: the reservation name.
 
 ### `rhcs_nodepool_seaplane`
 
@@ -171,7 +205,7 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 | HCP attribute | Reason |
 |---|---|
 | `sts` | OCM auth model; Seaplane uses ambient AWS credentials |
-| `domain_prefix` / `base_dns_domain` / `domain` | OCM DNS management |
+| `domain_prefix` | OCM DNS management; Seaplane uses `dns_reservation_id` / `base_domain_prefix` |
 | `version` / `current_version` / `upgrade_acknowledgements_for` | OCM-driven upgrade pipeline |
 | `autoscaling_enabled` / `replicas` / `compute_machine_type` / `min_replicas` / `max_replicas` / `worker_disk_size` / `ec2_metadata_http_tokens` | Default machine pool concept — Seaplane uses explicit nodepools |
 | `aws_account_id` / `aws_billing_account_id` | Comes from provider config |
@@ -253,12 +287,15 @@ This decision is part of the feature's E2E coverage requirement: a matching HCP 
 
 | Layer | Location | Coverage |
 |---|---|---|
-| Unit (cluster) | `provider/seaplane/cluster_resource_test.go` | Cluster schema, tag validation, role-reference mapping, network configuration, and plan behavior |
-| Unit (nodepool) | `provider/seaplane/nodepool_resource_test.go` | Nodepool schema, validation, expansion, and state mapping |
-| Subsystem (cluster) | `subsystem/seaplane/cluster_resource_test.go` | Provider diagnostics and stubbed Platform API create/read/update/delete flows, including proxy and tag behavior |
+| Unit (cluster) | `provider/seaplane/cluster_resource_test.go` | Cluster schema, tag validation, `computeRolesRef` / `prefixAndPartitionFromRolesRef`, network configuration, and plan behavior |
+| Unit (nodepool) | `provider/seaplane/nodepool_resource_test.go` | Nodepool schema, validation, expansion, native `resource_tags` path, and state mapping |
+| Unit (DNS domain) | `provider/seaplane/dnsdomain_resource_test.go` | Platform API routes, create/list matching, and delete behavior |
+| Subsystem (cluster) | `subsystem/seaplane/cluster_resource_test.go` | Provider diagnostics and stubbed Platform API create/read/update/delete flows, including proxy, tag, and custom DNS behavior |
 | Subsystem (nodepool/OIDC) | `subsystem/seaplane/nodepool_resource_test.go`, `oidcconfig_resource_test.go` | Stubbed nodepool lifecycle and updates, OIDC config creation, and validation diagnostics |
 | E2E shared workflow | `tests/e2e/hcp_machine_pool_test.go` | Backend-neutral nodepool workflows selected for ROSA HCP or Seaplane profiles, including scaling, labels/taints/auto-repair, IMDSv2, autoscaling, and tags |
-| E2E Seaplane-specific | `tests/e2e/seaplane/` | Seaplane cluster create/destroy sanity, proxy behavior, and scheduler-profile configuration |
+| E2E Seaplane-specific | `tests/e2e/seaplane/` | Full Seaplane cluster create/read/destroy cycle with VPC, IAM, and nodepools; proxy behavior and scheduler-profile configuration |
+| Subsystem (DNS domain) | `subsystem/seaplane/dnsdomain_resource_test.go` | DNS-domain CRUD and import through the local Platform API stub |
+| E2E (DNS domain) | `tests/e2e/dns_test.go` | Create and destroy through the generic Classic/HCP/Seaplane DNS manifest |
 
 Run the E2E suite:
 ```

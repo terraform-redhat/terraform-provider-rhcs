@@ -160,8 +160,8 @@ func TestNodePoolResourceSchema_NodeDrainGracePeriod(t *testing.T) {
 
 func TestValidateMaxUnavailable_Valid(t *testing.T) {
 	cases := []struct {
-		name  string
-		value types.String
+		name     string
+		value    types.String
 		replicas types.Int64
 	}{
 		{"null", types.StringNull(), types.Int64Value(3)},
@@ -343,9 +343,9 @@ func TestNodePoolRootVolumeBinding(t *testing.T) {
 	}
 }
 
-// ── validateNodeDrainTimeout ──────────────────────────────────────────────────
+// ── validateNodeDrainGracePeriod ──────────────────────────────────────────────
 
-func TestValidateNodeDrainTimeout_Valid(t *testing.T) {
+func TestValidateNodeDrainGracePeriod_Valid(t *testing.T) {
 	cases := []struct {
 		name    string
 		timeout types.String
@@ -359,14 +359,14 @@ func TestValidateNodeDrainTimeout_Valid(t *testing.T) {
 		{"combined", types.StringValue("1h30m")},
 	}
 	for _, tc := range cases {
-		diags := validateNodeDrainTimeout(&NodePoolState{NodeDrainTimeout: tc.timeout})
+		diags := validateNodeDrainGracePeriod(&NodePoolState{NodeDrainGracePeriod: tc.timeout})
 		if diags.HasError() {
 			t.Errorf("%s: unexpected error: %v", tc.name, diags.Errors())
 		}
 	}
 }
 
-func TestValidateNodeDrainTimeout_Invalid(t *testing.T) {
+func TestValidateNodeDrainGracePeriod_Invalid(t *testing.T) {
 	cases := []struct {
 		name         string
 		timeout      string
@@ -378,7 +378,7 @@ func TestValidateNodeDrainTimeout_Invalid(t *testing.T) {
 		{"empty string", "", "invalid duration"},
 	}
 	for _, tc := range cases {
-		diags := validateNodeDrainTimeout(&NodePoolState{NodeDrainTimeout: types.StringValue(tc.timeout)})
+		diags := validateNodeDrainGracePeriod(&NodePoolState{NodeDrainGracePeriod: types.StringValue(tc.timeout)})
 		if !diags.HasError() {
 			t.Errorf("%s: expected an error, got none", tc.name)
 			continue

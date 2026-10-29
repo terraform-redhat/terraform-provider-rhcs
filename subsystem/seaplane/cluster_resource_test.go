@@ -63,6 +63,29 @@ func verifySeaplaneProxyRequest(httpProxy, httpsProxy, noProxy string) http.Hand
 	}
 }
 
+func verifySeaplaneClusterDNSDomain(reservationID, domainPrefix string) http.HandlerFunc {
+	return func(_ http.ResponseWriter, req *http.Request) {
+		var body struct {
+			Spec struct {
+				DNSReservationID string `json:"dnsReservationId"`
+				HostedCluster    struct {
+					DNS struct {
+						BaseDomain       *string `json:"baseDomain"`
+						BaseDomainPrefix *string `json:"baseDomainPrefix"`
+					} `json:"dns"`
+				} `json:"hostedCluster"`
+			} `json:"spec"`
+		}
+		Expect(json.NewDecoder(req.Body).Decode(&body)).To(Succeed())
+		Expect(body.Spec.DNSReservationID).To(Equal(reservationID))
+		if body.Spec.HostedCluster.DNS.BaseDomain != nil {
+			Expect(*body.Spec.HostedCluster.DNS.BaseDomain).To(BeEmpty())
+		}
+		Expect(body.Spec.HostedCluster.DNS.BaseDomainPrefix).NotTo(BeNil())
+		Expect(*body.Spec.HostedCluster.DNS.BaseDomainPrefix).To(Equal(domainPrefix))
+	}
+}
+
 func verifySeaplaneClusterUpdate(expected string) http.HandlerFunc {
 	return func(_ http.ResponseWriter, request *http.Request) {
 		body, err := io.ReadAll(request.Body)
@@ -426,6 +449,8 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 		})
 
 		It("creates a cluster successfully", func() {
+			const dnsReservationID = "c8e1b8db-87f0-4a83-922d-ff5ab5d81f9f"
+			const baseDomainPrefix = "cluster-prefix"
 			clusterResponse := `{
 			"metadata": {
 				"uid": "test-cluster-id",
@@ -434,6 +459,10 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 			},
 			"spec": {
 				"hostedCluster": {
+					"dns": {
+						"baseDomain": "f7a3.0.openshiftapps.com",
+						"baseDomainPrefix": "` + baseDomainPrefix + `"
+					},
 					"platform": {
 						"type": "AWS",
 						"aws": {
@@ -472,6 +501,7 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 			seaplaneServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					verifySeaplaneClusterDNSDomain(dnsReservationID, baseDomainPrefix),
 					RespondWith(http.StatusCreated, clusterResponse, header),
 				),
 			)
@@ -488,6 +518,8 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 						provider              = rhcs.sp
 					name                  = "my-cluster"
 					operator_roles_prefix = "my-cluster"
+					dns_reservation_id    = "`+dnsReservationID+`"
+					base_domain_prefix    = "`+baseDomainPrefix+`"
 					aws = {
 						aws_subnet_ids     = ["subnet-0abc123"]
 						vpc_id             = "vpc-0def456"
@@ -498,6 +530,51 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
+			stateResource := Terraform.Resource("rhcs_cluster_seaplane", "test")
+			Expect(stateResource).To(matchJQ(".attributes.dns_reservation_id", dnsReservationID))
+			Expect(stateResource).To(matchJQ(".attributes.base_domain_prefix", baseDomainPrefix))
+		})
+
+		It("creates a cluster with an explicitly empty base domain prefix", func() {
+			const dnsReservationID = "c8e1b8db-87f0-4a83-922d-ff5ab5d81f9f"
+			clusterResponse := seaplaneClusterProxyResponse("", "", "")
+			header := http.Header{"Content-Type": []string{"application/json"}}
+
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
+					verifySeaplaneClusterDNSDomain(dnsReservationID, ""),
+					RespondWith(http.StatusCreated, clusterResponse, header),
+				),
+			)
+
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "sp"
+					seaplane_url   = "%s"
+					aws_account_id = "123456789012"
+					aws_region     = "us-east-1"
+				}
+
+				resource "rhcs_cluster_seaplane" "test" {
+					provider              = rhcs.sp
+					name                  = "my-cluster"
+					operator_roles_prefix = "my-cluster"
+					dns_reservation_id    = "`+dnsReservationID+`"
+					base_domain_prefix    = ""
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
+				}
+			`, seaplaneServer.URL()))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			stateResource := Terraform.Resource("rhcs_cluster_seaplane", "test")
+			Expect(stateResource).To(matchJQ(".attributes.dns_reservation_id", dnsReservationID))
+			Expect(stateResource).To(matchJQ(".attributes.base_domain_prefix", ""))
 		})
 
 		It("creates a cluster with proxy settings", func() {

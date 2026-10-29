@@ -26,6 +26,18 @@ variable "operator_roles_prefix" {
   description = "Prefix for the seven operator IAM roles"
 }
 
+variable "dns_reservation_id" {
+  type        = string
+  description = "UID of the DNS reservation that provides the cluster base domain"
+  default     = null
+}
+
+variable "base_domain_prefix" {
+  type        = string
+  description = "Optional subdomain prefix; an explicitly empty string omits the prefix"
+  default     = null
+}
+
 variable "subnet_id" {
   type        = string
   description = "Worker-node subnet ID"

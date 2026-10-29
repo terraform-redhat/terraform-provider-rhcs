@@ -15,6 +15,8 @@ type SeaplaneClusterArgs struct {
 	AWSRegion                      *string `hcl:"aws_region"`
 	ClusterName                    *string `hcl:"cluster_name"`
 	OperatorRolesPrefix            *string `hcl:"operator_roles_prefix"`
+	DNSReservationID               *string `hcl:"dns_reservation_id"`
+	BaseDomainPrefix               *string `hcl:"base_domain_prefix"`
 	SubnetID                       *string `hcl:"subnet_id"`
 	VPCID                          *string `hcl:"vpc_id"`
 	AvailabilityZone               *string `hcl:"availability_zone"`

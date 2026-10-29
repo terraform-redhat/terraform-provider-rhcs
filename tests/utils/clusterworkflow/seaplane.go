@@ -339,6 +339,14 @@ func newExistingSeaplaneBackend(profile profilehandler.ProfileHandler) (*Backend
 }
 
 func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string) (*Backend, error) {
+	return newSeaplaneBackendWithOptions(profile, workspace, SeaplaneOptions{})
+}
+
+func newSeaplaneBackendWithOptions(
+	profile profilehandler.ProfileHandler,
+	workspace string,
+	options SeaplaneOptions,
+) (*Backend, error) {
 	if !profile.Profile().IsBYOVPC() {
 		return nil, fmt.Errorf("seaplane cluster profiles must set byovpc: true")
 	}
@@ -548,6 +556,10 @@ func newSeaplaneBackend(profile profilehandler.ProfileHandler, workspace string)
 		EnabledCapabilities:            jsonList(profile.Profile().GetEnableClusterCapabilities()),
 		DisabledCapabilities:           jsonList(profile.Profile().GetDisableClusterCapabilities()),
 	}
+	if options.DNSReservationID != "" {
+		clusterArgs.DNSReservationID = &options.DNSReservationID
+	}
+	clusterArgs.BaseDomainPrefix = options.BaseDomainPrefix
 	if cidr := profile.Profile().GetMachineCIDR(); cidr != "" {
 		clusterArgs.MachineCIDR = new(fmt.Sprintf(`[{"cidr":%q}]`, cidr))
 	}

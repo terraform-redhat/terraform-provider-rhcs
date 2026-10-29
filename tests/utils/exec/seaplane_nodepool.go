@@ -30,6 +30,11 @@ type SeaplaneNodePoolArgs struct {
 	// API accepts percentages, which the provider doesn't send yet).
 	MaxUnavailable *string `hcl:"max_unavailable"`
 
+	// Largest number of nodes that can be added to this pool during an upgrade,
+	// as an absolute node count (the Platform API accepts percentages, which the
+	// provider doesn't send yet).
+	MaxSurge *string `hcl:"max_surge"`
+
 	// Operating system image family for the nodes in this pool. The image family
 	// is baked into every instance the pool launches, so it can only be set on
 	// create; changing it would replace the pool. Valid values: "Linux" (RHCOS)

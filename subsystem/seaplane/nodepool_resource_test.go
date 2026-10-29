@@ -1603,6 +1603,209 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 			Expect(runOutput.ExitCode).To(BeZero())
 		})
 	})
+
+	Context("Surge budget", func() {
+		var seaplaneServer *Server
+
+		BeforeEach(func() {
+			seaplaneServer = NewServer()
+		})
+
+		AfterEach(func() {
+			seaplaneServer.Close()
+		})
+
+		It("sets max_surge as an absolute count on create", func() {
+			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"nodePoolManagementARN": "arn:aws:iam::123456789012:role/roles-prefix-node-pool-management"}}}}}}`
+			createResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"maxSurge": 2, "autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+
+			seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.workers", CombineHandlers(
+				RespondWith(http.StatusOK, createResponse, http.Header{"Content-Type": []string{"application/json"}}),
+			))
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
+					RespondWith(http.StatusOK, clusterResponse, http.Header{"Content-Type": []string{"application/json"}}),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
+					verifyJQ(`.metadata.name`, "test-cluster.workers"),
+					verifyJQ(`.spec.maxSurge`, float64(2)),
+					verifyJQ(`.spec.autoRepair`, true),
+					verifyJQ(`.spec.nodePool.clusterName`, "test-cluster"),
+					verifyJQ(`.spec.nodePool.replicas`, float64(5)),
+					verifyJQ(`.spec.nodePool.platform.aws.instanceType`, "m5.xlarge"),
+					verifyJQ(`.spec.nodePool.platform.aws.subnet.id`, "subnet-0abc123"),
+					RespondWith(http.StatusCreated, createResponse, http.Header{"Content-Type": []string{"application/json"}}),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.workers"),
+					RespondWith(http.StatusNoContent, ""),
+				),
+			)
+
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "sp"
+					seaplane_url   = "%s"
+					aws_account_id = "123"
+					aws_region     = "us-east-1"
+				}
+				resource "rhcs_nodepool_seaplane" "test" {
+					provider         = rhcs.sp
+					cluster_id       = "c-123"
+					cluster_name     = "test-cluster"
+					name             = "test-cluster.workers"
+					replicas         = 5
+					max_surge        = "2"
+					auto_repair      = true
+					subnet_id        = "subnet-0abc123"
+					instance_type    = "m5.xlarge"
+				}
+			`, seaplaneServer.URL()))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			planOutput := Terraform.Run("plan", "-detailed-exitcode")
+			Expect(planOutput.ExitCode).To(BeZero(), "expected no-op plan after create")
+
+			runOutput = Terraform.Destroy()
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("updates max_surge in place", func() {
+			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"nodePoolManagementARN": "arn:aws:iam::123456789012:role/roles-prefix-node-pool-management"}}}}}}`
+			createResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"maxSurge": 1, "autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+			updateResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"maxSurge": 3, "autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
+			jsonHeader := http.Header{"Content-Type": []string{"application/json"}}
+
+			seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.workers", CombineHandlers(
+				RespondWith(http.StatusOK, createResponse, jsonHeader),
+			))
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse, jsonHeader)),
+				CombineHandlers(VerifyRequest(http.MethodPost, "/api/v0/nodepools"), RespondWith(http.StatusCreated, createResponse, jsonHeader)),
+			)
+
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "sp"
+					seaplane_url   = "%s"
+					aws_account_id = "123"
+					aws_region     = "us-east-1"
+				}
+				resource "rhcs_nodepool_seaplane" "test" {
+					provider         = rhcs.sp
+					cluster_id       = "c-123"
+					cluster_name     = "test-cluster"
+					name             = "test-cluster.workers"
+					replicas         = 5
+					max_surge        = "1"
+					auto_repair      = true
+					subnet_id        = "subnet-0abc123"
+					instance_type    = "m5.xlarge"
+				}
+			`, seaplaneServer.URL()))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.workers", CombineHandlers(
+				RespondWith(http.StatusOK, updateResponse, jsonHeader),
+			))
+			seaplaneServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
+					RespondWith(http.StatusOK, clusterResponse, jsonHeader),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-cluster.workers"),
+					verifyJQ(`.spec.maxSurge`, float64(3)),
+					RespondWith(http.StatusOK, updateResponse, jsonHeader),
+				),
+				CombineHandlers(VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.workers"), RespondWith(http.StatusNoContent, "")),
+			)
+
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "sp"
+					seaplane_url   = "%s"
+					aws_account_id = "123"
+					aws_region     = "us-east-1"
+				}
+				resource "rhcs_nodepool_seaplane" "test" {
+					provider         = rhcs.sp
+					cluster_id       = "c-123"
+					cluster_name     = "test-cluster"
+					name             = "test-cluster.workers"
+					replicas         = 5
+					max_surge        = "3"
+					auto_repair      = true
+					subnet_id        = "subnet-0abc123"
+					instance_type    = "m5.xlarge"
+				}
+			`, seaplaneServer.URL()))
+
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			runOutput = Terraform.Destroy()
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("rejects percentage max_surge with explanation", func() {
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "sp"
+					seaplane_url   = "%s"
+					aws_account_id = "123"
+					aws_region     = "us-east-1"
+				}
+				resource "rhcs_nodepool_seaplane" "test" {
+					provider         = rhcs.sp
+					cluster_id       = "c-123"
+					cluster_name     = "test-cluster"
+					name             = "test-cluster.workers"
+					replicas         = 5
+					max_surge        = "50%%"
+					auto_repair      = true
+					subnet_id        = "subnet-0abc123"
+					instance_type    = "m5.xlarge"
+				}
+			`, seaplaneServer.URL()))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("percentages are not supported yet")
+		})
+
+		It("rejects non-integer max_surge", func() {
+			Terraform.Source(fmt.Sprintf(`
+				provider "rhcs" {
+					alias          = "sp"
+					seaplane_url   = "%s"
+					aws_account_id = "123"
+					aws_region     = "us-east-1"
+				}
+				resource "rhcs_nodepool_seaplane" "test" {
+					provider         = rhcs.sp
+					cluster_id       = "c-123"
+					cluster_name     = "test-cluster"
+					name             = "test-cluster.workers"
+					replicas         = 5
+					max_surge        = "abc"
+					auto_repair      = true
+					subnet_id        = "subnet-0abc123"
+					instance_type    = "m5.xlarge"
+				}
+			`, seaplaneServer.URL()))
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("must be a non-negative whole number")
+		})
+	})
 })
 
 var _ = Describe("Seaplane nodepool root volume", func() {

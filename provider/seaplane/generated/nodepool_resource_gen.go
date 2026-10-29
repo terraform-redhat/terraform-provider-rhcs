@@ -140,7 +140,7 @@ func (r *NodePoolResource) Schema(
 				ElementType:         types.StringType,
 			},
 			"max_surge": schema.StringAttribute{
-				MarkdownDescription: "MaxSurge.",
+				MarkdownDescription: "Largest number of nodes that may be provisioned above the desired replica count while the pool is upgrading, as an absolute node count (for example `2`). It only applies to the Replace upgrade type, since an InPlace upgrade updates the existing instances and never creates extra ones. Defaults to 1 when unset: one replacement node is built at a time. The Platform API also accepts a percentage, which this provider cannot send yet.",
 				Optional:            true,
 			},
 			"max_unavailable": schema.StringAttribute{

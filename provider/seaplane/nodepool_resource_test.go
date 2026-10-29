@@ -259,6 +259,56 @@ func TestValidateMaxUnavailable_WithAutoscaling(t *testing.T) {
 	}
 }
 
+// ── validateMaxSurge ──────────────────────────────────────────────────────────
+
+func TestValidateMaxSurge_Valid(t *testing.T) {
+	cases := []struct {
+		name  string
+		value types.String
+	}{
+		{"null", types.StringNull()},
+		{"unknown", types.StringUnknown()},
+		{"zero", types.StringValue("0")},
+		{"positive count", types.StringValue("2")},
+		{"large count", types.StringValue("999")},
+	}
+	for _, tc := range cases {
+		diags := validateMaxSurge(&NodePoolState{
+			MaxSurge: tc.value,
+		})
+		if diags.HasError() {
+			t.Errorf("%s: unexpected error: %v", tc.name, diags.Errors())
+		}
+	}
+}
+
+func TestValidateMaxSurge_Invalid(t *testing.T) {
+	cases := []struct {
+		name         string
+		value        string
+		wantContains string
+	}{
+		{"percentage", "50%", "percentages are not supported yet"},
+		{"negative", "-1", "non-negative whole number"},
+		{"float", "2.5", "non-negative whole number"},
+		{"not a number", "abc", "non-negative whole number"},
+		{"leading zero", "01", "non-negative whole number"},
+	}
+	for _, tc := range cases {
+		diags := validateMaxSurge(&NodePoolState{
+			MaxSurge: types.StringValue(tc.value),
+		})
+		if !diags.HasError() {
+			t.Errorf("%s: expected an error, got none", tc.name)
+			continue
+		}
+		detail := diags.Errors()[0].Detail()
+		if !strings.Contains(detail, tc.wantContains) {
+			t.Errorf("%s: detail = %q, want it to contain %q", tc.name, detail, tc.wantContains)
+		}
+	}
+}
+
 // ── validateImageType ─────────────────────────────────────────────────────────
 
 func TestValidateImageType_Valid(t *testing.T) {

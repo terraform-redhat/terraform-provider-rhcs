@@ -39,7 +39,7 @@ Manages NodePool resources.
 - `instance_type` (String) InstanceType.
 - `labels` (Map of String) Labels.
 - `max_price` (String) MaxPrice.
-- `max_surge` (String) MaxSurge.
+- `max_surge` (String) Largest number of nodes that may be provisioned above the desired replica count while the pool is upgrading, as an absolute node count (for example `2`). It only applies to the Replace upgrade type, since an InPlace upgrade updates the existing instances and never creates extra ones. Defaults to 1 when unset: one replacement node is built at a time. The Platform API also accepts a percentage, which this provider cannot send yet.
 - `max_unavailable` (String) Largest number of nodes in this pool that may be unavailable at the same time while the pool is upgrading, as an absolute node count (for example `2`). It may not exceed `replicas`. Defaults to 0 when unset: no node is taken out of service until its replacement is ready. The Platform API also accepts a percentage, which this provider cannot send yet.
 - `node_drain_grace_period` (String) Grace period before a node is forcibly drained during upgrade or replacement, as a Go duration string (for example `5m` for 5 minutes, `1h` for 1 hour). Defaults to `0s` when unset: the node is drained indefinitely. Increase this to prevent a misbehaving workload from blocking node replacement indefinitely.
 - `node_labels` (Map of String) NodeLabels.

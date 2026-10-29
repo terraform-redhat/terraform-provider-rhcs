@@ -59,6 +59,12 @@ variable "max_unavailable" {
   default     = null
 }
 
+variable "max_surge" {
+  type        = string
+  description = "Largest number of nodes that can be added during an upgrade, as an absolute count"
+  default     = null
+}
+
 variable "image_type" {
   type        = string
   description = "Operating system image family (Linux or Windows)"

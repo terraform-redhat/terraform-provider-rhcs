@@ -248,6 +248,12 @@ func (h *ClusterHandlerImpl) PostExpand(
 			obj.Spec.HostedCluster.Configuration.Proxy = nil
 		}
 	}
+	// pathbind skips empty strings, but an explicit empty base_domain_prefix is
+	// meaningful: it disables the hosted-cluster name prefix.
+	if !input.BaseDomainPrefix.IsNull() && !input.BaseDomainPrefix.IsUnknown() {
+		dnsPrefix := input.BaseDomainPrefix.ValueString()
+		obj.Spec.HostedCluster.DNS.BaseDomainPrefix = &dnsPrefix
+	}
 	prefix := input.Operator_roles_prefix.ValueString()
 	partition := awsBundleStringValue(input.Aws, "aws_partition")
 	if partition == "" {
@@ -394,6 +400,11 @@ func (h *ClusterHandlerImpl) PostResponse(ctx context.Context, resp *v1alpha1.Cl
 func (h *ClusterHandlerImpl) PostFlatten(ctx context.Context, state *ClusterState, resp *v1alpha1.Cluster) {
 	if resp == nil {
 		return
+	}
+	if resp.Spec.HostedCluster.DNS.BaseDomainPrefix != nil {
+		state.BaseDomainPrefix = types.StringValue(*resp.Spec.HostedCluster.DNS.BaseDomainPrefix)
+	} else {
+		state.BaseDomainPrefix = types.StringNull()
 	}
 	// Populate Phase from status (consumer-only field, not mapped via pathbind)
 	// Default to "WaitingForPlacement" if not yet set by the controller

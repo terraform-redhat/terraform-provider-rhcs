@@ -23,6 +23,13 @@ type Backend struct {
 	Fetcher   ClusterIDFetcher
 }
 
+// SeaplaneOptions customizes a Seaplane cluster create workflow. Empty values
+// leave the corresponding cluster argument unset.
+type SeaplaneOptions struct {
+	DNSReservationID string
+	BaseDomainPrefix *string
+}
+
 // ClusterIDFetcher obtains the existing cluster selected by the shared
 // CLUSTER_ID environment variable, using the API belonging to the profile.
 type ClusterIDFetcher interface {
@@ -47,6 +54,20 @@ func New(profile profilehandler.ProfileHandler, token, workspace string) (*Backe
 	default:
 		return nil, fmt.Errorf("unsupported cluster type %q for shared cluster workflow", clusterType.String())
 	}
+}
+
+// NewSeaplaneWithOptions creates a Seaplane backend with optional DNS
+// reservation settings. It is separate from New so HCP callers do not need to
+// understand Seaplane-only cluster fields.
+func NewSeaplaneWithOptions(
+	profile profilehandler.ProfileHandler,
+	workspace string,
+	options SeaplaneOptions,
+) (*Backend, error) {
+	if profile.Profile().GetClusterType() != constants.SEAPLANE {
+		return nil, fmt.Errorf("seaplane options require a seaplane profile")
+	}
+	return newSeaplaneBackendWithOptions(profile, workspace, options)
 }
 
 // NewFetcher creates only the existing-cluster lookup strategy. It does not

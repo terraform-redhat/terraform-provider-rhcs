@@ -5,3 +5,7 @@
 output "dns_domain_id" {
   value = rhcs_dns_domain.dns_domain.id
 }
+
+output "dns_domain_cluster_arch" {
+  value = rhcs_dns_domain.dns_domain.cluster_arch
+}

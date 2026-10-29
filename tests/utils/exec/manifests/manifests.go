@@ -64,6 +64,9 @@ func GetClusterAutoscalerManifestsDir(clusterType constants.ClusterType) string 
 }
 
 func GetDnsDomainManifestsDir(clusterType constants.ClusterType) string {
+	if clusterType == constants.SEAPLANE {
+		return path.Join(config.GetManifestsDir(), rhcsProviderDir, "dns", "seaplane")
+	}
 	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "dns")
 }
 

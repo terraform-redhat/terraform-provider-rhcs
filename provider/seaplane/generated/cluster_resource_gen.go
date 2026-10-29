@@ -133,8 +133,11 @@ func (r *ClusterResource) Schema(
 				Optional:            true,
 			},
 			"dns_reservation_id": schema.StringAttribute{
-				MarkdownDescription: "DnsReservationId.",
+				MarkdownDescription: "UID of the DNS reservation that provides the cluster base domain. Set this to `rhcs_dns_domain_seaplane.id`. Changing this value requires replacing the cluster.",
 				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"expiration_timestamp": schema.StringAttribute{
 				MarkdownDescription: "Optional RFC3339 timestamp after which the Platform API automatically deletes the cluster.",
@@ -406,6 +409,13 @@ func (r *ClusterResource) Schema(
 				MarkdownDescription: "Customer AWS tags applied to resources for this cluster. Changes are applied in place. The effective budget is the AWS tag limit of 25 minus capacity reserved for system tags.",
 				Optional:            true,
 				ElementType:         types.StringType,
+			},
+			"base_domain_prefix": schema.StringAttribute{
+				MarkdownDescription: "Subdomain prefix prepended to the base domain. Set an empty string to omit a prefix. Immutable after creation.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"operator_roles_prefix": schema.StringAttribute{
 				MarkdownDescription: "Prefix used to construct the seven operator IAM role ARNs (e.g. a prefix of `my-cluster` produces `my-cluster-ingress`, `my-cluster-ebs-csi`, etc.). Immutable after creation.",
@@ -1168,6 +1178,9 @@ func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagn
 		diags = append(diags, collectionDiags...)
 		native.Tags = values
 	}
+	if !tf.BaseDomainPrefix.IsNull() && !tf.BaseDomainPrefix.IsUnknown() {
+		native.BaseDomainPrefix = tf.BaseDomainPrefix.ValueString()
+	}
 	if !tf.Operator_roles_prefix.IsNull() && !tf.Operator_roles_prefix.IsUnknown() {
 		native.Operator_roles_prefix = tf.Operator_roles_prefix.ValueString()
 	}
@@ -1287,6 +1300,7 @@ func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.D
 	tf.OidcConfigId = toTerraformString(native.OidcConfigId)
 	tf.Properties = toTerraformMap(native.Properties)
 	tf.Tags = toTerraformMap(native.Tags)
+	tf.BaseDomainPrefix = toTerraformString(native.BaseDomainPrefix)
 	tf.Operator_roles_prefix = toTerraformString(native.Operator_roles_prefix)
 	tf.Cloud_region = toTerraformString(native.Cloud_region)
 	tf.No_cni = toTerraformBool(native.No_cni)

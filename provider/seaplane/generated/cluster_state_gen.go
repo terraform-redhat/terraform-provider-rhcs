@@ -81,6 +81,7 @@ type ClusterState struct {
 	OidcConfigId                   types.String `tfsdk:"oidc_config_id"`
 	Properties                     types.Map    `tfsdk:"properties"`
 	Tags                           types.Map    `tfsdk:"tags"`
+	BaseDomainPrefix               types.String `tfsdk:"base_domain_prefix"`
 	Operator_roles_prefix          types.String `tfsdk:"operator_roles_prefix"`
 	Cloud_region                   types.String `tfsdk:"cloud_region"`
 	No_cni                         types.Bool   `tfsdk:"no_cni"`

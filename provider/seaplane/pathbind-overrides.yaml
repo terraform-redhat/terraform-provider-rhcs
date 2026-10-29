@@ -27,6 +27,23 @@ resources:
         type: bool
         description: "Enable or disable deletion protection for the cluster. When enabled, the cluster cannot be deleted via the API."
 
+      - path: spec.dnsReservationId
+        alias: dns_reservation_id
+        goName: DnsReservationId
+        type: string
+        immutable: true
+        operations:
+          - create
+        description: "UID of the DNS reservation that provides the cluster base domain. Set this to `rhcs_dns_domain_seaplane.id`. Changing this value requires replacing the cluster."
+
+      - alias: base_domain_prefix
+        goName: BaseDomainPrefix
+        type: string
+        immutable: true
+        operations:
+          - create
+        description: "Subdomain prefix prepended to the base domain. Set an empty string to omit a prefix. Immutable after creation."
+
       # consumer-only fields — set manually in PreExpand handler
       # These fields don't map to SDK paths and must be computed by the handler
       - alias: operator_roles_prefix

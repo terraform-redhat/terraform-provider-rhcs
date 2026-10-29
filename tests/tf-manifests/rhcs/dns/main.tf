@@ -13,4 +13,6 @@ terraform {
 provider "rhcs" {
 }
 
-resource "rhcs_dns_domain" "dns_domain" {}
+resource "rhcs_dns_domain" "dns_domain" {
+  cluster_arch = var.cluster_arch
+}

@@ -4,6 +4,7 @@ Router: [`resource-overview.md`](resource-overview.md). Attribute names: [`namin
 
 WHEN your situation matches one of these, open **only** that section:
 - WHEN deciding what the user must set versus what the API returns → [Required, Optional, Computed](#required-optional-computed)
+- WHEN deciding what omitted, removed, null, or empty configuration means across schema, plan, API, and state → [Attribute omission and clear semantics](resource-attribute-omission-semantics.md)
 - WHEN checking config before any API call (conflicts, enums, cross-field rules) → [Validation (no client)](#validation-no-client)
 - WHEN the product rule is “if omitted, use this value” → [Defaults](#defaults)
 - WHEN a plan modifier is needed (immutability / replace, or carry forward a stable API value) → [Plan modifiers](#plan-modifiers)

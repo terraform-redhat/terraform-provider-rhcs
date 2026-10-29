@@ -449,12 +449,10 @@ func (r *ClusterResource) Schema(
 					"pod_cidr": schema.StringAttribute{
 						MarkdownDescription: "Pod_cidr.",
 						Optional:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 					},
 					"machine_cidr": schema.StringAttribute{
 						MarkdownDescription: "Machine_cidr.",
 						Optional:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 					},
 					"network_type": schema.StringAttribute{
 						MarkdownDescription: "Network_type.",
@@ -464,17 +462,15 @@ func (r *ClusterResource) Schema(
 					"service_cidr": schema.StringAttribute{
 						MarkdownDescription: "Service_cidr.",
 						Optional:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 					},
 				},
 				Optional: true,
 			},
 			"aws": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
-					"additional_allowed_principals": schema.ListAttribute{
-						MarkdownDescription: "Additional principal ARNs allowed to connect to the hosted control plane VPC Endpoint Service.",
+					"additional_allowed_principals": schema.StringAttribute{
+						MarkdownDescription: "Additional_allowed_principals.",
 						Optional:            true,
-						ElementType:         types.StringType,
 					},
 					"vpc_id": schema.StringAttribute{
 						MarkdownDescription: "Vpc_id.",
@@ -1321,7 +1317,7 @@ func nativeClusterToTerraform(native *ClusterStateNative) (*ClusterState, diag.D
 			"aws_partition":                 "Aws_partition",
 		})
 		tf.Aws, _ = types.ObjectValue(map[string]attr.Type{
-			"additional_allowed_principals": types.ListType{ElemType: types.StringType},
+			"additional_allowed_principals": types.StringType,
 			"vpc_id":                        types.StringType,
 			"availability_zone":             types.StringType,
 			"endpoint_access":               types.StringType,

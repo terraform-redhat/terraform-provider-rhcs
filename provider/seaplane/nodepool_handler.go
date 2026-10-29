@@ -117,6 +117,7 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 	}
 
 	diags.Append(validateMaxUnavailable(input)...)
+	diags.Append(validateMaxSurge(input)...)
 	diags.Append(validateNodeDrainGracePeriod(input)...)
 	diags.Append(validateImageType(input)...)
 
@@ -124,6 +125,7 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 }
 
 var maxUnavailableCountRE = regexp.MustCompile(`^(0|[1-9][0-9]*)$`)
+var maxSurgeCountRE = regexp.MustCompile(`^(0|[1-9][0-9]*)$`)
 
 // validateMaxUnavailable checks that max_unavailable is either null, unknown,
 // or a non-negative integer node count (not a percentage). Percentages are
@@ -200,6 +202,54 @@ func validateMaxUnavailable(input *NodePoolState) diag.Diagnostics {
 				}
 			}
 		}
+	}
+
+	return diags
+}
+
+// validateMaxSurge checks that max_surge is either null, unknown,
+// or a non-negative integer node count (not a percentage). Percentages are
+// rejected early (the draft accepts "N%" but the provider doesn't send it yet).
+// Drop this validator once the clientset pathbind handles intstr round-trips.
+func validateMaxSurge(input *NodePoolState) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if input.MaxSurge.IsNull() || input.MaxSurge.IsUnknown() {
+		return diags
+	}
+
+	value := input.MaxSurge.ValueString()
+
+	if strings.HasSuffix(value, "%") {
+		diags.AddAttributeError(
+			path.Root("max_surge"),
+			"max_surge percentages are not supported yet",
+			fmt.Sprintf(
+				"max_surge percentages are not supported yet, got %q; "+
+					"use an absolute number of nodes (for example \"2\")",
+				value,
+			),
+		)
+		return diags
+	}
+
+	if !maxSurgeCountRE.MatchString(value) {
+		diags.AddAttributeError(
+			path.Root("max_surge"),
+			"Invalid max_surge",
+			fmt.Sprintf("max_surge must be a non-negative whole number of nodes (for example \"2\"), got %q", value),
+		)
+		return diags
+	}
+
+	_, err := strconv.ParseInt(value, 10, 32)
+	if err != nil {
+		diags.AddAttributeError(
+			path.Root("max_surge"),
+			"Invalid max_surge",
+			fmt.Sprintf("max_surge value is too large to be a number of nodes: %v", err),
+		)
+		return diags
 	}
 
 	return diags

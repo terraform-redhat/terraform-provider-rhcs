@@ -140,7 +140,7 @@ func (r *NodePoolResource) Schema(
 				ElementType:         types.StringType,
 			},
 			"max_surge": schema.StringAttribute{
-				MarkdownDescription: "MaxSurge.",
+				MarkdownDescription: "Largest number of nodes that can be added to this pool during an upgrade, as an absolute node count (for example `2`). Defaults to 0 when unset: nodes are replaced in-place. The Platform API also accepts a percentage, which this provider cannot send yet.",
 				Optional:            true,
 			},
 			"max_unavailable": schema.StringAttribute{

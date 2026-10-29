@@ -90,7 +90,7 @@ var _ = Describe("Create cluster", func() {
 			Expect(err).ToNot(HaveOccurred())
 			clusterWaiterArgs := exec.ClusterWaiterArgs{
 				Cluster:      new(cluster.ID()),
-				TimeoutInMin: new(60),
+				TimeoutInMin: new(10),
 			}
 			_, err = cwService.Apply(&clusterWaiterArgs)
 			Expect(err).To(HaveOccurred())

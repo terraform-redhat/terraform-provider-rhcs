@@ -248,7 +248,30 @@ func isSecurityGroupAttached(ctx context.Context, client ec2SecurityGroupAPI, vp
 	if err != nil {
 		return false, err
 	}
-	return output != nil && len(output.NetworkInterfaces) > 0, nil
+	if output == nil {
+		return false, nil
+	}
+	for _, networkInterface := range output.NetworkInterfaces {
+		attachment := networkInterface.Attachment
+		if attachment == nil {
+			attachment = &types.NetworkInterfaceAttachment{}
+		}
+		requesterManaged := "unknown"
+		if networkInterface.RequesterManaged != nil {
+			requesterManaged = fmt.Sprint(*networkInterface.RequesterManaged)
+		}
+		Logger.Warnf(
+			"Security group cleanup blocked by network interface: vpc_id=%q security_group_id=%q eni_id=%q "+
+				"interface_type=%q status=%q description=%q requester_managed=%s requester_id=%q owner_id=%q "+
+				"subnet_id=%q instance_id=%q instance_owner_id=%q attachment_status=%q",
+			vpcId, securityGroupId, aws.ToString(networkInterface.NetworkInterfaceId),
+			networkInterface.InterfaceType, networkInterface.Status, aws.ToString(networkInterface.Description),
+			requesterManaged, aws.ToString(networkInterface.RequesterId), aws.ToString(networkInterface.OwnerId),
+			aws.ToString(networkInterface.SubnetId), aws.ToString(attachment.InstanceId),
+			aws.ToString(attachment.InstanceOwnerId), attachment.Status,
+		)
+	}
+	return len(output.NetworkInterfaces) > 0, nil
 }
 
 func hasAWSErrorCode(err error, code string) bool {

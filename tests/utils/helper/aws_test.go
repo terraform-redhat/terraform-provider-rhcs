@@ -234,6 +234,27 @@ func TestDeleteExtraSecurityGroupsReturnsErrorWhenSecurityGroupStaysAttached(t *
 				{
 					NetworkInterfaceId: aws.String("eni-1"),
 				},
+				{
+					NetworkInterfaceId: aws.String("eni-worker"),
+					InterfaceType:      types.NetworkInterfaceTypeInterface,
+					Status:             types.NetworkInterfaceStatusInUse,
+					RequesterManaged:   aws.Bool(false),
+					OwnerId:            aws.String("test-owner"),
+					SubnetId:           aws.String("subnet-1"),
+					Attachment: &types.NetworkInterfaceAttachment{
+						InstanceId:      aws.String("i-worker"),
+						InstanceOwnerId: aws.String("test-owner"),
+						Status:          types.AttachmentStatusAttached,
+					},
+				},
+				{
+					NetworkInterfaceId: aws.String("eni-endpoint"),
+					InterfaceType:      types.NetworkInterfaceTypeVpcEndpoint,
+					Status:             types.NetworkInterfaceStatusInUse,
+					Description:        aws.String("VPC Endpoint Interface vpce-1"),
+					RequesterManaged:   aws.Bool(true),
+					RequesterId:        aws.String("test-requester"),
+				},
 			},
 		},
 	}

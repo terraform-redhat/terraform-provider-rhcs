@@ -333,7 +333,7 @@ e2e_test: $(GINKGO) install
 e2e-seaplane: $(GINKGO) install
 	$(GINKGO) run \
 		--timeout 3h \
-		--focus-file tests/e2e/cluster_proxy_test.go \
+		--focus-file tests/e2e/cluster_edit_test.go \
 		--label-filter seaplane-validated \
 		./tests/e2e \
 		$(NULL)

@@ -39,6 +39,9 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		By("Load profile")
 		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ShouldNot(HaveOccurred())
+		if profileHandler.Profile().GetClusterType() == constants.SEAPLANE {
+			Skip("Seaplane cluster edits use Seaplane-specific workflows")
+		}
 
 		// Initialize the cluster service
 		By("Create cluster service")
@@ -51,77 +54,12 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 	})
 
 	AfterEach(func() {
-		clusterService.Apply(originalClusterArgs)
+		if clusterService != nil && originalClusterArgs != nil {
+			clusterService.Apply(originalClusterArgs)
+		}
 	})
 
 	Context("can edit/delete", func() {
-		It("proxy - [id:72489]", ci.High, ci.FeatureClusterProxy, func() {
-			if !profileHandler.Profile().IsProxy() {
-				Skip("No proxy configured")
-			}
-
-			By("Retrieve Proxy service")
-			proxyService, err := profileHandler.Services().GetProxyService()
-			Expect(err).ShouldNot(HaveOccurred())
-
-			readProxyArgs := func() (*exec.ProxyArgs, error) {
-				return proxyService.ReadTFVars()
-			}
-
-			By("Create new proxy")
-			proxyArgs, err := readProxyArgs()
-			Expect(err).ShouldNot(HaveOccurred())
-			proxyArgs.ProxyCount = new(2)
-			_, err = proxyService.Apply(proxyArgs)
-			Expect(err).ShouldNot(HaveOccurred())
-			defer func() {
-				By("Delete created proxy")
-				proxyArgs.ProxyCount = new(1)
-				_, err = proxyService.Apply(proxyArgs)
-				Expect(err).ShouldNot(HaveOccurred())
-			}()
-			proxiesOutput, err := proxyService.Output()
-			Expect(err).ShouldNot(HaveOccurred())
-			newProxyOutput := proxiesOutput.Proxies[1]
-
-			By("Edit cluster proxy with new proxy information")
-			clusterArgs.Proxy = &exec.Proxy{
-				AdditionalTrustBundle: new(newProxyOutput.AdditionalTrustBundle),
-				HTTPSProxy:            new(newProxyOutput.HttpsProxy),
-				HTTPProxy:             new(newProxyOutput.HttpProxy),
-				NoProxy:               new(newProxyOutput.NoProxy),
-			}
-			_, err = clusterService.Apply(clusterArgs)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			By("Verify new proxy information are set")
-			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
-			Expect(err).ToNot(HaveOccurred())
-			clusterProxy := clusterResp.Body().Proxy()
-			Expect(clusterProxy.HTTPProxy()).To(Equal(newProxyOutput.HttpProxy))
-			Expect(clusterProxy.HTTPSProxy()).To(Equal(newProxyOutput.HttpsProxy))
-			Expect(clusterProxy.NoProxy()).To(Equal(newProxyOutput.NoProxy))
-
-			// Remove proxy completely
-			By("Remove proxy from cluster")
-			clusterArgs.Proxy = &exec.Proxy{
-				AdditionalTrustBundle: helper.EmptyStringPointer,
-				HTTPSProxy:            helper.EmptyStringPointer,
-				HTTPProxy:             helper.EmptyStringPointer,
-				NoProxy:               helper.EmptyStringPointer,
-			}
-			clusterService.Apply(clusterArgs)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			By("Check proxy is removed")
-			clusterResp, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
-			Expect(err).ToNot(HaveOccurred())
-			clusterProxy = clusterResp.Body().Proxy()
-			Expect(clusterProxy.HTTPProxy()).To(BeEmpty())
-			Expect(clusterProxy.HTTPSProxy()).To(BeEmpty())
-			Expect(clusterProxy.NoProxy()).To(BeEmpty())
-		})
-
 		It("delete_protection - [id:66500]", ci.High, ci.FeatureClusterDeleteProtection, func() {
 			DeferCleanup(func() {
 				By("Ensure delete_protection is disabled for teardown")

@@ -362,14 +362,18 @@ func TestPostFlattenPreservesEmptyBaseDomainPrefix(t *testing.T) {
 	}
 }
 
-func TestPostFlattenClearsMissingBaseDomainPrefix(t *testing.T) {
+// PostFlatten leaves the managed base_domain_prefix untouched when the API
+// response omits it: the attribute is immutable and create-only, and nulling
+// it would fail apply with an inconsistent result when an explicitly empty
+// prefix was requested but the API does not echo it back.
+func TestPostFlattenKeepsBaseDomainPrefixWhenAPIOmitsIt(t *testing.T) {
 	resp := &v1alpha1.Cluster{}
-	state := &ClusterState{BaseDomainPrefix: types.StringValue("stale-prefix")}
+	state := &ClusterState{BaseDomainPrefix: types.StringValue("managed-prefix")}
 
 	(&ClusterHandlerImpl{}).PostFlatten(context.Background(), state, resp)
 
-	if !state.BaseDomainPrefix.IsNull() {
-		t.Fatalf("PostFlatten() base domain prefix = %v, want null", state.BaseDomainPrefix)
+	if !state.BaseDomainPrefix.Equal(types.StringValue("managed-prefix")) {
+		t.Fatalf("PostFlatten() base domain prefix = %v, want unchanged managed value", state.BaseDomainPrefix)
 	}
 }
 

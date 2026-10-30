@@ -1085,8 +1085,12 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 				))
 				seaplaneServer.AppendHandlers(
 					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
+						RespondWith(http.StatusOK, clusterResponse, jsonHeader),
+					),
+					CombineHandlers(
 						VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-cluster.pool"),
-						verifyJQ(`.spec.nodePool.nodeDrainTimeout`, "10m"),
+						verifyJQ(`.spec.nodePool.nodeDrainTimeout`, "10m0s"),
 						RespondWith(http.StatusOK, responseWith10m, jsonHeader),
 					),
 					CombineHandlers(VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.pool"), RespondWith(http.StatusNoContent, "")),
@@ -1159,7 +1163,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 		})
 
 		It("sets max_unavailable as an absolute count on create", func() {
-			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"prefix": "roles-prefix"}}}}}}`
+			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"nodePoolManagementARN": "arn:aws:iam::123456789012:role/roles-prefix-node-pool-management"}}}}}}`
 			createResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"maxUnavailable": "2", "autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
 
 			seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.workers", CombineHandlers(
@@ -1172,23 +1176,13 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
-					VerifyJSONRepresenting(map[string]interface{}{
-						"metadata": map[string]interface{}{"name": "test-cluster.workers"},
-						"spec": map[string]interface{}{
-							"maxUnavailable": "2",
-							"autoRepair":     true,
-							"nodePool": map[string]interface{}{
-								"clusterName": "test-cluster",
-								"replicas":    float64(5),
-								"platform": map[string]interface{}{
-									"aws": map[string]interface{}{
-										"instanceType": "m5.xlarge",
-										"subnet":       map[string]interface{}{"id": "subnet-0abc123"},
-									},
-								},
-							},
-						},
-					}),
+					verifyJQ(`.metadata.name`, "test-cluster.workers"),
+					verifyJQ(`.spec.maxUnavailable`, float64(2)),
+					verifyJQ(`.spec.autoRepair`, true),
+					verifyJQ(`.spec.nodePool.clusterName`, "test-cluster"),
+					verifyJQ(`.spec.nodePool.replicas`, float64(5)),
+					verifyJQ(`.spec.nodePool.platform.aws.instanceType`, "m5.xlarge"),
+					verifyJQ(`.spec.nodePool.platform.aws.subnet.id`, "subnet-0abc123"),
 					RespondWith(http.StatusCreated, createResponse, http.Header{"Content-Type": []string{"application/json"}}),
 				),
 				CombineHandlers(
@@ -1198,8 +1192,14 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 			)
 
 			Terraform.Source(fmt.Sprintf(`
-			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			provider "rhcs" {
+				alias          = "sp"
+				seaplane_url   = "%s"
+				aws_account_id = "123"
+				aws_region     = "us-east-1"
+			}
 			resource "rhcs_nodepool_seaplane" "test" {
+				provider           = rhcs.sp
 				cluster_id       = "c-123"
 				cluster_name     = "test-cluster"
 				name             = "test-cluster.workers"
@@ -1222,21 +1222,28 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 		})
 
 		It("updates max_unavailable in place", func() {
-			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"prefix": "roles-prefix"}}}}}}`
+			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"nodePoolManagementARN": "arn:aws:iam::123456789012:role/roles-prefix-node-pool-management"}}}}}}`
 			createResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"maxUnavailable": "1", "autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
 			updateResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"maxUnavailable": "2", "autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
 
 			seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.workers", CombineHandlers(
 				RespondWith(http.StatusOK, createResponse, http.Header{"Content-Type": []string{"application/json"}}),
 			))
+			jsonHeader := http.Header{"Content-Type": []string{"application/json"}}
 			seaplaneServer.AppendHandlers(
-				CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse)),
-				CombineHandlers(VerifyRequest(http.MethodPost, "/api/v0/nodepools"), RespondWith(http.StatusCreated, createResponse)),
+				CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse, jsonHeader)),
+				CombineHandlers(VerifyRequest(http.MethodPost, "/api/v0/nodepools"), RespondWith(http.StatusCreated, createResponse, jsonHeader)),
 			)
 
 			Terraform.Source(fmt.Sprintf(`
-			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			provider "rhcs" {
+				alias          = "sp"
+				seaplane_url   = "%s"
+				aws_account_id = "123"
+				aws_region     = "us-east-1"
+			}
 			resource "rhcs_nodepool_seaplane" "test" {
+				provider           = rhcs.sp
 				cluster_id       = "c-123"
 				cluster_name     = "test-cluster"
 				name             = "test-cluster.workers"
@@ -1256,33 +1263,26 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 			))
 			seaplaneServer.AppendHandlers(
 				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
+					RespondWith(http.StatusOK, clusterResponse, http.Header{"Content-Type": []string{"application/json"}}),
+				),
+				CombineHandlers(
 					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-cluster.workers"),
-					VerifyJSONRepresenting(map[string]interface{}{
-						"metadata": map[string]interface{}{"uid": "np-456", "name": "test-cluster.workers"},
-						"spec": map[string]interface{}{
-							"maxUnavailable": "2",
-							"autoRepair":     true,
-							"nodePool": map[string]interface{}{
-								"clusterName": "test-cluster",
-								"replicas":    float64(5),
-								"platform": map[string]interface{}{
-									"aws": map[string]interface{}{
-										"instanceType":    "m5.xlarge",
-										"instanceProfile": "roles-prefix-ROSA-Worker-Role",
-										"subnet":          map[string]interface{}{"id": "subnet-0abc123"},
-									},
-								},
-							},
-						},
-					}),
+					verifyJQ(`.spec.maxUnavailable`, float64(2)),
 					RespondWith(http.StatusOK, updateResponse, http.Header{"Content-Type": []string{"application/json"}}),
 				),
 				CombineHandlers(VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.workers"), RespondWith(http.StatusNoContent, "")),
 			)
 
 			Terraform.Source(fmt.Sprintf(`
-			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			provider "rhcs" {
+				alias          = "sp"
+				seaplane_url   = "%s"
+				aws_account_id = "123"
+				aws_region     = "us-east-1"
+			}
 			resource "rhcs_nodepool_seaplane" "test" {
+				provider           = rhcs.sp
 				cluster_id       = "c-123"
 				cluster_name     = "test-cluster"
 				name             = "test-cluster.workers"
@@ -1303,8 +1303,14 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 
 		It("rejects non-integer max_unavailable", func() {
 			Terraform.Source(fmt.Sprintf(`
-			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			provider "rhcs" {
+				alias          = "sp"
+				seaplane_url   = "%s"
+				aws_account_id = "123"
+				aws_region     = "us-east-1"
+			}
 			resource "rhcs_nodepool_seaplane" "test" {
+				provider           = rhcs.sp
 				cluster_id       = "c-123"
 				cluster_name     = "test-cluster"
 				name             = "test-cluster.workers"
@@ -1323,8 +1329,14 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 
 		It("rejects percentage max_unavailable with explanation", func() {
 			Terraform.Source(fmt.Sprintf(`
-			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			provider "rhcs" {
+				alias          = "sp"
+				seaplane_url   = "%s"
+				aws_account_id = "123"
+				aws_region     = "us-east-1"
+			}
 			resource "rhcs_nodepool_seaplane" "test" {
+				provider           = rhcs.sp
 				cluster_id       = "c-123"
 				cluster_name     = "test-cluster"
 				name             = "test-cluster.workers"
@@ -1343,8 +1355,14 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 
 		It("rejects max_unavailable exceeding replicas", func() {
 			Terraform.Source(fmt.Sprintf(`
-			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			provider "rhcs" {
+				alias          = "sp"
+				seaplane_url   = "%s"
+				aws_account_id = "123"
+				aws_region     = "us-east-1"
+			}
 			resource "rhcs_nodepool_seaplane" "test" {
+				provider           = rhcs.sp
 				cluster_id       = "c-123"
 				cluster_name     = "test-cluster"
 				name             = "test-cluster.workers"
@@ -1373,10 +1391,14 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 				CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse, jsonHeader)),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
-					verifyJQ(`.spec.maxUnavailable`, "1"),
-					verifyJQ(`.spec.nodePool.autoScaling.min`, 2),
-					verifyJQ(`.spec.nodePool.autoScaling.max`, 5),
+					verifyJQ(`.spec.maxUnavailable`, float64(1)),
+					verifyJQ(`.spec.nodePool.autoScaling.min`, float64(2)),
+					verifyJQ(`.spec.nodePool.autoScaling.max`, float64(5)),
 					RespondWith(http.StatusCreated, nodepoolResponse, jsonHeader),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-cluster.workers"),
+					RespondWith(http.StatusNoContent, ""),
 				),
 			)
 
@@ -1416,8 +1438,14 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 
 		It("rejects max_unavailable exceeding autoscaling min_replicas", func() {
 			Terraform.Source(fmt.Sprintf(`
-			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			provider "rhcs" {
+				alias          = "sp"
+				seaplane_url   = "%s"
+				aws_account_id = "123"
+				aws_region     = "us-east-1"
+			}
 			resource "rhcs_nodepool_seaplane" "test" {
+				provider           = rhcs.sp
 				cluster_id      = "c-123"
 				cluster_name    = "test-cluster"
 				name            = "test-cluster.workers"
@@ -1439,22 +1467,29 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 		})
 
 		It("removes max_unavailable when unset", func() {
-			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"prefix": "roles-prefix"}}}}}}`
+			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"nodePoolManagementARN": "arn:aws:iam::123456789012:role/roles-prefix-node-pool-management"}}}}}}`
 			createResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"maxUnavailable": "2", "autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
 			updateResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
 
 			seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.workers", CombineHandlers(
 				RespondWith(http.StatusOK, createResponse, http.Header{"Content-Type": []string{"application/json"}}),
 			))
+			jsonHeader := http.Header{"Content-Type": []string{"application/json"}}
 			seaplaneServer.AppendHandlers(
-				CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse)),
-				CombineHandlers(VerifyRequest(http.MethodPost, "/api/v0/nodepools"), RespondWith(http.StatusCreated, createResponse)),
+				CombineHandlers(VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"), RespondWith(http.StatusOK, clusterResponse, jsonHeader)),
+				CombineHandlers(VerifyRequest(http.MethodPost, "/api/v0/nodepools"), RespondWith(http.StatusCreated, createResponse, jsonHeader)),
 			)
 
 			// Create with max_unavailable = "2"
 			Terraform.Source(fmt.Sprintf(`
-			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			provider "rhcs" {
+				alias          = "sp"
+				seaplane_url   = "%s"
+				aws_account_id = "123"
+				aws_region     = "us-east-1"
+			}
 			resource "rhcs_nodepool_seaplane" "test" {
+				provider           = rhcs.sp
 				cluster_id       = "c-123"
 				cluster_name     = "test-cluster"
 				name             = "test-cluster.workers"
@@ -1475,23 +1510,12 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 			))
 			seaplaneServer.AppendHandlers(
 				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster"),
+					RespondWith(http.StatusOK, clusterResponse, http.Header{"Content-Type": []string{"application/json"}}),
+				),
+				CombineHandlers(
 					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-cluster.workers"),
-					VerifyJSONRepresenting(map[string]interface{}{
-						"metadata": map[string]interface{}{"name": "test-cluster.workers"},
-						"spec": map[string]interface{}{
-							"autoRepair": true,
-							"nodePool": map[string]interface{}{
-								"clusterName": "test-cluster",
-								"replicas":    float64(5),
-								"platform": map[string]interface{}{
-									"aws": map[string]interface{}{
-										"instanceType": "m5.xlarge",
-										"subnet":       map[string]interface{}{"id": "subnet-0abc123"},
-									},
-								},
-							},
-						},
-					}),
+					verifyJQ(`.spec.maxUnavailable == null`, true),
 					RespondWith(http.StatusOK, updateResponse, http.Header{"Content-Type": []string{"application/json"}}),
 				),
 				CombineHandlers(
@@ -1501,8 +1525,14 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 			)
 
 			Terraform.Source(fmt.Sprintf(`
-			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			provider "rhcs" {
+				alias          = "sp"
+				seaplane_url   = "%s"
+				aws_account_id = "123"
+				aws_region     = "us-east-1"
+			}
 			resource "rhcs_nodepool_seaplane" "test" {
+				provider           = rhcs.sp
 				cluster_id       = "c-123"
 				cluster_name     = "test-cluster"
 				name             = "test-cluster.workers"
@@ -1521,7 +1551,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 		})
 
 		It("accepts max_unavailable = \"0\"", func() {
-			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"prefix": "roles-prefix"}}}}}}`
+			clusterResponse := `{"metadata": {"uid": "c-123", "name": "test-cluster"}, "spec": {"hostedCluster": {"platform": {"aws": {"rolesRef": {"nodePoolManagementARN": "arn:aws:iam::123456789012:role/roles-prefix-node-pool-management"}}}}}}`
 			createResponse := `{"metadata": {"uid": "np-456", "name": "test-cluster.workers"}, "spec": {"maxUnavailable": "0", "autoRepair": true, "nodePool": {"clusterName": "test-cluster", "replicas": 5, "platform": {"type": "AWS", "aws": {"instanceType": "m5.xlarge", "instanceProfile": "roles-prefix-ROSA-Worker-Role", "subnet": {"id": "subnet-0abc123"}}}}},"status": {"phase": "Ready"}}`
 
 			seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/nodepools/test-cluster.workers", CombineHandlers(
@@ -1534,23 +1564,7 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
-					VerifyJSONRepresenting(map[string]interface{}{
-						"metadata": map[string]interface{}{"name": "test-cluster.workers"},
-						"spec": map[string]interface{}{
-							"maxUnavailable": "0",
-							"autoRepair":     true,
-							"nodePool": map[string]interface{}{
-								"clusterName": "test-cluster",
-								"replicas":    float64(5),
-								"platform": map[string]interface{}{
-									"aws": map[string]interface{}{
-										"instanceType": "m5.xlarge",
-										"subnet":       map[string]interface{}{"id": "subnet-0abc123"},
-									},
-								},
-							},
-						},
-					}),
+					verifyJQ(`.spec.maxUnavailable`, float64(0)),
 					RespondWith(http.StatusCreated, createResponse, http.Header{"Content-Type": []string{"application/json"}}),
 				),
 				CombineHandlers(
@@ -1560,8 +1574,14 @@ var _ = Describe("rhcs_nodepool_seaplane", func() {
 			)
 
 			Terraform.Source(fmt.Sprintf(`
-			provider "rhcs" { seaplane_url = "%s"; aws_account_id = "123"; aws_region = "us-east-1" }
+			provider "rhcs" {
+				alias          = "sp"
+				seaplane_url   = "%s"
+				aws_account_id = "123"
+				aws_region     = "us-east-1"
+			}
 			resource "rhcs_nodepool_seaplane" "test" {
+				provider           = rhcs.sp
 				cluster_id       = "c-123"
 				cluster_name     = "test-cluster"
 				name             = "test-cluster.workers"

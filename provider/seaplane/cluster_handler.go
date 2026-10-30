@@ -604,10 +604,12 @@ func (h *ClusterHandlerImpl) PostFlatten(ctx context.Context, state *ClusterStat
 	if resp == nil {
 		return
 	}
+	// The attribute is immutable and create-only, so an API response that
+	// omits the prefix leaves the managed state value untouched; nulling it
+	// here would fail apply with an inconsistent result when an explicitly
+	// empty base_domain_prefix was requested but the API does not echo it.
 	if resp.Spec.HostedCluster.DNS.BaseDomainPrefix != nil {
 		state.BaseDomainPrefix = types.StringValue(*resp.Spec.HostedCluster.DNS.BaseDomainPrefix)
-	} else {
-		state.BaseDomainPrefix = types.StringNull()
 	}
 	// Populate Phase from status (consumer-only field, not mapped via pathbind)
 	// Default to "WaitingForPlacement" if not yet set by the controller

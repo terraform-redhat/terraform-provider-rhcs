@@ -97,27 +97,36 @@ var _ = Describe("Create cluster", func() {
 			Expect(err.Error()).Should(ContainSubstring(`Waiting for cluster creation finished with error`))
 		})
 
-	It("Cluster can be created within internal cluster waiter - [id:74473]", ci.Day1Supplemental, ci.Medium,
-		func() {
-			By("Retrieve random profile")
-			profileHandler, err := profilehandler.NewRandomProfileHandler()
-			Expect(err).ToNot(HaveOccurred())
+	// FIXME: id:74473 disabled - it was contributing a redundant full real-cluster create/destroy
+	// cycle to rosa-day1-supplemental-f3's 2h budget, causing suite timeouts. The happy-path
+	// internal-wait-to-ready behavior it exercises is already covered by subsystem tests
+	// (subsystem/classic and subsystem/hcp cluster resource tests, "wait_for_create_complete"
+	// cases) and by the default wait_for_cluster=true path most other e2e cluster-creation specs
+	// already exercise against real infra. Revisit before deleting outright - confirm with
+	// whoever owns test-case id:74473 tracking.
+	/*
+		It("Cluster can be created within internal cluster waiter - [id:74473]", ci.Day1Supplemental, ci.Medium,
+			func() {
+				By("Retrieve random profile")
+				profileHandler, err := profilehandler.NewRandomProfileHandler()
+				Expect(err).ToNot(HaveOccurred())
 
-			By("Retrieve creation args")
-			defer func() {
-				By("Clean resources")
-				profileHandler.DestroyRHCSClusterResources(token)
-			}()
-			clusterArgs, err := profileHandler.GenerateClusterCreationArgs(token)
-			Expect(err).ToNot(HaveOccurred())
-			clusterArgs.DisableClusterWaiter = new(true)
+				By("Retrieve creation args")
+				defer func() {
+					By("Clean resources")
+					profileHandler.DestroyRHCSClusterResources(token)
+				}()
+				clusterArgs, err := profileHandler.GenerateClusterCreationArgs(token)
+				Expect(err).ToNot(HaveOccurred())
+				clusterArgs.DisableClusterWaiter = new(true)
 
-			By("Create cluster")
-			clusterService, err := profileHandler.Services().GetClusterService()
-			Expect(err).ToNot(HaveOccurred())
-			_, err = clusterService.Apply(clusterArgs)
-			Expect(err).ToNot(HaveOccurred())
-		})
+				By("Create cluster")
+				clusterService, err := profileHandler.Services().GetClusterService()
+				Expect(err).ToNot(HaveOccurred())
+				_, err = clusterService.Apply(clusterArgs)
+				Expect(err).ToNot(HaveOccurred())
+			})
+	*/
 
 	It("Cluster can be created without cluster waiter - [id:74748]", ci.Day1Supplemental, ci.Medium,
 		func() {

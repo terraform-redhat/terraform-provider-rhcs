@@ -229,6 +229,16 @@ var cidrLabels = map[string]string{
 	serviceCIDRAttribute: "service",
 }
 
+// terraformStringValue returns the string value of a String attribute,
+// treating null and unknown as empty. Shared by the networking validation
+// and encode paths so they cannot drift apart.
+func terraformStringValue(value types.String) string {
+	if value.IsNull() || value.IsUnknown() {
+		return ""
+	}
+	return value.ValueString()
+}
+
 // validateClusterNetwork checks the friendly networking attributes
 // (machine_cidr, pod_cidr, service_cidr, host_prefix) so a bad value fails
 // during apply instead of on the API round trip, and enforces mutual
@@ -238,15 +248,9 @@ var cidrLabels = map[string]string{
 func validateClusterNetwork(input *ClusterState) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	stringValue := func(value types.String) string {
-		if value.IsNull() || value.IsUnknown() {
-			return ""
-		}
-		return value.ValueString()
-	}
-	machineCIDR := stringValue(input.Machine_cidr)
-	podCIDR := stringValue(input.Pod_cidr)
-	serviceCIDR := stringValue(input.Service_cidr)
+	machineCIDR := terraformStringValue(input.Machine_cidr)
+	podCIDR := terraformStringValue(input.Pod_cidr)
+	serviceCIDR := terraformStringValue(input.Service_cidr)
 	hasHostPrefix := !input.Host_prefix.IsNull() && !input.Host_prefix.IsUnknown()
 
 	if machineCIDR == "" && podCIDR == "" && serviceCIDR == "" && !hasHostPrefix {
@@ -354,15 +358,9 @@ func validateClusterNetwork(input *ClusterState) diag.Diagnostics {
 func applyClusterNetworking(input *ClusterState, obj *v1alpha1.Cluster) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	stringValue := func(value types.String) string {
-		if value.IsNull() || value.IsUnknown() {
-			return ""
-		}
-		return value.ValueString()
-	}
-	machineCIDR := stringValue(input.Machine_cidr)
-	podCIDR := stringValue(input.Pod_cidr)
-	serviceCIDR := stringValue(input.Service_cidr)
+	machineCIDR := terraformStringValue(input.Machine_cidr)
+	podCIDR := terraformStringValue(input.Pod_cidr)
+	serviceCIDR := terraformStringValue(input.Service_cidr)
 	if machineCIDR == "" && podCIDR == "" && serviceCIDR == "" {
 		return diags
 	}
@@ -664,8 +662,12 @@ func (h *ClusterHandlerImpl) PostFlatten(ctx context.Context, state *ClusterStat
 			state.Service_cidr = types.StringNull()
 		}
 	}
-	if !state.Host_prefix.IsNull() && len(networking.ClusterNetwork) > 0 {
-		state.Host_prefix = types.Int64Value(int64(networking.ClusterNetwork[0].HostPrefix))
+	if !state.Host_prefix.IsNull() {
+		if len(networking.ClusterNetwork) > 0 {
+			state.Host_prefix = types.Int64Value(int64(networking.ClusterNetwork[0].HostPrefix))
+		} else {
+			state.Host_prefix = types.Int64Null()
+		}
 	}
 }
 

@@ -30,4 +30,24 @@ Lifecycle caveats:
 
 When a proxy is configured on a zero-egress cluster, the OCM API appends platform-managed AWS endpoints (S3, STS, and ECR) to `no_proxy`. The provider filters these platform-injected entries from the Terraform state so that it stays in sync with your declared configuration.
 
+## Managing AWS tags after creation
+
+On clusters whose control plane is on OpenShift 4.20 or later, `tags` can be updated in place.
+
+- **Set `tags` to have Terraform manage them.** The configured map, including an empty map (`tags = {}`), is the complete set of customer tags. Tags added outside Terraform, for example with `rosa edit cluster --tags`, appear as drift and are removed on the next apply.
+- **Omit `tags` to leave them unmanaged.** When the attribute is not set, Terraform does not report, change, or remove customer tags. Removing `tags` from a configuration that set it removes those tags once; afterwards they are unmanaged.
+- **Before managing tags on an existing or imported cluster**, list the current customer tags and include every tag you want to keep. For example: `ocm get /api/clusters_mgmt/v1/clusters/<cluster_id> --parameter fetchUserTagsOnly=true`. Import does not copy tags into state.
+- **If another system also manages the tags**, ignore them in Terraform so they are not removed:
+
+```terraform
+resource "rhcs_cluster_rosa_hcp" "cluster" {
+  # ...
+  lifecycle {
+    ignore_changes = [tags]
+  }
+}
+```
+
+Machine pools inherit cluster tags unless a machine pool overrides the same key. Tag values cannot be empty, and keys that start with `api.openshift.com/` or are otherwise reserved are rejected.
+
 {{ .SchemaMarkdown }}

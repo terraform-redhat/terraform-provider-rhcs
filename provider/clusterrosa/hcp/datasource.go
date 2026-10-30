@@ -101,7 +101,8 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Computed:    true,
 			},
 			"tags": schema.MapAttribute{
-				Description: "Apply user defined tags to all cluster resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
+				Description: "User-defined tags applied to all cluster resources created in AWS. " +
+					"Configure tags on the `rhcs_cluster_rosa_hcp` resource; this data source only reports them.",
 				ElementType: types.StringType,
 				Computed:    true,
 			},
@@ -421,7 +422,8 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 	}
 
 	// Find the cluster:
-	get, err := r.clusterCollection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
+	get, err := r.clusterCollection.Cluster(state.ID.ValueString()).Get().
+		Parameter(userTagsParameter, true).SendContext(ctx)
 	if err != nil {
 		if get.Status() == http.StatusNotFound {
 			tflog.Warn(ctx, fmt.Sprintf("cluster (%s) not found, removing from state",
@@ -451,6 +453,17 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 			),
 		)
 		return
+	}
+	state.Tags = types.MapNull(types.StringType)
+	if tags := object.AWS().Tags(); len(tags) > 0 {
+		state.Tags, err = common.ConvertStringMapToMapType(tags)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't populate cluster tags",
+				fmt.Sprintf("Received error %v", err),
+			)
+			return
+		}
 	}
 
 	// Fetch log forwarder IDs

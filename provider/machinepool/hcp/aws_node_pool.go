@@ -17,6 +17,7 @@ import (
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/awstags"
 	commonplanmodifiers "github.com/terraform-redhat/terraform-provider-rhcs/provider/common/planmodifiers"
 )
 
@@ -56,8 +57,9 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 			},
 		},
 		"tags": schema.MapAttribute{
-			Description: "Apply user defined tags to all machine pool resources created in AWS." +
-				common.ValueCannotBeChangedStringDescription,
+			Description: "Apply user-defined tags to all machine pool resources created in AWS. " + awstags.Day2EditDescription +
+				" Cluster tags are inherited unless the machine pool overrides the same key; removing a machine pool tag " +
+				"that overrides a cluster tag restores the inherited cluster value.",
 			ElementType: types.StringType,
 			Optional:    true,
 		},
@@ -183,7 +185,9 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 			Computed:    true,
 		},
 		"tags": schema.MapAttribute{
-			Description: "Apply user defined tags to all machine pool resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
+			Description: "User-defined tags applied to all machine pool resources created in AWS, excluding tags " +
+				"inherited from the cluster. Configure tags on the `rhcs_hcp_machine_pool` resource; " +
+				"this data source only reports them.",
 			ElementType: types.StringType,
 			Optional:    true,
 		},

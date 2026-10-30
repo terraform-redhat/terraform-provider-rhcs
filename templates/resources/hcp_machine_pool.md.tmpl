@@ -18,4 +18,25 @@ Machine pool.
 
 {{tffile "examples/resources/hcp_machine_pool/example_1.tf"}}
 
+## Managing AWS tags after creation
+
+When the cluster control plane is on OpenShift 4.20 or later, `aws_node_pool.tags` can be updated in place. Machine pools inherit the cluster's tags; `aws_node_pool.tags` holds only the tags specific to this machine pool.
+
+- **Set `aws_node_pool.tags` to have Terraform manage them.** The configured map, including an empty map (`tags = {}`), is the complete set of machine-pool-specific tags. Tags added to the machine pool outside Terraform, for example with `rosa edit machinepool --tags`, appear as drift and are removed on the next apply. Inherited cluster tags are kept.
+- **Omit `aws_node_pool.tags` to leave them unmanaged.** When the attribute is not set, Terraform does not report, change, or remove machine pool tags. Removing it from a configuration that set it removes the machine-pool-specific tags once; afterwards they are unmanaged.
+- **Overrides:** a machine pool tag with the same key as a cluster tag overrides it. Removing the override restores the inherited cluster value. A machine pool tag whose key and value match a cluster tag is inherited rather than stored, and Terraform shows a warning.
+- **Before managing tags on an existing or imported machine pool**, list its current tags and include every machine-pool-specific tag you want to keep. For example: `ocm get /api/clusters_mgmt/v1/clusters/<cluster_id>/node_pools/<machine_pool_id> --parameter fetchUserTagsOnly=true`. The response includes inherited cluster tags, which you do not need to declare. Import does not copy tags into state.
+- **If another system also manages the tags**, ignore them in Terraform so they are not removed:
+
+```terraform
+resource "rhcs_hcp_machine_pool" "machine_pool" {
+  # ...
+  lifecycle {
+    ignore_changes = [aws_node_pool.tags]
+  }
+}
+```
+
+Tag values cannot be empty, and keys that start with `api.openshift.com/` or are otherwise reserved are rejected.
+
 {{ .SchemaMarkdown }}

@@ -34,6 +34,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -65,6 +66,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/awstags"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/planmodifiers"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
@@ -74,11 +76,13 @@ import (
 const (
 	// FIXME: This should be coming from the API or only validate at the API level
 	MinVersion          = "4.12.0"
+	userTagsParameter   = "fetchUserTagsOnly"
 	autoNodeModeEnabled = "enabled"
 )
 
 type ClusterRosaHcpResource struct {
 	rosaTypes.BaseCluster
+	connection *sdk.Connection
 }
 
 var _ resource.ResourceWithConfigure = &ClusterRosaHcpResource{}
@@ -157,7 +161,8 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Computed:    true,
 			},
 			"tags": schema.MapAttribute{
-				Description: "Apply user defined tags to all cluster resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
+				Description: "Apply user-defined tags to all cluster resources created in AWS. " + awstags.Day2EditDescription +
+					" Machine pools inherit these tags unless the machine pool overrides the same key.",
 				ElementType: types.StringType,
 				Optional:    true,
 			},
@@ -627,6 +632,7 @@ func (r *ClusterRosaHcpResource) Configure(ctx context.Context, req resource.Con
 		return
 	}
 
+	r.connection = connection
 	r.ClusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.VersionCollection = connection.ClustersMgmt().V1().Versions()
 	r.ClusterWait = common.NewClusterWait(r.ClusterCollection, connection)
@@ -1291,8 +1297,9 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 		priorNoProxy = types.StringValue("")
 	}
 
-	// Find the cluster:
-	get, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
+	// Find the cluster. Customer-only tags let Read detect tag drift.
+	get, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Get().
+		Parameter(userTagsParameter, true).SendContext(ctx)
 	if err != nil {
 		if get.Status() == http.StatusNotFound {
 			tflog.Warn(ctx, fmt.Sprintf("cluster (%s) not found, removing from state",
@@ -1325,6 +1332,15 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 			fmt.Sprintf(
 				"Received error %v", err,
 			),
+		)
+		return
+	}
+
+	state.Tags, err = observedTags(ctx, state.Tags, object)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't populate cluster tags",
+			fmt.Sprintf("Received error %v", err),
 		)
 		return
 	}
@@ -1368,7 +1384,6 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.CloudRegion, plan.CloudRegion, "cloud_region", &diags)
 	common.ValidateStateAndPlanEquals(state.DomainPrefix, plan.DomainPrefix, "domain_prefix", &diags)
 	common.ValidateStateAndPlanEquals(state.ExternalID, plan.ExternalID, "external_id", &diags)
-	common.ValidateStateAndPlanEquals(state.Tags, plan.Tags, "tags", &diags)
 	common.ValidateStateAndPlanEquals(state.AWSAccountID, plan.AWSAccountID, "aws_account_id", &diags)
 	common.ValidateStateAndPlanEquals(state.AWSSubnetIDs, plan.AWSSubnetIDs, "aws_subnet_ids", &diags)
 	common.ValidateStateAndPlanEquals(state.EtcdEncryption, plan.EtcdEncryption, "etcd_encryption", &diags)
@@ -1418,6 +1433,73 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.LogForwardersAtClusterCreation, plan.LogForwardersAtClusterCreation, "log_forwarders_at_cluster_creation", &diags)
 
 	return diags
+}
+
+// prepareTagChanges returns the nullable tag changes needed when the configured tags change.
+// The diff is taken against the live customer tags so out-of-band edits are reconciled.
+func (r *ClusterRosaHcpResource) prepareTagChanges(ctx context.Context,
+	state, plan *ClusterRosaHcpState) (map[string]*string, error) {
+	current, err := common.OptionalMap(ctx, state.Tags)
+	if err != nil {
+		return nil, err
+	}
+	desired, err := common.OptionalMap(ctx, plan.Tags)
+	if err != nil {
+		return nil, err
+	}
+	// Null state means the tags were unmanaged. Starting to manage them, even as an empty map,
+	// must be reconciled against the live tags, which state does not reflect.
+	adopting := !common.HasValue(state.Tags) && common.HasValue(plan.Tags)
+	if !adopting && awstags.Diff(current, desired) == nil {
+		return nil, nil
+	}
+	if !adopting {
+		if err := awstags.ValidateVersion(state.CurrentVersion.ValueString()); err != nil {
+			return nil, err
+		}
+	}
+	if err := awstags.Validate(desired); err != nil {
+		return nil, err
+	}
+	live, err := awstags.GetClusterUserTags(ctx, r.connection, state.ID.ValueString())
+	if err != nil {
+		return nil, err
+	}
+	changes := awstags.Diff(live, desired)
+	if changes == nil {
+		return nil, nil
+	}
+	// Adopting tags that already match needs no edit, so only an actual change requires 4.20.
+	if adopting {
+		if err := awstags.ValidateVersion(state.CurrentVersion.ValueString()); err != nil {
+			return nil, err
+		}
+	}
+	return changes, nil
+}
+
+// observedTags reflects the live customer tags in state when Terraform manages the tags and the
+// cluster supports day-2 tag edits, so out-of-band changes show up as drift. Null state means
+// the configuration does not set tags; those tags stay unmanaged so that refresh and import never
+// plan their deletion. Older clusters keep the prior value because their tags cannot change after
+// creation. Equal tag sets keep the prior value to preserve a configured empty map.
+func observedTags(ctx context.Context, prior types.Map, object *cmv1.Cluster) (types.Map, error) {
+	if !common.HasValue(prior) || awstags.ValidateVersion(object.Version().RawID()) != nil {
+		return prior, nil
+	}
+	current, err := common.OptionalMap(ctx, prior)
+	if err != nil {
+		return prior, err
+	}
+	live := object.AWS().Tags()
+	if awstags.Diff(current, live) == nil {
+		return prior, nil
+	}
+	// Keep managed tags non-null when none remain, so later external additions are still reported.
+	if len(live) == 0 {
+		return types.MapValueMust(types.StringType, map[string]attr.Value{}), nil
+	}
+	return common.ConvertStringMapToMapType(live)
 }
 
 func validateChannelAndChannelGroupChanges(state, plan *ClusterRosaHcpState) diag.Diagnostics {
@@ -1596,6 +1678,16 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		return
 	}
 
+	// Validate tag edits before scheduling an upgrade so a rejected edit has no side effects.
+	tagChanges, err := r.prepareTagChanges(ctx, state, plan)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't update cluster tags",
+			fmt.Sprintf("Can't update AWS tags for cluster with identifier: `%s`, %v", state.ID.ValueString(), err),
+		)
+		return
+	}
+
 	// Schedule a cluster upgrade if a newer version is requested
 	if err := r.upgradeClusterIfNeeded(ctx, state, plan); err != nil {
 		response.Diagnostics.AddError(
@@ -1642,7 +1734,7 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		clusterBuilder.AutoNode(cmv1.NewClusterAutoNode().Mode(newAutoNodeMode))
 	}
 
-	clusterBuilder, err := updateProxy(state, plan, clusterBuilder)
+	clusterBuilder, err = updateProxy(state, plan, clusterBuilder)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't update cluster",
@@ -1738,9 +1830,10 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 	}
 
 	// Derive PATCH vs GET from the builder itself so future attributes only need
-	// to populate clusterBuilder (no parallel needsClusterPatch flag).
+	// to populate clusterBuilder (no parallel needsClusterPatch flag). Tag changes
+	// are kept out of the builder because removals must be sent as null values.
 	var object *cmv1.Cluster
-	if !clusterBuilder.Empty() {
+	if !clusterBuilder.Empty() || len(tagChanges) > 0 {
 		clusterSpec, err := clusterBuilder.Build()
 		if err != nil {
 			response.Diagnostics.AddError(
@@ -1753,9 +1846,13 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 			return
 		}
 
-		_, err = r.ClusterCollection.Cluster(state.ID.ValueString()).Update().
-			Body(clusterSpec).
-			SendContext(ctx)
+		if len(tagChanges) > 0 {
+			err = awstags.PatchCluster(ctx, r.connection, state.ID.ValueString(), clusterSpec, tagChanges)
+		} else {
+			_, err = r.ClusterCollection.Cluster(state.ID.ValueString()).Update().
+				Body(clusterSpec).
+				SendContext(ctx)
+		}
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Can't update cluster",

@@ -540,6 +540,9 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 			clusterResponse := seaplaneClusterProxyResponse("", "", "")
 			header := http.Header{"Content-Type": []string{"application/json"}}
 
+			seaplaneServer.RouteToHandler(http.MethodGet, "/api/v0/clusters/my-cluster", CombineHandlers(
+				RespondWith(http.StatusOK, clusterResponse, header),
+			))
 			seaplaneServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
@@ -575,6 +578,12 @@ var _ = Describe("rhcs_cluster_seaplane", func() {
 			stateResource := Terraform.Resource("rhcs_cluster_seaplane", "test")
 			Expect(stateResource).To(matchJQ(".attributes.dns_reservation_id", dnsReservationID))
 			Expect(stateResource).To(matchJQ(".attributes.base_domain_prefix", ""))
+
+			// The API response omits dns.baseDomainPrefix; the managed empty-string
+			// value must survive refresh without drift or an inconsistent-result
+			// apply error.
+			planOutput := Terraform.Run("plan", "-detailed-exitcode")
+			Expect(planOutput.ExitCode).To(BeZero(), "expected no-op plan after create")
 		})
 
 		It("creates a cluster with proxy settings", func() {

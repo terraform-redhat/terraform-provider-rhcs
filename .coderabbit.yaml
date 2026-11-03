@@ -40,7 +40,83 @@ reviews:
           Fail if coverage is missing or stale, or if a justification
           is generic, incorrect, unsupported, or cannot be verified.
           Explain the gap and what evidence or test change is required.
+      - name: "Dependency compatibility evidence"
+        mode: error
+        instructions: |
+          Apply whenever any go.mod changes dependency versions or replacements,
+          even if no provider Go files change. Otherwise, pass as not applicable.
+
+          Require a dependency impact report for the current PR head identifying
+          every exact dependency change (including incidental indirect bumps and
+          replacement targets/versions), upstream release notes and source
+          comparisons across intermediate releases, changed defaults, affected
+          provider call paths outside the PR diff, required configuration/env/schema
+          wiring changes, relevant test evidence, and unverified gaps.
+
+          Fail if the report is missing or upstream behavior cannot be assessed
+          because required evidence is unavailable; explicitly state limitations.
+
+          If an identified authentication or transport behavior change reaches a
+          supported provider path, require linked passing targeted checks for the
+          affected supported configurations OR an explicit maintainer decision
+          accepting a documented support-policy change. Fail if neither is present.
+          Inspect the actual Configure/SDK token, client-credentials, refresh and
+          OCM request paths and relevant Classic/HCP resource/data-source operations.
+          Verify cited subsystem/E2E assertions and fixture/manifest/profile wiring.
+          Compilation, unrelated CI, setup-only failures and tests that skip the
+          applicable behavior do not establish runtime compatibility. Do not infer
+          compatibility from patch bumps or release-note titles; distinguish source
+          inspection from runtime evidence. State the failure condition and exact
+          targeted checks needed, not a confirmed deployment failure.
+          Optional feature adoption alone must not fail this check.
+
+          This check evaluates evidence; it does not execute tests or itself enforce
+          repository merge protection.
   path_instructions:
+    - path: "**/go.mod"
+      instructions: |
+        For dependency version or replacement changes, perform source-level impact
+        analysis even when provider Go files are unchanged. Require a dependency
+        impact report for the current PR head. For every changed dependency,
+        including incidental indirect bumps, report:
+        - Exact old/new versions and replacement targets/versions from the diff.
+        - Upstream release notes AND source comparisons inspected across all
+          intermediate releases; explicitly state unavailable evidence.
+        - Changed defaults and affected provider call paths, including calling
+          code outside the PR diff.
+        - Required provider configuration, environment-variable or schema wiring
+          changes to preserve supported behavior.
+        - Relevant test evidence and specific unverified checks/gaps.
+        - Optional feature adoption or simplifications, separate from compatibility.
+
+        For authentication/transport changes, trace provider/provider.go Schema,
+        getAttrValueOrConfig and Provider.Configure into the OCM SDK connection and
+        authentication transports: token/access-token, refresh-token and
+        client_id/client_secret flows, token renewal, and OCM requests made by
+        resource/data-source operations (Classic and HCP as applicable). Inspect
+        token and token_url, refresh_token, client_id/client_secret, trusted_cas,
+        their actual RHCS_* fallbacks, and the insecure schema attribute; do not
+        assume every attribute has an environment fallback. Check TLS minimum
+        versions, system certificate trust, custom CAs, proxies, and propagation
+        of compatibility options through BOTH token and API transports. Do not
+        assume a CLI login or authorization-code flow exists in this provider.
+
+        Inspect relevant tests against actual files: subsystem/classic/,
+        subsystem/hcp/, subsystem/framework/, tests/e2e/, tests/tf-manifests/,
+        tests/utils/exec/, tests/utils/profilehandler/, and tests/ci/profiles/.
+        Verify setup, assertions, fixtures, manifest wiring and profile/skip gates
+        exercise the affected supported configurations. Tests failing during setup
+        or skipping applicable behavior do not prove runtime compatibility.
+        Do not infer compatibility from compilation, unrelated CI, patch-version
+        bumps or release-note titles alone. Distinguish source inspection from
+        runtime verification and explicitly identify unavailable evidence.
+
+        If upstream behavior reaches a supported provider path and compatibility
+        remains unverified, recommend deferring approval and merge until targeted
+        checks establish compatibility or maintainers explicitly accept a
+        documented support-policy change. State the failure condition and exact
+        checks required. Treat this as conditional risk, not a confirmed supported
+        deployment failure. Do not make optional feature adoption a blocker.
     - path: "**/*.go"
       instructions: |
         - Follow Effective Go and Go Code Review Comments conventions.

@@ -23,6 +23,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -200,6 +201,15 @@ func (r *HcpMachinePoolDatasource) Read(ctx context.Context, req datasource.Read
 	}
 	state.ID = state.Name
 
+	// The data source always reports the pool's own tags. A non-null prior value makes the shared
+	// read treat them as managed instead of leaving them out of state.
+	if state.AWSNodePool == nil {
+		state.AWSNodePool = new(AWSNodePool)
+	}
+	if !common.HasValue(state.AWSNodePool.Tags) {
+		state.AWSNodePool.Tags = types.MapValueMust(types.StringType, map[string]attr.Value{})
+	}
+
 	notFound, diags := readState(ctx, state, r.collection)
 	if notFound {
 		diags.AddError(
@@ -216,6 +226,9 @@ func (r *HcpMachinePoolDatasource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
+	if len(state.AWSNodePool.Tags.Elements()) == 0 {
+		state.AWSNodePool.Tags = types.MapNull(types.StringType)
+	}
 	state.UpgradeAcksFor = types.StringNull()
 	state.Version = types.StringNull()
 	state.IgnoreDeletionError = types.BoolNull()

@@ -72,7 +72,7 @@ Optional:
 - `ec2_metadata_http_tokens` (String) EC2 Instance Metadata Service mode for EC2 instances in the nodes (`required` for IMDSv2 only, or `optional` for IMDS v1 or v2). Configure this value on the `rhcs_hcp_machine_pool` resource; this data source only reports it.
 - `image_type` (String) The image type used for the node pool. Valid values are 'Default' or 'Windows'.
 - `node_drain_grace_period` (Number) Grace period in whole minutes before nodes are forcibly drained during upgrade or replacement.
-- `tags` (Map of String) Apply user defined tags to all machine pool resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.
+- `tags` (Map of String) User-defined tags applied to all machine pool resources created in AWS, excluding tags inherited from the cluster. Configure tags on the `rhcs_hcp_machine_pool` resource; this data source only reports them.
 
 Read-Only:
 

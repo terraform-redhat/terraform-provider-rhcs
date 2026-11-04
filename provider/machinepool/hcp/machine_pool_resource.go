@@ -51,6 +51,7 @@ import (
 
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/awstags"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp/upgrade"
 )
 
@@ -61,6 +62,7 @@ var nodePoolNameRE = regexp.MustCompile(
 // This is a magic name to trigger special handling for the cluster's default
 // machine pool. Matching is shared with cluster resources via rosa.StandardWorkerPoolNameRE.
 type HcpMachinePoolResource struct {
+	connection        *sdk.Connection
 	clusterCollection *cmv1.ClustersClient
 	versionCollection *cmv1.VersionsClient
 	clusterWait       common.ClusterWait
@@ -252,6 +254,7 @@ func (r *HcpMachinePoolResource) Configure(ctx context.Context, req resource.Con
 		return
 	}
 
+	r.connection = connection
 	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.versionCollection = connection.ClustersMgmt().V1().Versions()
 	r.clusterWait = common.NewClusterWait(r.clusterCollection, connection)
@@ -560,6 +563,8 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 	object = add.Body()
+	clusterObject = r.withConcurrentClusterTags(ctx, plan.Cluster.ValueString(), plan.AWSNodePool.Tags,
+		object, clusterObject)
 
 	// Save the state:
 	err = populateState(ctx, object, plan, clusterObject)
@@ -717,7 +722,6 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 	validateStateAndPlanEquals(state.SubnetID, plan.SubnetID, "aws_node_pool.subnet_id", &diags)
 	if state.AWSNodePool != nil && plan.AWSNodePool != nil {
 		validateStateAndPlanEquals(state.AWSNodePool.InstanceProfile, plan.AWSNodePool.InstanceProfile, "aws_node_pool.instance_profile", &diags)
-		validateStateAndPlanEquals(state.AWSNodePool.Tags, plan.AWSNodePool.Tags, "aws_node_pool.tags", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.InstanceType, plan.AWSNodePool.InstanceType,
 			"aws_node_pool.instance_type", &diags)
 		validateImmutableList(state.AWSNodePool.AdditionalSecurityGroupIds, plan.AWSNodePool.AdditionalSecurityGroupIds,
@@ -827,6 +831,25 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 			),
 		)
 		return diags
+	}
+
+	// Validate tag edits before scheduling an upgrade so a rejected edit has no side effects.
+	tagChanges, inheritedMatches, err := r.prepareTagChanges(ctx, state, plan, clusterObject)
+	if err != nil {
+		diags.AddError(
+			"Can't update machine pool tags",
+			fmt.Sprintf("Can't update AWS tags for machine pool '%s' on cluster '%s', %v",
+				state.ID.ValueString(), state.Cluster.ValueString(), err),
+		)
+		return diags
+	}
+	for _, key := range inheritedMatches {
+		diags.AddWarning(
+			"Machine pool tag matches a cluster tag",
+			fmt.Sprintf("Tag '%s' on machine pool '%s' matches an existing cluster tag and is inherited "+
+				"instead of being stored as a machine pool override; a later cluster tag change also changes it "+
+				"on this machine pool.", key, state.ID.ValueString()),
+		)
 	}
 
 	// Schedule a cluster upgrade if a newer version is requested
@@ -1008,10 +1031,14 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		)
 		return diags
 	}
-	_, err = r.clusterCollection.Cluster(state.Cluster.ValueString()).
-		NodePools().
-		NodePool(state.ID.ValueString()).Update().
-		Parameter("fetchUserTagsOnly", true).Body(nodePool).SendContext(ctx)
+	if len(tagChanges) > 0 {
+		err = awstags.PatchNodePool(ctx, r.connection, state.Cluster.ValueString(), nodePool, tagChanges)
+	} else {
+		_, err = r.clusterCollection.Cluster(state.Cluster.ValueString()).
+			NodePools().
+			NodePool(state.ID.ValueString()).Update().
+			Parameter("fetchUserTagsOnly", true).Body(nodePool).SendContext(ctx)
+	}
 	if err != nil {
 		diags.AddError(
 			"Failed to update machine pool",
@@ -1055,6 +1082,8 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 	}
 
 	object := getNp.Body()
+	clusterObject = r.withConcurrentClusterTags(ctx, state.Cluster.ValueString(), plan.AWSNodePool.Tags,
+		object, clusterObject)
 
 	adjustInitialStateToPlan(state, plan)
 
@@ -1070,6 +1099,59 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		return diags
 	}
 	return diags
+}
+
+// prepareTagChanges returns the nullable tag changes needed when the configured tags change,
+// and the desired keys that match cluster tags and are therefore inherited. The diff is taken
+// against the live customer tags so out-of-band edits are reconciled.
+func (r *HcpMachinePoolResource) prepareTagChanges(ctx context.Context, state, plan *HcpMachinePoolState,
+	cluster *cmv1.Cluster) (map[string]*string, []string, error) {
+	var current, desired map[string]string
+	var err error
+	if state.AWSNodePool != nil {
+		if current, err = common.OptionalMap(ctx, state.AWSNodePool.Tags); err != nil {
+			return nil, nil, err
+		}
+	}
+	if plan.AWSNodePool != nil {
+		if desired, err = common.OptionalMap(ctx, plan.AWSNodePool.Tags); err != nil {
+			return nil, nil, err
+		}
+	}
+	// Null state means the tags were unmanaged. Starting to manage them, even as an empty map,
+	// must be reconciled against the live tags, which state does not reflect.
+	adopting := (state.AWSNodePool == nil || !common.HasValue(state.AWSNodePool.Tags)) &&
+		plan.AWSNodePool != nil && common.HasValue(plan.AWSNodePool.Tags)
+	if !adopting && awstags.Diff(current, desired) == nil {
+		return nil, nil, nil
+	}
+	if !adopting {
+		if err := awstags.ValidateVersion(cluster.Version().RawID()); err != nil {
+			return nil, nil, err
+		}
+	}
+	if err := awstags.Validate(desired); err != nil {
+		return nil, nil, err
+	}
+	clusterTags, err := awstags.GetClusterUserTags(ctx, r.connection, state.Cluster.ValueString())
+	if err != nil {
+		return nil, nil, err
+	}
+	effective, err := awstags.GetNodePoolUserTags(ctx, r.connection, state.Cluster.ValueString(),
+		state.ID.ValueString())
+	if err != nil {
+		return nil, nil, err
+	}
+	changes := awstags.PoolChanges(clusterTags, effective, desired)
+	// Adopting tags that already match needs no edit, so only a visible change requires 4.20.
+	// PoolChanges may still clear keys that match inherited cluster values, which is not visible.
+	if adopting && awstags.ValidateVersion(cluster.Version().RawID()) != nil {
+		if awstags.Diff(awstags.PoolOverrides(clusterTags, effective), awstags.PoolOverrides(clusterTags, desired)) == nil {
+			return nil, awstags.InheritedMatches(clusterTags, desired), nil
+		}
+		return nil, nil, awstags.ValidateVersion(cluster.Version().RawID())
+	}
+	return changes, awstags.InheritedMatches(clusterTags, desired), nil
 }
 
 func adjustInitialStateToPlan(state, plan *HcpMachinePoolState) {
@@ -1088,9 +1170,8 @@ func adjustInitialStateToPlan(state, plan *HcpMachinePoolState) {
 		state.AWSNodePool = new(AWSNodePool)
 	}
 	state.AWSNodePool.AdditionalSecurityGroupIds = plan.AWSNodePool.AdditionalSecurityGroupIds
-	if common.HasValue(plan.AWSNodePool.Tags) {
-		state.AWSNodePool.Tags = plan.AWSNodePool.Tags
-	}
+	// Tags are mutable, so a removed tags block must clear the prior state value.
+	state.AWSNodePool.Tags = plan.AWSNodePool.Tags
 
 	if common.HasValue(plan.TuningConfigs) {
 		state.TuningConfigs = plan.TuningConfigs
@@ -1417,11 +1498,14 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 		if instanceProfile, ok := awsNodePool.GetInstanceProfile(); ok {
 			state.AWSNodePool.InstanceProfile = types.StringValue(instanceProfile)
 		}
-		if state.AWSNodePool.Tags.IsUnknown() || state.AWSNodePool.Tags.IsNull() {
+		// Null state means the configuration does not set tags; those tags stay unmanaged so that
+		// refresh and import never plan their deletion. Managed tags reflect the pool's own tags,
+		// so additions and removals made outside Terraform show up as drift.
+		if !common.HasValue(state.AWSNodePool.Tags) {
 			state.AWSNodePool.Tags = types.MapNull(types.StringType)
-		}
-		if awsTags, ok := awsNodePool.GetTags(); ok {
-			filteredAwsTags, err := filterClusterTagsNotPresentInNpInput(ctx, state, cluster, awsTags)
+		} else {
+			filteredAwsTags, err := filterClusterTagsNotPresentInNpInput(ctx, state, cluster,
+				awsNodePool.Tags())
 			if err != nil {
 				return err
 			}
@@ -1431,6 +1515,10 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 					return err
 				}
 				state.AWSNodePool.Tags = mapValue
+			} else if len(state.AWSNodePool.Tags.Elements()) > 0 {
+				// Keep managed tags non-null when none remain, so later external additions are
+				// still reported.
+				state.AWSNodePool.Tags = types.MapValueMust(types.StringType, map[string]attr.Value{})
 			}
 		}
 		// OCM omits this field for an explicitly configured empty list. Keep the
@@ -1625,6 +1713,54 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 	return nil
 }
 
+// withConcurrentClusterTags re-reads the cluster when the node pool reports an unconfigured tag
+// that is not a known cluster tag or has a different value. A cluster tag edit applied
+// concurrently in the same apply is inherited by the pool after the cluster snapshot was taken;
+// filtering with both snapshots, preferring the newer values, keeps inherited tags out of the
+// machine pool state. The earlier snapshot still covers cluster tags removed concurrently.
+func (r *HcpMachinePoolResource) withConcurrentClusterTags(ctx context.Context, clusterID string,
+	configured types.Map, object *cmv1.NodePool, cluster *cmv1.Cluster) *cmv1.Cluster {
+	// Null tags are unmanaged and populateState keeps them out of state, so the filter, and this
+	// re-read, would have no effect. An empty map is managed and still needs filtering.
+	if !common.HasValue(configured) {
+		return cluster
+	}
+	configuredTags, err := common.OptionalMap(ctx, configured)
+	if err != nil {
+		return cluster
+	}
+	clusterTags := cluster.AWS().Tags()
+	compareValues := comparesInheritedValues(cluster)
+	unexplained := false
+	for key, value := range object.AWSNodePool().Tags() {
+		_, isConfigured := configuredTags[key]
+		clusterValue, isClusterTag := clusterTags[key]
+		if !isConfigured && (!isClusterTag || (compareValues && clusterValue != value)) {
+			unexplained = true
+			break
+		}
+	}
+	if !unexplained {
+		return cluster
+	}
+	get, err := r.clusterCollection.Cluster(clusterID).Get().SendContext(ctx)
+	if err != nil {
+		tflog.Warn(ctx, fmt.Sprintf("Can't refresh cluster '%s' tags for machine pool state: %v", clusterID, err))
+		return cluster
+	}
+	merged := make(map[string]string, len(clusterTags))
+	maps.Copy(merged, clusterTags)
+	maps.Copy(merged, get.Body().AWS().Tags())
+	updated, err := cmv1.NewCluster().Copy(cluster).
+		AWS(cmv1.NewAWS().Copy(cluster.AWS()).Tags(merged)).
+		Build()
+	if err != nil {
+		tflog.Warn(ctx, fmt.Sprintf("Can't merge cluster '%s' tags for machine pool state: %v", clusterID, err))
+		return cluster
+	}
+	return updated
+}
+
 func filterClusterTagsNotPresentInNpInput(ctx context.Context, state *HcpMachinePoolState, cluster *cmv1.Cluster, awsTags map[string]string) (map[string]string, error) {
 	if len(awsTags) == 0 {
 		return awsTags, nil
@@ -1638,13 +1774,25 @@ func filterClusterTagsNotPresentInNpInput(ctx context.Context, state *HcpMachine
 	if err != nil {
 		return filteredTags, err
 	}
+	// An unconfigured tag is hidden only when it carries the inherited cluster value; a pool
+	// override of a cluster key with a different value stays visible as drift.
 	clusterTags := cluster.AWS().Tags()
-	for k := range clusterTags {
+	compareValues := comparesInheritedValues(cluster)
+	for k, clusterValue := range clusterTags {
 		if _, ok := currentNpTfTags[k]; !ok {
-			delete(filteredTags, k)
+			if poolValue, exists := filteredTags[k]; exists && (!compareValues || poolValue == clusterValue) {
+				delete(filteredTags, k)
+			}
 		}
 	}
 	return filteredTags, nil
+}
+
+// comparesInheritedValues reports whether pool overrides of cluster tag keys are reported as drift.
+// Only clusters that support day-2 tag edits can remove such overrides, so older clusters hide every
+// unconfigured cluster key, as before, instead of planning a change that cannot be applied.
+func comparesInheritedValues(cluster *cmv1.Cluster) bool {
+	return awstags.ValidateVersion(cluster.Version().RawID()) == nil
 }
 
 func shouldPatchTaints(a, b []Taints) bool {

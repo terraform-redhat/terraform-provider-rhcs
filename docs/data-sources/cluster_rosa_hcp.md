@@ -89,7 +89,7 @@ Use the `fips` attribute from this data source to confirm whether FIPS was enabl
 - `spot_termination_queue_url` (String) The URL of an SQS queue for enhanced spot termination handling. When set, Enhanced mode is active. When empty, Simple mode is used.
 - `state` (String) State of the cluster.
 - `sts` (Attributes) STS configuration. (see [below for nested schema](#nestedatt--sts))
-- `tags` (Map of String) Apply user defined tags to all cluster resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.
+- `tags` (Map of String) User-defined tags applied to all cluster resources created in AWS. Configure tags on the `rhcs_cluster_rosa_hcp` resource; this data source only reports them.
 - `upgrade_acknowledgements_for` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `version` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `wait_for_create_complete` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource

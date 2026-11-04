@@ -130,6 +130,71 @@ var _ = Describe("HCP Machine Pool populateState", func() {
 		})
 	})
 
+	Context("tags handling", func() {
+		// populateTags runs populateState for a pool reporting the given own tags.
+		populateTags := func(prior types.Map, tags map[string]string) types.Map {
+			npJSON := buildNodePoolJSON("")
+			if tags != nil {
+				npJSON["aws_node_pool"].(map[string]any)["tags"] = tags
+			}
+			raw, err := json.Marshal(npJSON)
+			Expect(err).ToNot(HaveOccurred())
+			nodePool, err := cmv1.UnmarshalNodePool(raw)
+			Expect(err).ToNot(HaveOccurred())
+			state := &HcpMachinePoolState{AWSNodePool: &AWSNodePool{Tags: prior}}
+			Expect(populateState(ctx, nodePool, state, cluster)).To(Succeed())
+			return state.AWSNodePool.Tags
+		}
+		tagMap := func(tags map[string]string) types.Map {
+			elements := map[string]attr.Value{}
+			for key, value := range tags {
+				elements[key] = types.StringValue(value)
+			}
+			return types.MapValueMust(types.StringType, elements)
+		}
+
+		It("leaves unmanaged tags out of state", func() {
+			Expect(populateTags(types.MapNull(types.StringType), map[string]string{"team": "platform"}).IsNull()).
+				To(BeTrue())
+		})
+
+		It("reports changes to managed tags", func() {
+			Expect(populateTags(tagMap(map[string]string{"team": "platform"}),
+				map[string]string{"team": "data", "added": "x"})).
+				To(Equal(tagMap(map[string]string{"team": "data", "added": "x"})))
+		})
+
+		It("reports removal of all managed tags as an empty map that stays managed", func() {
+			Expect(populateTags(tagMap(map[string]string{"team": "platform"}), nil)).
+				To(Equal(tagMap(map[string]string{})))
+		})
+
+		It("reports a pool override of a cluster tag only on clusters that support day-2 tag edits", func() {
+			clusterWithTag := func(rawVersion string) *cmv1.Cluster {
+				c, err := cmv1.NewCluster().
+					Version(cmv1.NewVersion().RawID(rawVersion).ChannelGroup("stable")).
+					AWS(cmv1.NewAWS().Tags(map[string]string{"team": "cluster"})).
+					Build()
+				Expect(err).ToNot(HaveOccurred())
+				return c
+			}
+			for rawVersion, expected := range map[string]map[string]string{
+				"4.20.1":  {"team": "pool"},
+				"4.19.12": {},
+			} {
+				cluster = clusterWithTag(rawVersion)
+				Expect(populateTags(tagMap(map[string]string{}), map[string]string{"team": "pool"})).
+					To(Equal(tagMap(expected)), rawVersion)
+				Expect(populateTags(tagMap(map[string]string{}), map[string]string{"team": "cluster"})).
+					To(Equal(tagMap(map[string]string{})), rawVersion)
+			}
+		})
+
+		It("keeps a managed empty map", func() {
+			Expect(populateTags(tagMap(map[string]string{}), nil)).To(Equal(tagMap(map[string]string{})))
+		})
+	})
+
 	Context("additional_security_group_ids handling", func() {
 		It("seeds an empty list from the plan", func() {
 			emptyList := types.ListValueMust(types.StringType, []attr.Value{})

@@ -217,8 +217,7 @@ func (p *Provider) Configure(ctx context.Context, req tfprovider.ConfigureReques
 	if config.AllowTLS12.IsUnknown() {
 		resp.Diagnostics.AddError(
 			"the value of 'allow_tls12' is not yet known",
-			"The allow_tls12 attribute must be a literal value and cannot "+
-				"depend on resources or data sources that have not been created yet.",
+			"The allow_tls12 attribute must be known during provider configuration.",
 		)
 		return
 	}

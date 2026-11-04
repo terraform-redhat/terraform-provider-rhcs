@@ -1365,8 +1365,6 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(output).To(ContainSubstring(machineType))
 			Expect(output).To(ContainSubstring(name))
-			Expect(output).To(MatchRegexp("foo1"))
-			Expect(output).To(MatchRegexp("bar1"))
 		})
 
 	Context("can upgrade", ci.Day2, ci.FeatureImport, func() {

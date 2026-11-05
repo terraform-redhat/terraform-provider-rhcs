@@ -67,6 +67,7 @@ import (
 	classicOperatorRoles "github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles/classic"
 	hcpOperatorRoles "github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles/hcp"
 	seaplaneProvider "github.com/terraform-redhat/terraform-provider-rhcs/provider/seaplane"
+	seaplaneOperatorRoles "github.com/terraform-redhat/terraform-provider-rhcs/provider/seaplane_operator_roles"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/trusted_ip_addresses"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/tuningconfigs"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/versions"
@@ -347,6 +348,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		seaplaneProvider.NewNodePool,
 		seaplaneProvider.NewOidcConfig,
 		seaplaneProvider.NewDNSDomain,
+		seaplaneOperatorRoles.New,
 		nodepool.New,
 		hcpingress.New,
 		tuningconfigs.New,
@@ -376,6 +378,7 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		trusted_ip_addresses.New,
 		imagemirror.NewDataSource,
 		logforwarder.NewDataSource,
+		seaplaneOperatorRoles.NewDataSource,
 	}
 }
 

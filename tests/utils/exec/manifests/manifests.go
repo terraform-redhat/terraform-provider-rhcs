@@ -130,6 +130,14 @@ func GetSeaplaneIAMManifestsDir() string {
 	return path.Join(config.GetManifestsDir(), awsProviderDir, "iam-roles", "seaplane")
 }
 
+func GetSeaplaneOperatorRolesManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "operator-roles", "seaplane")
+}
+
+func GetSeaplaneOperatorRolesDiscoveryManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "operator-roles", "seaplane-discovery")
+}
+
 func GetSeaplaneOidcConfigManifestsDir() string {
 	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "oidcconfigs", "seaplane")
 }

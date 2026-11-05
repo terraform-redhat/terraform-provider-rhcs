@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/aws/aws-sdk-go-v2 v1.47.3
 	github.com/aws/aws-sdk-go-v2/config v1.33.9
+	github.com/aws/aws-sdk-go-v2/credentials v1.20.9
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.338.4
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing v1.36.4
 	github.com/aws/aws-sdk-go-v2/service/iam v1.64.4
@@ -25,6 +26,7 @@ require (
 	github.com/openshift-online/ocm-sdk-go v0.1.517
 	github.com/openshift-online/rosa-seaplane-api/api v0.1.25
 	github.com/openshift-online/rosa-seaplane-api/clientset v0.1.23
+	github.com/openshift-online/rosa-seaplane-api/iam v0.0.0
 	github.com/openshift/hypershift/api v0.0.0-20260803100438-deb947936de7
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
@@ -47,7 +49,6 @@ require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v17 v17.0.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.2 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.20.9 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.6 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.6 // indirect
@@ -188,3 +189,5 @@ require (
 	google.golang.org/grpc v1.83.2 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
+
+replace github.com/openshift-online/rosa-seaplane-api/iam => ../rosa-seaplane-api/iam

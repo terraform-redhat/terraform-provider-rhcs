@@ -5,6 +5,7 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 
 	logging "github.com/sirupsen/logrus"
@@ -37,6 +38,17 @@ func RedactString(fmtedString string) string {
 func NeedRedact(originalString string, regexP *regexp.Regexp) bool {
 	return regexP.MatchString(originalString)
 }
+
+// SetOutput sets the log destination and returns the previous one, so tests can
+// inspect the redacted log output. It changes the destination for every user of
+// this Log and is not safe for concurrent use: callers must not run in parallel
+// and must restore the previous destination.
+func (l *Log) SetOutput(w io.Writer) io.Writer {
+	previous := l.logger.Out
+	l.logger.SetOutput(w)
+	return previous
+}
+
 func (l *Log) Redact(fmtedString string) string {
 	if !l.redActSensitive {
 		return fmtedString

@@ -4,6 +4,7 @@
 package helper
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -14,6 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
+
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 type fakeEC2SecurityGroupClient struct {
@@ -273,6 +276,104 @@ func TestDeleteExtraSecurityGroupsReturnsErrorWhenSecurityGroupStaysAttached(t *
 	if client.deleteCallsByGroup[groupID] != 0 {
 		t.Fatalf("expected 0 delete calls, got %d", client.deleteCallsByGroup[groupID])
 	}
+}
+
+func TestIsSecurityGroupAttachedRedactsAccountIDsInLogs(t *testing.T) {
+	const (
+		ownerAccountID         = "111122223333"
+		requesterAccountID     = "444455556666"
+		instanceOwnerAccountID = "777788889999"
+	)
+
+	var output bytes.Buffer
+	previousOutput := Logger.SetOutput(&output)
+	t.Cleanup(func() { Logger.SetOutput(previousOutput) })
+
+	client := &fakeEC2SecurityGroupClient{
+		networkInterfacesByGroup: map[string][]types.NetworkInterface{
+			"sg-1": {
+				{
+					NetworkInterfaceId: aws.String("eni-account-ids"),
+					OwnerId:            aws.String(ownerAccountID),
+					RequesterId:        aws.String(requesterAccountID),
+					SubnetId:           aws.String("subnet-0987654321098fedc"),
+					Attachment: &types.NetworkInterfaceAttachment{
+						InstanceId:      aws.String("i-0123456789012abcd"),
+						InstanceOwnerId: aws.String(instanceOwnerAccountID),
+					},
+				},
+				{
+					NetworkInterfaceId: aws.String("eni-service-alias"),
+					RequesterId:        aws.String("amazon-elb"),
+					Attachment: &types.NetworkInterfaceAttachment{
+						InstanceOwnerId: aws.String("amazon-aws"),
+					},
+				},
+				{
+					NetworkInterfaceId: aws.String("eni-no-metadata"),
+				},
+			},
+		},
+	}
+
+	attached, err := isSecurityGroupAttached(context.Background(), client, "vpc-1", "sg-1")
+	if err != nil {
+		t.Fatalf("isSecurityGroupAttached() unexpected error: %v", err)
+	}
+	if !attached {
+		t.Fatal("expected security group to be reported as attached")
+	}
+
+	// The text formatter escapes quotes inside the message.
+	logs := strings.ReplaceAll(output.String(), `\"`, `"`)
+	for _, accountID := range []string{ownerAccountID, requesterAccountID, instanceOwnerAccountID} {
+		if strings.Contains(logs, accountID) {
+			t.Fatalf("log output contains a raw account ID:\n%s", logs)
+		}
+	}
+
+	redacted := fmt.Sprintf("%q", RedactValue)
+	expectedFieldsByENI := map[string][]string{
+		"eni-account-ids": {
+			"owner_id=" + redacted,
+			"requester_id=" + redacted,
+			"instance_owner_id=" + redacted,
+			// Resource IDs with 12-digit runs are not account IDs and stay visible.
+			`subnet_id="subnet-0987654321098fedc"`,
+			`instance_id="i-0123456789012abcd"`,
+		},
+		"eni-service-alias": {
+			`owner_id=""`,
+			`requester_id="amazon-elb"`,
+			`instance_owner_id="amazon-aws"`,
+		},
+		"eni-no-metadata": {
+			`owner_id=""`,
+			`requester_id=""`,
+			`instance_owner_id=""`,
+			"requester_managed=unknown",
+		},
+	}
+	for eniID, expectedFields := range expectedFieldsByENI {
+		line := logLineContaining(logs, fmt.Sprintf("eni_id=%q", eniID))
+		if line == "" {
+			t.Fatalf("expected a log line for %s, got:\n%s", eniID, logs)
+		}
+		for _, field := range expectedFields {
+			if !strings.Contains(line, " "+field) {
+				t.Errorf("expected log line for %s to contain %s, got: %s", eniID, field, line)
+			}
+		}
+	}
+}
+
+func logLineContaining(logs string, substring string) string {
+	for _, line := range strings.Split(logs, "\n") {
+		if strings.Contains(line, substring) {
+			return line
+		}
+	}
+	return ""
 }
 
 func securityGroup(groupID string, groupName string, tags ...types.Tag) types.SecurityGroup {

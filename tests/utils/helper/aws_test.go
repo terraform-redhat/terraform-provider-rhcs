@@ -212,10 +212,13 @@ func TestDeleteExtraSecurityGroupsRetriesDependencyViolationAndSucceeds(t *testi
 
 func TestDeleteExtraSecurityGroupsReturnsErrorWhenSecurityGroupStaysAttached(t *testing.T) {
 	const (
-		vpcID   = "vpc-1"
-		infraID = "2l26dls6dsbg0im4n971v4nlgorn2mku"
-		groupID = "sg-1"
+		vpcID           = "vpc-1"
+		infraID         = "2l26dls6dsbg0im4n971v4nlgorn2mku"
+		groupID         = "sg-1"
+		cleanupAttempts = 2
 	)
+
+	output := captureLogOutput(t)
 
 	client := &fakeEC2SecurityGroupClient{
 		describeVpcsOutput: &ec2.DescribeVpcsOutput{
@@ -263,7 +266,7 @@ func TestDeleteExtraSecurityGroupsReturnsErrorWhenSecurityGroupStaysAttached(t *
 	}
 
 	err := deleteExtraSecurityGroupsWithClient(context.Background(), client, vpcID, securityGroupCleanupOptions{
-		maxAttempts:   2,
+		maxAttempts:   cleanupAttempts,
 		retryInterval: time.Millisecond,
 		sleep:         func(time.Duration) {},
 	})
@@ -276,6 +279,27 @@ func TestDeleteExtraSecurityGroupsReturnsErrorWhenSecurityGroupStaysAttached(t *
 	if client.deleteCallsByGroup[groupID] != 0 {
 		t.Fatalf("expected 0 delete calls, got %d", client.deleteCallsByGroup[groupID])
 	}
+
+	// Every attempt logs each blocking network interface with all diagnostic fields.
+	// Missing optional metadata is logged as empty values and requester_managed=unknown.
+	messagePrefix := fmt.Sprintf("Security group cleanup blocked by network interface: vpc_id=%q security_group_id=%q ", vpcID, groupID)
+	expectedMessages := []string{
+		messagePrefix + `eni_id="eni-1" interface_type="" status="" description="" ` +
+			`requester_managed=unknown requester_id="" owner_id="" subnet_id="" ` +
+			`instance_id="" instance_owner_id="" attachment_status=""`,
+		messagePrefix + `eni_id="eni-worker" interface_type="interface" status="in-use" description="" ` +
+			`requester_managed=false requester_id="" owner_id="test-owner" subnet_id="subnet-1" ` +
+			`instance_id="i-worker" instance_owner_id="test-owner" attachment_status="attached"`,
+		messagePrefix + `eni_id="eni-endpoint" interface_type="vpc_endpoint" status="in-use" ` +
+			`description="VPC Endpoint Interface vpce-1" requester_managed=true requester_id="test-requester" ` +
+			`owner_id="" subnet_id="" instance_id="" instance_owner_id="" attachment_status=""`,
+	}
+	logs := unescapedLogs(output)
+	for _, message := range expectedMessages {
+		if count := strings.Count(logs, message); count != cleanupAttempts {
+			t.Errorf("expected message to be logged %d times, got %d: %s\nlogs:\n%s", cleanupAttempts, count, message, logs)
+		}
+	}
 }
 
 func TestIsSecurityGroupAttachedRedactsAccountIDsInLogs(t *testing.T) {
@@ -285,9 +309,7 @@ func TestIsSecurityGroupAttachedRedactsAccountIDsInLogs(t *testing.T) {
 		instanceOwnerAccountID = "777788889999"
 	)
 
-	var output bytes.Buffer
-	previousOutput := Logger.SetOutput(&output)
-	t.Cleanup(func() { Logger.SetOutput(previousOutput) })
+	output := captureLogOutput(t)
 
 	client := &fakeEC2SecurityGroupClient{
 		networkInterfacesByGroup: map[string][]types.NetworkInterface{
@@ -324,8 +346,7 @@ func TestIsSecurityGroupAttachedRedactsAccountIDsInLogs(t *testing.T) {
 		t.Fatal("expected security group to be reported as attached")
 	}
 
-	// The text formatter escapes quotes inside the message.
-	logs := strings.ReplaceAll(output.String(), `\"`, `"`)
+	logs := unescapedLogs(output)
 	for _, accountID := range []string{ownerAccountID, requesterAccountID, instanceOwnerAccountID} {
 		if strings.Contains(logs, accountID) {
 			t.Fatalf("log output contains a raw account ID:\n%s", logs)
@@ -367,6 +388,58 @@ func TestIsSecurityGroupAttachedRedactsAccountIDsInLogs(t *testing.T) {
 	}
 }
 
+// nilNetworkInterfacesClient returns a nil DescribeNetworkInterfaces output so
+// tests can exercise the defensive nil check in isSecurityGroupAttached.
+type nilNetworkInterfacesClient struct {
+	fakeEC2SecurityGroupClient
+}
+
+func (*nilNetworkInterfacesClient) DescribeNetworkInterfaces(_ context.Context, _ *ec2.DescribeNetworkInterfacesInput, _ ...func(*ec2.Options)) (*ec2.DescribeNetworkInterfacesOutput, error) {
+	return nil, nil
+}
+
+func TestIsSecurityGroupAttachedWithoutNetworkInterfacesLogsNothing(t *testing.T) {
+	clients := map[string]ec2SecurityGroupAPI{
+		"nil output":            &nilNetworkInterfacesClient{},
+		"no network interfaces": &fakeEC2SecurityGroupClient{},
+	}
+	for name, client := range clients {
+		t.Run(name, func(t *testing.T) {
+			output := captureLogOutput(t)
+
+			attached, err := isSecurityGroupAttached(context.Background(), client, "vpc-1", "sg-1")
+			if err != nil {
+				t.Fatalf("isSecurityGroupAttached() unexpected error: %v", err)
+			}
+			if attached {
+				t.Fatal("expected security group to be reported as not attached")
+			}
+			if output.Len() != 0 {
+				t.Fatalf("expected no log output, got:\n%s", output.String())
+			}
+		})
+	}
+}
+
+// captureLogOutput redirects the shared Logger to a buffer for the rest of the
+// test and restores the previous destination during cleanup. Because Logger is
+// shared, tests that use it must not run in parallel.
+func captureLogOutput(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	output := &bytes.Buffer{}
+	previousOutput := Logger.SetOutput(output)
+	t.Cleanup(func() { Logger.SetOutput(previousOutput) })
+	return output
+}
+
+// unescapedLogs returns the captured output with the quotes escaped by the
+// text formatter restored, so assertions can match the original message text.
+func unescapedLogs(output *bytes.Buffer) string {
+	return strings.ReplaceAll(output.String(), `\"`, `"`)
+}
+
+// logLineContaining returns the first log line that contains substring, or an
+// empty string when no line matches.
 func logLineContaining(logs string, substring string) string {
 	for _, line := range strings.Split(logs, "\n") {
 		if strings.Contains(line, substring) {

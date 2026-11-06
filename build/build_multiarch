@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 archs=(amd64 arm64)
 oses=(linux darwin windows)
 
@@ -18,8 +19,14 @@ do
     if [[ $os == "windows" ]]; then
         extension=".exe"
     fi
-    GOOS=${os} GOARCH=${arch} go build -ldflags="${ldflags}" -o /tmp/terraform-provider-rhcs_${os}_${arch}
-    mv /tmp/terraform-provider-rhcs_${os}_${arch} terraform-provider-rhcs_v${REL_VER}${extension}
+    binary_path="/tmp/terraform-provider-rhcs_${os}_${arch}"
+    rm -f "$binary_path"
+    GOOS=${os} GOARCH=${arch} go build -ldflags="${ldflags}" -o "$binary_path"
+    if [[ ! -f "$binary_path" || ! -s "$binary_path" ]]; then
+        echo "Missing or empty provider binary for ${os}/${arch}: $binary_path" >&2
+        exit 1
+    fi
+    mv "$binary_path" terraform-provider-rhcs_v${REL_VER}${extension}
     zip releases/terraform-provider-rhcs_${REL_VER}_${os}_${arch}.zip CHANGELOG.md LICENSE README.md terraform-provider-rhcs_v${REL_VER}${extension}
     rm terraform-provider-rhcs_v${REL_VER}${extension}
     cp terraform-registry-manifest.json releases/terraform-provider-rhcs_${REL_VER}_manifest.json

@@ -1,3 +1,24 @@
+## 1.7.13 (09 Nov, 2026)
+
+BREAKING CHANGES:
+
+   * Mark credential and CA attributes as sensitive
+
+     a root module output that references one of these
+     attributes (or a whole proxy object) must now set sensitive = true,
+     otherwise terraform plan fails with "Output refers to sensitive values".
+
+
+FEATURES:
+   * Add rhcs_external_auth_provider
+
+ENHANCEMENTS:
+ * Bug fixes
+   * Redact admin_credentials values in immutability error
+ * Documentation
+   * Include fast channel group in the allowed list
+   * Add resource verification template
+
 ## 1.7.12 (23 Oct, 2026)
 
 ENHANCEMENTS:

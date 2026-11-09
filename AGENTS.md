@@ -189,6 +189,37 @@ Stop and request explicit human review before merge when any of the following oc
 - Security-sensitive behavior changes (auth, token handling, trust bundles, proxy behavior, logging of request/response data).
 - CI failures suggest cross-repo or infrastructure issues rather than isolated code defects.
 
+## Dependency review
+
+Applies when any `go.mod` changes dependency versions or replacements,
+including Renovate PRs. Reviewers and review tools, including CodeRabbit,
+assess compatibility from their own evidence instead of requiring the author
+to supply a dependency impact report. `.coderabbit.yaml` restates this section
+for the CodeRabbit walkthrough summary, `go.mod` review, and dependency
+pre-merge check; those instructions guide automated review and do not
+guarantee enforcement.
+
+- Dependency Impact Report: for each changed module, state the old and new
+  versions or replacement targets, upstream release notes and source
+  comparisons inspected (including intermediate releases, or that evidence was
+  unavailable), affected usage and call paths (including code outside the
+  diff), behavior changes that reach those paths, and remaining verification
+  gaps.
+- Evidence: do not infer compatibility from compilation, unrelated CI, a
+  patch-version bump, or release-note titles alone. Distinguish source
+  inspection from runtime verification.
+- Blocking: only a demonstrated incompatibility, or a concrete upstream
+  behavior change that reaches affected provider behavior (schema, state,
+  plan/apply, provider configuration and authentication, or OCM requests for
+  Classic or HCP) without the targeted compatibility tests needed to verify it.
+  State the failure condition and the exact checks required. Passing targeted
+  tests or an explicit maintainer decision accepting a documented
+  support-policy change resolves the finding.
+- Warning: incomplete or unavailable evidence, or relevant upstream changes
+  whose impact remains unresolved.
+- Informational: optional improvements, new features, and simplification
+  opportunities.
+
 ## Trivy (IaC misconfiguration)
 
 Repo config: root **`trivy.yaml`** (severity, scanners, skips; Terraform under **`examples/`**, **`tests/`**, **`generate_example_usages/`**, and root **`Dockerfile`**). CodeRabbit may run Trivy when enabled in **`.coderabbit.yaml`**. References: [Trivy config file](https://trivy.dev/latest/docs/references/configuration/config-file/), [filtering / ignores](https://trivy.dev/latest/docs/configuration/filtering/).

@@ -429,7 +429,10 @@ func (r *ClusterResource) Create(ctx context.Context, request resource.CreateReq
 
 	// Wait till the cluster is ready unless explicitly disabled:
 	wait := state.Wait.IsUnknown() || state.Wait.IsNull() || state.Wait.ValueBool()
-	ready := object.State() == cmv1.ClusterStateReady
+	// Endpoint URLs can lag the ready state (upstream issue #1069):
+	// keep polling until they are populated.
+	ready := object.State() == cmv1.ClusterStateReady &&
+		object.API().URL() != "" && object.Console().URL() != ""
 	if wait && !ready {
 		pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour)
 		defer cancel()

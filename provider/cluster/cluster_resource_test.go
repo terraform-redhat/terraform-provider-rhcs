@@ -168,4 +168,65 @@ var _ = Describe("Cluster creation", func() {
 		Expect(clusterState.AWSSecretAccessKey.ValueString()).To(Equal(awsSecretAccessKey))
 		Expect(clusterState.AWSPrivateLink.ValueBool()).To(Equal(privateLink))
 	})
+
+	It("populateClusterState keeps populated URLs when the API returns empty endpoint URLs", func() {
+		clusterJson := map[string]any{
+			"id":            clusterId,
+			"domain_prefix": domainPrefix,
+			"product": map[string]any{
+				"id": productId,
+			},
+			"cloud_provider": map[string]any{
+				"id": cloudProviderId,
+			},
+			"region": map[string]any{
+				"id": regionId,
+			},
+			"multi_az": multiAz,
+			"properties": map[string]any{
+				"rosa_creator_arn": rosaCreatorArn,
+			},
+			"api": map[string]any{
+				"url": "",
+			},
+			"console": map[string]any{
+				"url": "",
+			},
+			"nodes": map[string]any{
+				"compute_machine_type": map[string]any{
+					"id": machineType,
+				},
+				"availability_zones": []any{
+					availabilityZone,
+				},
+			},
+			"ccs": map[string]any{
+				"enabled": ccsEnabled,
+			},
+			"aws": map[string]any{
+				"account_id":        awsAccountID,
+				"access_key_id":     awsAccessKeyID,
+				"secret_access_key": awsSecretAccessKey,
+				"private_link":      privateLink,
+			},
+			"version": map[string]any{
+				"id": clusterVersion,
+			},
+		}
+		clusterJsonString, err := json.Marshal(clusterJson)
+		Expect(err).ToNot(HaveOccurred())
+
+		clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+		Expect(err).ToNot(HaveOccurred())
+
+		clusterState := &ClusterState{
+			APIURL:     types.StringValue("https://populated-api.example.com"),
+			ConsoleURL: types.StringValue("https://populated-console.example.com"),
+		}
+		err = populateClusterState(clusterObject, clusterState)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(clusterState.APIURL.ValueString()).To(Equal("https://populated-api.example.com"))
+		Expect(clusterState.ConsoleURL.ValueString()).To(Equal("https://populated-console.example.com"))
+	})
 })

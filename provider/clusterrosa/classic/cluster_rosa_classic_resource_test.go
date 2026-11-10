@@ -270,6 +270,26 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(httpTokens))
 		})
 
+		It("Keeps populated URLs when the API returns empty endpoint URLs", func() {
+			clusterState := &ClusterRosaClassicState{
+				APIURL:     types.StringValue("https://populated-api.example.com"),
+				ConsoleURL: types.StringValue("https://populated-console.example.com"),
+			}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["api"].(map[string]any)["url"] = ""
+			clusterJson["console"].(map[string]any)["url"] = ""
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)).To(Succeed())
+
+			Expect(clusterState.APIURL.ValueString()).To(Equal("https://populated-api.example.com"))
+			Expect(clusterState.ConsoleURL.ValueString()).To(Equal("https://populated-console.example.com"))
+		})
+
 		It("Errors when API omits ec2_metadata_http_tokens", func() {
 			clusterState := &ClusterRosaClassicState{}
 			clusterJson := generateBasicRosaClassicClusterJson()

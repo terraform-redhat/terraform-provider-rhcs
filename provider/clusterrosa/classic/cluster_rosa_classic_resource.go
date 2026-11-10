@@ -1021,6 +1021,21 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 				return
 			}
 		}
+		if err == nil {
+			// OCM can report the cluster ready before its endpoint URLs are
+			// set (upstream issue #1069): wait until they are populated.
+			object, err = common.WaitForClusterEndpoints(ctx, r.ClusterCollection,
+				object.ID(), time.Duration(*timeOut)*time.Minute)
+			if err != nil {
+				response.Diagnostics.AddError(
+					"Waiting for cluster creation finished with error",
+					fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
+				)
+				diags = response.State.Set(ctx, state)
+				response.Diagnostics.Append(diags...)
+				return
+			}
+		}
 	}
 
 	// Save the state post wait completion:
@@ -1812,7 +1827,6 @@ func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request re
 func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, httpClient common.HttpClient) error {
 	state.ID = types.StringValue(object.ID())
 	state.ExternalID = types.StringValue(object.ExternalID())
-	object.API()
 	state.Name = types.StringValue(object.Name())
 	state.DomainPrefix = types.StringValue(object.DomainPrefix())
 	state.CloudRegion = types.StringValue(object.Region().ID())
@@ -1839,8 +1853,15 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			state.OCMProperties = mapValue
 		}
 	}
-	state.APIURL = types.StringValue(object.API().URL())
-	state.ConsoleURL = types.StringValue(object.Console().URL())
+	// OCM can report a ready cluster before its endpoint URLs are set
+	// (upstream issue #1069): keep populated URLs instead of overwriting
+	// them with empty values.
+	if url := object.API().URL(); url != "" || state.APIURL.IsNull() || state.APIURL.IsUnknown() {
+		state.APIURL = types.StringValue(url)
+	}
+	if url := object.Console().URL(); url != "" || state.ConsoleURL.IsNull() || state.ConsoleURL.IsUnknown() {
+		state.ConsoleURL = types.StringValue(url)
+	}
 	state.Domain = types.StringValue(fmt.Sprintf("%s.%s", object.DomainPrefix(), object.DNS().BaseDomain()))
 	state.BaseDNSDomain = types.StringValue(object.DNS().BaseDomain())
 	state.InfraID = types.StringValue(object.InfraID())

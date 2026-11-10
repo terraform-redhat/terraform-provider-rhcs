@@ -19,6 +19,13 @@ const (
 	waitRetryInterval        = 30 * time.Second
 )
 
+// clusterEndpointsReady reports whether the API has populated the API and
+// console endpoint URLs. OCM can report a cluster as ready before these are
+// set, so readiness must include them (upstream issue #1069).
+func clusterEndpointsReady(cluster *cmv1.Cluster) bool {
+	return cluster.API().URL() != "" && cluster.Console().URL() != ""
+}
+
 //go:generate mockgen -source=cluster_waiter.go -package=common -destination=mock_clusterwait.go
 type ClusterWait interface {
 	WaitForClusterToBeReady(ctx context.Context, clusterId string, waitTimeoutMin int64) (*cmv1.Cluster, error)
@@ -34,6 +41,32 @@ func NewClusterWait(collection *cmv1.ClustersClient, connection *sdk.Connection)
 	return &DefaultClusterWait{
 		collection: collection,
 		connection: connection,
+	}
+}
+
+// WaitForClusterEndpoints re-fetches the cluster until the API and console
+// endpoint URLs are populated. OCM can report a cluster as ready before these
+// are set (upstream issue #1069), so cluster creation must wait for them
+// before writing them to state.
+func WaitForClusterEndpoints(ctx context.Context, collection *cmv1.ClustersClient,
+	clusterId string, waitTimeout time.Duration) (*cmv1.Cluster, error) {
+	pollCtx, cancel := context.WithTimeout(ctx, waitTimeout)
+	defer cancel()
+	for {
+		resp, err := collection.Cluster(clusterId).Get().SendContext(pollCtx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get cluster '%s': %w", clusterId, err)
+		}
+		if clusterEndpointsReady(resp.Body()) {
+			return resp.Body(), nil
+		}
+		tflog.Debug(pollCtx, fmt.Sprintf("Cluster '%s' is ready but its endpoint URLs are not populated yet", clusterId))
+		select {
+		case <-time.After(waitRetryInterval):
+		case <-pollCtx.Done():
+			return nil, fmt.Errorf("cluster '%s' is ready but its api_url/console_url "+
+				"were not populated within %s", clusterId, waitTimeout)
+		}
 	}
 }
 

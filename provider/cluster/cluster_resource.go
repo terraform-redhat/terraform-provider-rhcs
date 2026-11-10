@@ -437,7 +437,10 @@ func (r *ClusterResource) Create(ctx context.Context, request resource.CreateReq
 			Interval(30 * time.Second).
 			Predicate(func(get *cmv1.ClusterGetResponse) bool {
 				object = get.Body()
-				return object.State() == cmv1.ClusterStateReady
+				// Endpoint URLs can lag the ready state (upstream issue #1069):
+				// keep polling until they are populated.
+				return object.State() == cmv1.ClusterStateReady &&
+					object.API().URL() != "" && object.Console().URL() != ""
 			}).
 			StartContext(pollCtx)
 		if err != nil {
@@ -638,7 +641,6 @@ func (r *ClusterResource) ImportState(ctx context.Context, request resource.Impo
 func populateClusterState(object *cmv1.Cluster, state *ClusterState) error {
 	state.ID = types.StringValue(object.ID())
 
-	object.API()
 	state.Product = types.StringValue(object.Product().ID())
 	state.Name = types.StringValue(object.Name())
 	state.DomainPrefix = types.StringValue(object.DomainPrefix())
@@ -653,8 +655,15 @@ func populateClusterState(object *cmv1.Cluster, state *ClusterState) error {
 		state.Properties = mapValue
 	}
 
-	state.APIURL = types.StringValue(object.API().URL())
-	state.ConsoleURL = types.StringValue(object.Console().URL())
+	// OCM can report a ready cluster before its endpoint URLs are set
+	// (upstream issue #1069): keep populated URLs instead of overwriting
+	// them with empty values.
+	if url := object.API().URL(); url != "" || state.APIURL.IsNull() || state.APIURL.IsUnknown() {
+		state.APIURL = types.StringValue(url)
+	}
+	if url := object.Console().URL(); url != "" || state.ConsoleURL.IsNull() || state.ConsoleURL.IsUnknown() {
+		state.ConsoleURL = types.StringValue(url)
+	}
 	state.ComputeNodes = types.Int64Value(int64(object.Nodes().Compute()))
 	state.ComputeMachineType = types.StringValue(object.Nodes().ComputeMachineType().ID())
 

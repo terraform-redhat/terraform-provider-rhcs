@@ -84,6 +84,7 @@ data "rhcs_cluster_rosa_classic" "cluster" {
 - `upgrade_acknowledgements_for` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `version` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `wait_for_create_complete` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
+- `wait_for_urls` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `worker_disk_size` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 
 <a id="nestedatt--admin_credentials"></a>

@@ -300,6 +300,10 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 				Description: deprecatedMessage,
 				Computed:    true,
 			},
+			"wait_for_urls": schema.BoolAttribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
 			"autoscaling_enabled": schema.BoolAttribute{
 				Description: deprecatedMessage,
 				Computed:    true,
@@ -411,6 +415,7 @@ func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasou
 	state.CreateAdminUser = types.BoolNull()
 	state.AdminCredentials = rosaTypes.AdminCredentialsNull()
 	state.WaitForCreateComplete = types.BoolNull()
+	state.WaitForURLs = types.BoolNull()
 	state.AutoScalingEnabled = types.BoolNull()
 	state.MinReplicas = types.Int64Null()
 	state.MaxReplicas = types.Int64Null()

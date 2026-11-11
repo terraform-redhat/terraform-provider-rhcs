@@ -133,7 +133,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 		})
 
 		It("Creates KubeletConfig", func() {
-			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(&cmv1.Cluster{}, nil)
+			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes, false).Return(&cmv1.Cluster{}, nil)
 			clusterClient.EXPECT().FetchCluster(gomock.Any(), gomock.Eq(clusterId)).Return(classicCluster, nil)
 			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).Return([]*cmv1.KubeletConfig{}, false, nil)
 			configsClient.EXPECT().Create(
@@ -144,7 +144,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 		})
 
 		It("Does not create KubeletConfig if the cluster is not ready", func() {
-			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(
+			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes, false).Return(
 				nil, fmt.Errorf("cluster is not ready"))
 			clusterClient.EXPECT().FetchCluster(gomock.Any(), gomock.Eq(clusterId)).Return(hcpCluster, nil)
 
@@ -153,7 +153,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 		})
 
 		It("Does not create KubeletConfig if it already exists in classic cluster", func() {
-			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(&cmv1.Cluster{}, nil)
+			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes, false).Return(&cmv1.Cluster{}, nil)
 			clusterClient.EXPECT().FetchCluster(gomock.Any(), gomock.Eq(clusterId)).Return(classicCluster, nil)
 			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).
 				Return([]*cmv1.KubeletConfig{returnedKubeletConfig}, true, nil)
@@ -163,7 +163,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 		})
 
 		It("Creates the second KubeletConfig for HCP cluster", func() {
-			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(&cmv1.Cluster{}, nil)
+			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes, false).Return(&cmv1.Cluster{}, nil)
 			clusterClient.EXPECT().FetchCluster(gomock.Any(), gomock.Eq(clusterId)).Return(hcpCluster, nil)
 			configsClient.EXPECT().Create(
 				gomock.Eq(ctx), gomock.Eq(clusterId), test.MatchKubeletConfig(kubeletConfig)).Return(returnedKubeletConfig, nil)
@@ -173,7 +173,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 		})
 
 		It("Fails the plan if cannot create KubeletConfig", func() {
-			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(&cmv1.Cluster{}, nil)
+			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes, false).Return(&cmv1.Cluster{}, nil)
 			clusterClient.EXPECT().FetchCluster(gomock.Any(), gomock.Eq(clusterId)).Return(classicCluster, nil)
 			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).
 				Return([]*cmv1.KubeletConfig{returnedKubeletConfig}, true, nil)

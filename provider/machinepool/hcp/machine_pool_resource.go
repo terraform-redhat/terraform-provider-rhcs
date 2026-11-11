@@ -282,7 +282,7 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Wait till the cluster is ready:
-	clusterObject, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), 60)
+	clusterObject, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), 60, false)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot poll cluster state",

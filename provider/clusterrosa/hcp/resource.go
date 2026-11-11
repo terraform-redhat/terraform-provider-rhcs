@@ -1145,7 +1145,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 				fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
 			)
 		}
-		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), *timeOut)
+		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), *timeOut, false)
 		clusterReady = err == nil
 		if err != nil {
 			response.Diagnostics.AddError(

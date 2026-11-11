@@ -112,25 +112,10 @@ var _ = Describe("Cluster readiness waiter", func() {
 		connection.Close()
 	})
 
-	DescribeTable("clusterHasAPIAndConsoleURLs",
-		func(apiURL, consoleURL string, expected bool) {
-			cluster, err := cmv1.NewCluster().
-				API(cmv1.NewClusterAPI().URL(apiURL)).
-				Console(cmv1.NewClusterConsole().URL(consoleURL)).
-				Build()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(clusterHasAPIAndConsoleURLs(cluster)).To(Equal(expected))
-		},
-		Entry("both URLs set", waiterTestAPIURL, waiterTestConsoleURL, true),
-		Entry("only the API URL set", waiterTestAPIURL, "", false),
-		Entry("only the console URL set", "", waiterTestConsoleURL, false),
-		Entry("no URLs set", "", "", false),
-	)
-
-	It("does not require URLs in WaitForClusterToBeReady", func() {
+	It("does not require URLs when waitURL is false", func() {
 		server.AppendHandlers(waiterTestClusterHandler("ready", "", ""))
 
-		cluster, err := waiter.WaitForClusterToBeReady(context.Background(), "123", 60)
+		cluster, err := waiter.WaitForClusterToBeReady(context.Background(), "123", 60, false)
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(cluster.State()).To(Equal(cmv1.ClusterStateReady))
@@ -138,11 +123,24 @@ var _ = Describe("Cluster readiness waiter", func() {
 		Expect(server.ReceivedRequests()).To(HaveLen(1))
 	})
 
-	Context("WaitForClusterToBeReadyWithURLs", func() {
+	It("accepts a polled ready cluster without URLs when waitURL is false", func() {
+		server.AppendHandlers(
+			waiterTestClusterHandler("installing", "", ""),
+			waiterTestClusterHandler("ready", "", ""),
+		)
+
+		cluster, err := waiter.WaitForClusterToBeReady(context.Background(), "123", 60, false)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(cluster.State()).To(Equal(cmv1.ClusterStateReady))
+		Expect(server.ReceivedRequests()).To(HaveLen(2))
+	})
+
+	Context("when waitURL is true", func() {
 		It("returns immediately when the cluster is ready and reports both URLs", func() {
 			server.AppendHandlers(waiterTestClusterHandler("ready", waiterTestAPIURL, waiterTestConsoleURL))
 
-			cluster, err := waiter.WaitForClusterToBeReadyWithURLs(context.Background(), "123", 60)
+			cluster, err := waiter.WaitForClusterToBeReady(context.Background(), "123", 60, true)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cluster.API().URL()).To(Equal(waiterTestAPIURL))
@@ -150,19 +148,24 @@ var _ = Describe("Cluster readiness waiter", func() {
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
-		It("keeps polling a ready cluster until the missing console URL is reported", func() {
-			server.AppendHandlers(
-				waiterTestClusterHandler("ready", waiterTestAPIURL, ""),
-				waiterTestClusterHandler("ready", waiterTestAPIURL, waiterTestConsoleURL),
-			)
+		DescribeTable("keeps polling a ready cluster until both URLs are reported",
+			func(apiURL, consoleURL string) {
+				server.AppendHandlers(
+					waiterTestClusterHandler("ready", apiURL, consoleURL),
+					waiterTestClusterHandler("ready", waiterTestAPIURL, waiterTestConsoleURL),
+				)
 
-			cluster, err := waiter.WaitForClusterToBeReadyWithURLs(context.Background(), "123", 60)
+				cluster, err := waiter.WaitForClusterToBeReady(context.Background(), "123", 60, true)
 
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cluster.API().URL()).To(Equal(waiterTestAPIURL))
-			Expect(cluster.Console().URL()).To(Equal(waiterTestConsoleURL))
-			Expect(server.ReceivedRequests()).To(HaveLen(2))
-		})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(cluster.API().URL()).To(Equal(waiterTestAPIURL))
+				Expect(cluster.Console().URL()).To(Equal(waiterTestConsoleURL))
+				Expect(server.ReceivedRequests()).To(HaveLen(2))
+			},
+			Entry("API URL missing", "", waiterTestConsoleURL),
+			Entry("console URL missing", waiterTestAPIURL, ""),
+			Entry("both URLs missing", "", ""),
+		)
 
 		It("waits for a cluster that becomes ready with both URLs", func() {
 			server.AppendHandlers(
@@ -170,7 +173,7 @@ var _ = Describe("Cluster readiness waiter", func() {
 				waiterTestClusterHandler("ready", waiterTestAPIURL, waiterTestConsoleURL),
 			)
 
-			cluster, err := waiter.WaitForClusterToBeReadyWithURLs(context.Background(), "123", 60)
+			cluster, err := waiter.WaitForClusterToBeReady(context.Background(), "123", 60, true)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cluster.State()).To(Equal(cmv1.ClusterStateReady))
@@ -181,7 +184,7 @@ var _ = Describe("Cluster readiness waiter", func() {
 		It("returns a terminal error state without waiting for URLs", func() {
 			server.AppendHandlers(waiterTestClusterHandler("error", "", ""))
 
-			cluster, err := waiter.WaitForClusterToBeReadyWithURLs(context.Background(), "123", 60)
+			cluster, err := waiter.WaitForClusterToBeReady(context.Background(), "123", 60, true)
 
 			Expect(err).To(MatchError(ContainSubstring("Cluster '123' is in state 'error' and will not become ready")))
 			Expect(cluster).NotTo(BeNil())
@@ -190,7 +193,7 @@ var _ = Describe("Cluster readiness waiter", func() {
 		})
 
 		It("stops polling when the cluster reaches a terminal state while URLs are missing", func() {
-			// The 60 minute budget leaves room for further 2 minute polling intervals, so
+			// The 60 minute timeout leaves room for further 2 minute polling intervals, so
 			// a fast return proves the terminal state ended the wait.
 			server.AppendHandlers(
 				waiterTestClusterHandler("installing", "", ""),
@@ -198,7 +201,7 @@ var _ = Describe("Cluster readiness waiter", func() {
 			)
 
 			started := time.Now()
-			cluster, err := waiter.WaitForClusterToBeReadyWithURLs(context.Background(), "123", 60)
+			cluster, err := waiter.WaitForClusterToBeReady(context.Background(), "123", 60, true)
 
 			Expect(err).To(MatchError("cluster '123' is in state 'error'"))
 			Expect(cluster).NotTo(BeNil())
@@ -207,32 +210,29 @@ var _ = Describe("Cluster readiness waiter", func() {
 			Expect(time.Since(started)).To(BeNumerically("<", 30*time.Second))
 		})
 
-		It("fails within the single timeout budget when the URLs are never reported", func() {
-			// With a 1 minute budget the 2 minute polling interval does not fit, so the
-			// poll stops after its first request instead of starting another wait.
+		It("fails when polling ends while the URLs are still missing", func() {
+			// With a 1 minute timeout the 2 minute polling interval does not fit, so polling
+			// ends after its first request, exactly as it does without waitURL.
 			server.AppendHandlers(
 				waiterTestClusterHandler("ready", "", ""),
 				waiterTestClusterHandler("ready", "", ""),
 			)
 
-			started := time.Now()
-			cluster, err := waiter.WaitForClusterToBeReadyWithURLs(context.Background(), "123", 1)
+			cluster, err := waiter.WaitForClusterToBeReady(context.Background(), "123", 1, true)
 
-			Expect(err).To(MatchError(ContainSubstring(
-				"its API URL and console URL were not both available before the wait timeout of 1 minutes")))
+			Expect(err).To(MatchError("cluster '123' is in state 'ready'"))
 			Expect(cluster).NotTo(BeNil())
-			Expect(cluster.State()).To(Equal(cmv1.ClusterStateReady))
+			Expect(cluster.API().URL()).To(BeEmpty())
 			Expect(server.ReceivedRequests()).To(HaveLen(2))
-			Expect(time.Since(started)).To(BeNumerically("<", 30*time.Second))
 		})
 
-		It("reports a cluster that is still not ready when the budget runs out", func() {
+		It("reports a cluster that is still not ready when polling ends", func() {
 			server.AppendHandlers(
 				waiterTestClusterHandler("installing", "", ""),
 				waiterTestClusterHandler("installing", "", ""),
 			)
 
-			cluster, err := waiter.WaitForClusterToBeReadyWithURLs(context.Background(), "123", 1)
+			cluster, err := waiter.WaitForClusterToBeReady(context.Background(), "123", 1, true)
 
 			Expect(err).To(MatchError("cluster '123' is in state 'installing'"))
 			Expect(cluster).NotTo(BeNil())
@@ -244,7 +244,7 @@ var _ = Describe("Cluster readiness waiter", func() {
 			cancel()
 
 			started := time.Now()
-			cluster, err := waiter.WaitForClusterToBeReadyWithURLs(ctx, "123", 60)
+			cluster, err := waiter.WaitForClusterToBeReady(ctx, "123", 60, true)
 
 			Expect(err).To(HaveOccurred())
 			Expect(errors.Is(err, context.Canceled)).To(BeTrue())

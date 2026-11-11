@@ -226,7 +226,7 @@ func (r *LogForwarderResource) Create(ctx context.Context, req resource.CreateRe
 	clusterId := plan.Cluster.ValueString()
 
 	waitTimeoutInMinutes := int64(60)
-	_, err := r.clusterWait.WaitForClusterToBeReady(ctx, clusterId, waitTimeoutInMinutes)
+	_, err := r.clusterWait.WaitForClusterToBeReady(ctx, clusterId, waitTimeoutInMinutes, false)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot poll cluster state",

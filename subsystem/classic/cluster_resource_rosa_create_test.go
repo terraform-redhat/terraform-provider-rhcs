@@ -1254,6 +1254,74 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 				Expect(resource).To(MatchJQ(".attributes.state", "ready"))
 			})
+
+			It("Create cluster and keep it in state when the wait timeout is not positive", func() {
+				// Prepare the server:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+                      "op": "add",
+                      "path": "/state",
+					  "value": "installing"
+					}]`),
+					),
+				)
+
+				// Run the apply command:
+				Terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123456789012"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			wait_for_create_complete = true
+			max_cluster_wait_timeout_in_minutes = 0
+		  }
+		`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).ToNot(BeZero())
+				runOutput.VerifyErrorContainsSubstring("timeout must be greater than 0 minutes")
+				resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.id", "123"))
+				Expect(resource).To(MatchJQ(".attributes.state", "installing"))
+				// The cluster is not read: there is no wait without a valid timeout.
+				for _, req := range TestServer.ReceivedRequests() {
+					Expect(req.Method == http.MethodGet &&
+						req.URL.Path == "/api/clusters_mgmt/v1/clusters/123").To(BeFalse())
+				}
+			})
 		})
 		It("Creates basic cluster", func() {
 			// Prepare the server:

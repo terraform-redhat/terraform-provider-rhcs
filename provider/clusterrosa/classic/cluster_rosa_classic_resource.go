@@ -1008,6 +1008,11 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 				"Waiting for cluster creation finished with error",
 				fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
 			)
+			// The cluster was already created: keep its identity in state instead of
+			// waiting without a valid timeout.
+			diags = response.State.Set(ctx, state)
+			response.Diagnostics.Append(diags...)
+			return
 		}
 		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), *timeOut)
 		if err != nil {

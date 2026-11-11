@@ -1347,6 +1347,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				const removeAPIURL = `{"op": "remove", "path": "/api"}`
 				const removeConsoleURL = `{"op": "remove", "path": "/console"}`
 				const apiURL = "https://my-api.example.com"
+				const bothWaitAttributes = `
+			wait_for_create_complete = true
+			wait_for_urls = true`
 				const consoleURL = "https://my-console.example.com"
 
 				setState := func(state string) string {
@@ -1459,7 +1462,48 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					Expect(clusterRequests(http.MethodGet, 0)).To(BeZero())
 				})
 
-				It("waits for the ready state and both URLs when only wait_for_urls is set", func() {
+				for _, readinessAttribute := range []string{``, `wait_for_create_complete = false`} {
+					It(fmt.Sprintf("rejects wait_for_urls without wait_for_create_complete = true before creating the cluster (%q)",
+						readinessAttribute), func() {
+						Terraform.Source(clusterConfig(readinessAttribute + `
+			wait_for_urls = true`))
+						runOutput := Terraform.Apply()
+						Expect(runOutput.ExitCode).ToNot(BeZero())
+						runOutput.VerifyErrorContainsSubstring("wait_for_create_complete = true is")
+						Expect(TestServer.ReceivedRequests()).To(BeEmpty())
+						state := Terraform.State()
+						if state != nil {
+							resources, err := JQ(`.resources[] | select(.type == "rhcs_cluster_rosa_classic")`, state)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(resources).To(BeEmpty())
+						}
+					})
+				}
+
+				It("rejects enabling wait_for_urls on an existing cluster without wait_for_create_complete", func() {
+					TestServer.AppendHandlers(
+						versionsHandler(),
+						createHandler(),
+					)
+					Terraform.Source(clusterConfig(``))
+					runOutput := Terraform.Apply()
+					Expect(runOutput.ExitCode).To(BeZero())
+					created := len(TestServer.ReceivedRequests())
+
+					// Only the refresh reads the cluster; the update is rejected before any change.
+					TestServer.AppendHandlers(getHandler())
+					Terraform.Source(clusterConfig(`wait_for_urls = true`))
+					runOutput = Terraform.Apply()
+					Expect(runOutput.ExitCode).ToNot(BeZero())
+					runOutput.VerifyErrorContainsSubstring("wait_for_create_complete = true is")
+					Expect(clusterRequests(http.MethodGet, created)).To(Equal(1))
+					Expect(clusterRequests(http.MethodPatch, created)).To(BeZero())
+					resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+					Expect(resource).To(MatchJQ(".attributes.id", "123"))
+					Expect(resource).To(MatchJQ(".attributes.wait_for_urls", nil))
+				})
+
+				It("waits for the ready state and both URLs when both wait attributes are set", func() {
 					TestServer.AppendHandlers(
 						versionsHandler(),
 						createHandler(),
@@ -1467,7 +1511,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						getHandler(),
 					)
 
-					Terraform.Source(clusterConfig(`wait_for_urls = true`))
+					Terraform.Source(clusterConfig(bothWaitAttributes))
 					runOutput := Terraform.Apply()
 					Expect(runOutput.ExitCode).To(BeZero())
 					resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
@@ -1485,7 +1529,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						getHandler(),
 					)
 
-					Terraform.Source(clusterConfig(`wait_for_urls = true`))
+					Terraform.Source(clusterConfig(bothWaitAttributes))
 					runOutput := Terraform.Apply()
 					Expect(runOutput.ExitCode).To(BeZero())
 					resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
@@ -1525,6 +1569,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					)
 
 					Terraform.Source(clusterConfig(`
+			wait_for_create_complete = true
 			wait_for_urls = true
 			max_cluster_wait_timeout_in_minutes = 1`))
 					runOutput := Terraform.Apply()
@@ -1546,7 +1591,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						getHandler(setState("error"), removeAPIURL, removeConsoleURL),
 					)
 
-					Terraform.Source(clusterConfig(`wait_for_urls = true`))
+					Terraform.Source(clusterConfig(bothWaitAttributes))
 					runOutput := Terraform.Apply()
 					Expect(runOutput.ExitCode).ToNot(BeZero())
 					runOutput.VerifyErrorContainsSubstring("Cluster '123' is in state 'error' and will not become ready")
@@ -1572,7 +1617,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						),
 					)
 
-					Terraform.Source(clusterConfig(`wait_for_urls = true`))
+					Terraform.Source(clusterConfig(bothWaitAttributes))
 					runOutput := Terraform.Apply()
 					Expect(runOutput.ExitCode).ToNot(BeZero())
 					runOutput.VerifyErrorContainsSubstring("Failed to get Cluster '123'")
@@ -1581,13 +1626,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					Expect(resource).To(MatchJQ(".attributes.state", "installing"))
 				})
 
-				It("keeps the created cluster when wait_for_urls is set with a non-positive timeout", func() {
+				It("keeps the created cluster when both wait attributes are set with a non-positive timeout", func() {
 					TestServer.AppendHandlers(
 						versionsHandler(),
 						createHandler(),
 					)
 
 					Terraform.Source(clusterConfig(`
+			wait_for_create_complete = true
 			wait_for_urls = true
 			max_cluster_wait_timeout_in_minutes = 0`))
 					runOutput := Terraform.Apply()
@@ -1598,7 +1644,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					Expect(clusterRequests(http.MethodGet, 0)).To(BeZero())
 				})
 
-				It("enables wait_for_urls on an existing cluster in place without waiting or patching it", func() {
+				It("enables both wait attributes on an existing cluster in place without waiting or patching it", func() {
 					TestServer.AppendHandlers(
 						versionsHandler(),
 						createHandler(),
@@ -1615,7 +1661,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						getHandler(),
 						getHandler(),
 					)
-					Terraform.Source(clusterConfig(`wait_for_urls = true`))
+					Terraform.Source(clusterConfig(bothWaitAttributes))
 					runOutput = Terraform.Apply()
 					Expect(runOutput.ExitCode).To(BeZero())
 					runOutput.VerifyOutputContainsSubstring("0 added, 1 changed, 0 destroyed")
@@ -1638,7 +1684,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						createHandler(),
 						getHandler(),
 					)
-					Terraform.Source(clusterConfig(`wait_for_urls = true`))
+					Terraform.Source(clusterConfig(bothWaitAttributes))
 					runOutput := Terraform.Apply()
 					Expect(runOutput.ExitCode).To(BeZero())
 					created := len(TestServer.ReceivedRequests())

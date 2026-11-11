@@ -502,17 +502,16 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional:    true,
 			},
 			"wait_for_urls": schema.BoolAttribute{
-				Description: "Wait during cluster creation until the cluster is in a ready state and reports both " +
-					"an API URL and a console URL. When true, this enables the creation wait even if " +
-					"`wait_for_create_complete` is not set; `wait_for_create_complete` alone waits only for the " +
-					"ready state. Readiness and the URLs share the single `max_cluster_wait_timeout_in_minutes` " +
-					"budget (default 60 minutes) and the existing polling interval; the wait is not restarted for " +
-					"the URLs. If the budget runs out, or the cluster reaches an error or uninstalling state, " +
-					"creation fails and the created cluster is kept in Terraform state; as with any failed " +
-					"creation, Terraform marks the resource as tainted, so the next apply plans to replace the " +
-					"cluster unless it is untainted (`terraform untaint`). Only cluster creation is affected: " +
-					"changing this value on an existing cluster does not replace, update, or wait for the " +
-					"cluster. Defaults to false; omitted or null is treated as false.",
+				Description: "Wait during cluster creation until the cluster also reports both an API URL and a " +
+					"console URL. Requires `wait_for_create_complete = true`: the URLs are checked by the same " +
+					"creation wait, with its polling interval and `max_cluster_wait_timeout_in_minutes` timeout " +
+					"(default 60 minutes). Setting it to true without `wait_for_create_complete = true` is rejected " +
+					"before the cluster is created or updated. If the wait times out, or the cluster reaches an " +
+					"error or uninstalling state, creation fails and the created cluster is kept in Terraform " +
+					"state; as with any failed creation, Terraform marks the resource as tainted, so the next " +
+					"apply plans to replace the cluster unless it is untainted (`terraform untaint`). Only cluster " +
+					"creation waits: changing this value on an existing cluster does not replace, update, or wait " +
+					"for the cluster. Defaults to false; omitted or null is treated as false.",
 				Optional: true,
 			},
 			"max_cluster_wait_timeout_in_minutes": schema.Int64Attribute{
@@ -556,6 +555,9 @@ func (r *ClusterRosaClassicResource) Configure(ctx context.Context, req resource
 
 const (
 	errHeadline = "Can't build cluster"
+
+	waitForURLsRequiresWaitForCreateComplete = "When wait_for_urls is true, wait_for_create_complete = true is " +
+		"required (the API and console URLs are checked by the creation wait)"
 )
 
 func createClassicClusterObject(ctx context.Context,
@@ -912,6 +914,11 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	enableDeleteProtection := common.HasValue(state.DeleteProtection) && state.DeleteProtection.ValueBool()
 	summary := "Can't build cluster"
 
+	if common.BoolWithFalseDefault(state.WaitForURLs) && !common.BoolWithFalseDefault(state.WaitForCreateComplete) {
+		response.Diagnostics.AddError(summary, waitForURLsRequiresWaitForCreateComplete)
+		return
+	}
+
 	// In case version with "openshift-v" prefix was used here,
 	// Give a meaningful message to inform the user that it not supported any more
 	if common.HasValue(state.Version) && strings.HasPrefix(state.Version.ValueString(), rosa.VersionPrefix) {
@@ -1016,11 +1023,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 		return
 	}
 
-	// wait_for_urls independently enables the creation wait and additionally requires the API
-	// and console URLs; both flags share the single max_cluster_wait_timeout_in_minutes budget.
-	waitForURLs := common.BoolWithFalseDefault(state.WaitForURLs)
-	waitForCreateComplete := common.BoolWithFalseDefault(state.WaitForCreateComplete)
-	if waitForURLs || waitForCreateComplete {
+	if common.HasValue(state.WaitForCreateComplete) && state.WaitForCreateComplete.ValueBool() {
 		timeOut := common.OptionalInt64(state.MaxClusterWaitTimeoutInMinutes)
 		timeOut, err = common.ValidateTimeout(timeOut, rosa.MaxClusterWaitTimeoutInMinutes)
 		if err != nil {
@@ -1034,14 +1037,13 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 			response.Diagnostics.Append(diags...)
 			return
 		}
+		waitForURLs := common.BoolWithFalseDefault(state.WaitForURLs)
 		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), *timeOut, waitForURLs)
 		if err != nil {
 			detail := fmt.Sprintf("Waiting for cluster creation finished with the error %v", err)
 			if waitForURLs {
-				detail += fmt.Sprintf(". With wait_for_urls enabled, waiting for the ready state and both "+
-					"the API and console URLs is bounded by max_cluster_wait_timeout_in_minutes (%d minutes). "+
-					"Cluster '%s' was created and is kept in Terraform state.",
-					*timeOut, state.ID.ValueString())
+				detail += ". With wait_for_urls enabled, the cluster must also report its API and console " +
+					"URLs within max_cluster_wait_timeout_in_minutes"
 			}
 			response.Diagnostics.AddError(
 				"Waiting for cluster creation finished with error",
@@ -1313,6 +1315,11 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 	diags = request.Plan.Get(ctx, plan)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
+		return
+	}
+
+	if common.BoolWithFalseDefault(plan.WaitForURLs) && !common.BoolWithFalseDefault(plan.WaitForCreateComplete) {
+		response.Diagnostics.AddError("Can't update cluster", waitForURLsRequiresWaitForCreateComplete)
 		return
 	}
 

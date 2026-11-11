@@ -1478,6 +1478,23 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					Expect(clusterRequests(http.MethodGet, 0)).To(Equal(2))
 				})
 
+				It("returns without polling when the cluster already reports both URLs at the first check", func() {
+					TestServer.AppendHandlers(
+						versionsHandler(),
+						createHandler(),
+						getHandler(),
+					)
+
+					Terraform.Source(clusterConfig(`wait_for_urls = true`))
+					runOutput := Terraform.Apply()
+					Expect(runOutput.ExitCode).To(BeZero())
+					resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+					Expect(resource).To(MatchJQ(".attributes.state", "ready"))
+					Expect(resource).To(MatchJQ(".attributes.api_url", apiURL))
+					Expect(resource).To(MatchJQ(".attributes.console_url", consoleURL))
+					Expect(clusterRequests(http.MethodGet, 0)).To(Equal(1))
+				})
+
 				It("keeps waiting for a ready cluster until its console URL is reported", func() {
 					TestServer.AppendHandlers(
 						versionsHandler(),

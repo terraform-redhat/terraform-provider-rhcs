@@ -282,7 +282,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 
 	// Wait till the cluster is ready:
 	waitTimeoutInMinutes := int64(60)
-	cluster, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), waitTimeoutInMinutes, false)
+	cluster, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), waitTimeoutInMinutes)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot poll cluster state",

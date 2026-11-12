@@ -1038,7 +1038,11 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 			return
 		}
 		waitForURLs := common.BoolWithFalseDefault(state.WaitForURLs)
-		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), *timeOut, waitForURLs)
+		if waitForURLs {
+			object, err = r.ClusterWait.WaitForClusterToBeReadyWithURLs(ctx, object.ID(), *timeOut)
+		} else {
+			object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), *timeOut)
+		}
 		if err != nil {
 			detail := fmt.Sprintf("Waiting for cluster creation finished with the error %v", err)
 			if waitForURLs {

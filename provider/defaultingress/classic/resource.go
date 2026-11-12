@@ -168,7 +168,7 @@ func (r *DefaultIngressResource) Create(ctx context.Context, req resource.Create
 
 	// Wait till the cluster is ready:
 	waitTimeoutInMinutes := int64(60)
-	_, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), waitTimeoutInMinutes, false)
+	_, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), waitTimeoutInMinutes)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot poll cluster state",

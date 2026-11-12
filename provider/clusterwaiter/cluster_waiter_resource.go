@@ -149,7 +149,7 @@ func (r *ClusterWaiterResource) startPolling(ctx context.Context, state *Cluster
 	}
 
 	// Wait till the cluster is ready:
-	object, err := r.clusterWait.WaitForClusterToBeReady(ctx, state.Cluster.ValueString(), timeout, false)
+	object, err := r.clusterWait.WaitForClusterToBeReady(ctx, state.Cluster.ValueString(), timeout)
 	if err != nil {
 		return state, fmt.Errorf(
 			"Can't poll state of cluster with identifier '%s': %v",

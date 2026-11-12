@@ -123,7 +123,7 @@ func (r *ClusterAutoscalerResource) Create(ctx context.Context, request resource
 	}
 
 	// Wait till the cluster is ready:
-	_, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), 60, false)
+	_, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), 60)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Cannot poll cluster state",

@@ -120,6 +120,7 @@
   "labels": [
     "ok-to-test"
   ],
+  "automerge": false,
   "packageRules": [
     {
       "description": "Bump Makefile GITLEAKS_VERSION and pre-commit gitleaks SHA for the same release",
@@ -129,13 +130,6 @@
       "groupName": "gitleaks",
       "groupSlug": "gitleaks",
       "automerge": false
-    },
-    {
-      "description": "Enable automerge Konflux tekton task updates",
-      "matchManagers": [
-        "tekton"
-      ],
-      "automerge": true
     },
     {
       "description": "Do not bump Go toolchain minor/major versions",
@@ -252,6 +246,26 @@
         "github.com/zgalor/weberr",
         "gopkg.in/yaml.v2",
         "gopkg.in/yaml.v3"
+      ]
+    },
+    {
+      "description": "Label updates as candidates for future merge automation; Renovate does not merge them. Labels reflect update targets only, not transitive go.mod/go.sum changes. AWS SDK and OCM targets (same patterns as the aws-sdk and openshift-ocm groups) are excluded.",
+      "matchPackageNames": [
+        "!github.com/aws/{/,}**",
+        "!github.com/openshift-online/{/,}**"
+      ],
+      "addLabels": [
+        "allow-automatic-merge"
+      ]
+    },
+    {
+      "description": "AWS SDK and OCM updates (same patterns as the aws-sdk and openshift-ocm groups) require manual review. Grouped PRs carry the labels of all their updates, so any PR that includes these targets also carries this label.",
+      "matchPackageNames": [
+        "github.com/aws/{/,}**",
+        "github.com/openshift-online/{/,}**"
+      ],
+      "addLabels": [
+        "dependencies/manual-review"
       ]
     }
   ]

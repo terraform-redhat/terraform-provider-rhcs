@@ -17,8 +17,8 @@ require (
 	github.com/hashicorp/terraform-plugin-framework-validators v0.19.0
 	github.com/hashicorp/terraform-plugin-go v0.31.0
 	github.com/hashicorp/terraform-plugin-log v0.11.0
-	github.com/onsi/ginkgo/v2 v2.32.2
-	github.com/onsi/gomega v1.43.0
+	github.com/onsi/ginkgo/v2 v2.34.0
+	github.com/onsi/gomega v1.44.0
 	github.com/openshift-online/ocm-common v0.0.47
 	github.com/openshift-online/ocm-sdk-go v0.1.521
 	github.com/pkg/errors v0.9.1

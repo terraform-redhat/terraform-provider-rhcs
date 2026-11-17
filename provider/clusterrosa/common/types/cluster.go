@@ -12,6 +12,7 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
@@ -52,22 +53,69 @@ type BaseCluster struct {
 func (b *BaseCluster) GetAndValidateVersionInChannelGroup(ctx context.Context,
 	topology ClusterTopology,
 	stateChannelGroup string, stateVersion string, optionalChannel ...string) (string, error) {
-	versionList, err := b.getVersionList(ctx, topology, stateChannelGroup, optionalChannel...)
-	if err != nil {
-		return "", err
-	}
+	versionList, listErr := b.getVersionList(ctx, topology, stateChannelGroup, optionalChannel...)
 
-	version := versionList[0]
 	if stateVersion != "" {
-		version = stateVersion
+		if listErr == nil && slices.Contains(versionList, stateVersion) {
+			return stateVersion, nil
+		}
+		validated, fallbackErr := b.validateExplicitVersion(
+			ctx, topology, stateChannelGroup, stateVersion, optionalChannel...)
+		if fallbackErr == nil {
+			tflog.Debug(ctx, fmt.Sprintf(
+				"Validated explicit version %s via OCM version GET (not present in paginated list)", stateVersion))
+			return validated, nil
+		}
+		if listErr != nil {
+			return "", fallbackErr
+		}
+		return "", fmt.Errorf(
+			"version %s is not in the list of supported versions: %v: %w",
+			stateVersion, versionList, fallbackErr)
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Validating if cluster version %s is in the list of supported versions: %v", version, versionList))
-	if slices.Contains(versionList, version) {
-		return version, nil
+	if listErr != nil {
+		return "", listErr
 	}
 
-	return "", fmt.Errorf("version %s is not in the list of supported versions: %v", version, versionList)
+	return versionList[0], nil
+}
+
+// validateExplicitVersion loads a single version by ID when paginated list results are
+// incomplete (for example OCP 5.x missing from list search while GET by ID succeeds).
+func (b *BaseCluster) validateExplicitVersion(ctx context.Context,
+	topology ClusterTopology, channelGroup, stateVersion string, optionalChannel ...string) (string, error) {
+	versionID := ocmUtils.CreateVersionId(stateVersion, channelGroup)
+	response, err := b.VersionCollection.Version(versionID).Get().Send()
+	if err != nil {
+		return "", fmt.Errorf("failed to retrieve version %s: %w", stateVersion, err)
+	}
+	v := response.Body()
+
+	if !v.Enabled() {
+		return "", fmt.Errorf("version %s is not enabled", stateVersion)
+	}
+	if !v.ROSAEnabled() {
+		return "", fmt.Errorf("version %s is not ROSA enabled", stateVersion)
+	}
+	if v.ChannelGroup() != channelGroup {
+		return "", fmt.Errorf(
+			"version %s is in channel group %q, expected %q",
+			stateVersion, v.ChannelGroup(), channelGroup)
+	}
+	if topology == Hcp && !v.HostedControlPlaneEnabled() {
+		return "", fmt.Errorf("version %s is not enabled for hosted control plane", stateVersion)
+	}
+	if len(optionalChannel) > 0 && optionalChannel[0] != "" {
+		ch := optionalChannel[0]
+		if !slices.Contains(v.AvailableChannels(), ch) {
+			return "", fmt.Errorf("version %s does not support channel %s", stateVersion, ch)
+		}
+	}
+	if rawID := v.RawID(); rawID != "" {
+		return rawID, nil
+	}
+	return stateVersion, nil
 }
 
 // filterByAvailableChannel filters versions to only those that support the specified channel

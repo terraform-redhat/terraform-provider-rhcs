@@ -438,6 +438,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						}
 					]`),
 					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.99.99-fast"),
+						RespondWithJSON(http.StatusNotFound, `{"kind":"Error","id":"404","code":"CLUSTERS-MGMT-404","reason":"Version not found"}`),
+					),
 				)
 				Terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {

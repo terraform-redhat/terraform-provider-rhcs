@@ -19,8 +19,10 @@ package versions
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -54,6 +56,16 @@ func (s *VersionsDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 			"order": schema.StringAttribute{
 				Description: "Order criteria.",
 				Optional:    true,
+			},
+			"product": schema.StringAttribute{
+				Description: "OCM product the versions belong to. Set it to `hcp` to list the hosted " +
+					"control plane collection, which includes versions that are not part of the default " +
+					"(classic) collection, for example OCP 5.x. Omit it to list the default collection. " +
+					"`hcp` is currently the only value accepted by OCM.",
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("hcp"),
+				},
 			},
 			"item": schema.SingleNestedAttribute{
 				Description: "Content of the list when there is exactly one item.",
@@ -125,6 +137,9 @@ func (s *VersionsDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 	if !state.Order.IsUnknown() && !state.Order.IsNull() {
 		listRequest.Order(state.Order.ValueString())
+	}
+	if !state.Product.IsUnknown() && !state.Product.IsNull() {
+		listRequest.Parameter("product", state.Product.ValueString())
 	}
 	for {
 		listResponse, err := listRequest.SendContext(ctx)

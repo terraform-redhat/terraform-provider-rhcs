@@ -31,6 +31,7 @@ data "rhcs_versions" "four_seventeen" {
 ### Optional
 
 - `order` (String) Order criteria.
+- `product` (String) OCM product the versions belong to. Set it to `hcp` to list the hosted control plane collection, which includes versions that are not part of the default (classic) collection, for example OCP 5.x. Omit it to list the default collection. `hcp` is currently the only value accepted by OCM.
 - `search` (String) Search criteria.
 
 ### Read-Only

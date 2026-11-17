@@ -36,6 +36,11 @@ const (
 	Hcp     ClusterTopology = "hcp"
 )
 
+// hcpProduct is the 'product' query parameter value OCM uses for the hosted
+// control plane version collection. Without it OCM serves the classic view,
+// which omits pre-GA versions such as 5.0.x.
+const hcpProduct = "hcp"
+
 const (
 	PoolMessage = "This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)"
 )
@@ -132,12 +137,17 @@ func (b *BaseCluster) getVersions(ctx context.Context, topology ClusterTopology,
 	filter := strings.Join(searchParams, " AND ")
 	for {
 		var response *cmv1.VersionsListResponse
-		response, err = b.VersionCollection.List().
+		request := b.VersionCollection.List().
 			Search(filter).
 			Order("default desc, id desc").
 			Page(page).
-			Size(size).
-			Send()
+			Size(size)
+		// Only hosted control plane accepts a product (classic returns HTTP 400),
+		// so classic keeps the default collection view.
+		if topology == Hcp {
+			request.Parameter("product", hcpProduct)
+		}
+		response, err = request.Send()
 		if err != nil {
 			tflog.Debug(ctx, err.Error())
 			return nil, err

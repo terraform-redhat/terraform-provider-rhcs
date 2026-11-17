@@ -39,6 +39,14 @@ const (
 )
 
 var _ = Describe("HCP Cluster", func() {
+	// verifyVersionsProduct asserts the OCM 'product' query parameter is sent on the
+	// versions request. OCM serves the classic version collection without it.
+	verifyVersionsProduct := func(expected string) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			Expect(r.URL.Query().Get("product")).To(Equal(expected))
+		}
+	}
+
 	// cmv1 doesn't have a marshaling option for page
 	versionListPage := `
 	{
@@ -322,6 +330,90 @@ var _ = Describe("HCP Cluster", func() {
 					]
 					channel_group = "fast"
 					version = "4.50.0"
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+			})
+			It("requests the hcp product versions and accepts a version only present there", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						verifyVersionsProduct("hcp"),
+						RespondWithPatchedJSON(http.StatusOK, versionListPage, `[
+						{
+							"op": "add",
+							"path": "/items/-",
+							"value": {
+								"kind": "Version",
+								"id": "openshift-v5.0.1-fast",
+								"href": "/api/clusters_mgmt/v1/versions/openshift-v5.0.1-fast",
+								"raw_id": "5.0.1",
+								"channel_group": "fast",
+								"enabled": true,
+								"rosa_enabled": true,
+								"hosted_control_plane_enabled": true,
+								"available_channels": ["fast-5.0", "stable-5.0"]
+							}
+						}]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.version.id`, "openshift-v5.0.1-fast"),
+						VerifyJQ(`.version.channel_group`, "fast"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "ec2_metadata_http_tokens": "required",
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+							"op": "replace",
+							"path": "/version/id",
+							"value": "openshift-v5.0.1-fast"
+						},
+						{
+							"op": "add",
+							"path": "/version/channel_group",
+							"value": "fast"
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					channel_group = "fast"
+					version = "5.0.1"
 				}`)
 				runOutput := Terraform.Apply()
 				Expect(runOutput.ExitCode).To(BeZero())

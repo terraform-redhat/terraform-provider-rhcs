@@ -6,6 +6,7 @@ WHEN your situation matches one of these, open **only** that section:
 - WHEN implementing Create or mapping plan → API create → state → [Create method](#create-method)
 - WHEN this resource’s Create must wait until a parent cluster is ready → [Wait for parent cluster](#wait-for-parent-cluster)
 - WHEN adding or changing a Day 2 capability (where it lives: cluster attribute versus its own resource) → [Day 2 capabilities](#day-2-capabilities)
+- WHEN a design adds requests, waits, permissions, or dependencies to a resource lifecycle (Day 2 resource or cluster-owned) → [Lifecycle impact](#lifecycle-impact)
 - DEFAULT: WHEN adding or changing create behavior, open [Create method](#create-method) first, then any matching WHEN above.
 
 ## Create method
@@ -40,6 +41,10 @@ NOTE: Timeouts — WHEN the resource needs configurable create/update/delete dur
 
 **Day 2** (code also says **post-create**) means a capability that applies **after** the cluster already exists. `WaitForClusterToBeReady` inside a child resource’s own Create is expected and is **not** what this section constrains. Embedding a new Day 2 API call inside cluster Create/Update is what this section constrains.
 
+WHEN deciding where a cluster-dependent capability lives:
+- MAY: Model a property or completion condition the cluster itself owns as a scoped, opt-in cluster attribute (e.g. `wait_for_create_complete`); it is not a separate Day 2 capability.
+- MUST NOT: Use an opt-in cluster attribute to place a separately managed Day 2 capability on the cluster resource.
+
 WHEN adding a capability that is Day 2:
 - DEFAULT: Prefer a **new resource** that takes the cluster id so Terraform can express dependencies (create order, destroy order), over a new attribute on the cluster resource that runs extra API calls inside cluster Create/Update.
 - MUST NOT: For **new** Day 2 behavior embedded in cluster Create/Update, succeed cluster creation while leaving that capability unset or only partially applied.
@@ -50,4 +55,12 @@ WHEN adding a capability that is Day 2:
 WHEN editing an existing cluster attribute that already embeds Day 2 behavior:
 - DEFAULT: Match that package, including warning-on-failure if that is the established pattern. Severity and safety-control failures: [`errors.md`](../errors.md).
 
-NOTE: Splitting an existing embedded Day 2 attribute into its own resource is a user-visible contract change — see [`breaking-changes.md`](../breaking-changes.md).
+NOTE: Splitting an existing embedded Day 2 attribute into its own resource is a separate migration with a user-visible contract change — assess it on its own, not inside an unrelated change; see [`breaking-changes.md`](../breaking-changes.md).
+
+## Lifecycle impact
+
+WHEN a design adds requests, waits, permissions, or dependencies to a resource lifecycle — a separate Day 2 resource, or a cluster-owned property or completion condition:
+- MUST: Keep them in the resource that owns the capability, with its configuration, prerequisites, and failure handling.
+- MUST: Preserve existing default behavior, especially of cluster Create and refresh. A necessary intentional change, such as a correctness or security fix, needs PR rationale and evidence per the [compatibility check](../breaking-changes.md#compatibility-check).
+- MUST: Justify each added wait in the PR: what it waits for and who controls that condition, its time budget (Timeouts NOTE above), context cancellation, and the state left after timeout or failure.
+- NOTE: A condition controlled outside Terraform neither requires a separate resource nor rules out waiting for it; ownership decides.

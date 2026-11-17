@@ -14,8 +14,9 @@ WHEN your situation matches one of these, open **only** that section:
 
 WHEN adding a validator, plan modifier, waiter, conversion helper, or similar:
 - MUST: Search existing code first — `provider/common/` (including `attrvalidators/`, `planmodifiers/`), then `provider/<feature>/common/`, then the local package.
-- MUST: Reuse or extend an existing helper when it fits.
-- MUST NOT: Add a parallel helper that duplicates behavior already in those locations.
+- MUST: Reuse or extend an existing helper when its contract (inputs, waits, errors, side effects) fits.
+- MUST NOT: Add a parallel helper with the same contract as an existing one.
+- MAY: Add a small specialization when extending a shared helper would change behavior for its existing callers; state the contract difference in the PR and place it per [Where shared code goes](#where-shared-code-goes).
 - DEFAULT: Prefer HashiCorp `terraform-plugin-framework-validators` (and existing `attrvalidators`) over a new custom validator when they cover the rule.
 
 ## Where shared code goes

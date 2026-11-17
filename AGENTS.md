@@ -44,7 +44,7 @@ Thin entrypoints `CLAUDE.md` and `GEMINI.md` should only point here to avoid dri
 
 ## Workflow
 
-1. Confirm ROSA/OCM support — [`developer-docs/architecture.md`](developer-docs/architecture.md).
+1. Confirm ROSA/OCM support — [`developer-docs/architecture.md`](developer-docs/architecture.md). Before coding a change that existing configurations could notice (including a fix), complete the [compatibility check](developer-docs/breaking-changes.md#compatibility-check).
 2. Resource? — [`developer-docs/resources/resource-overview.md`](developer-docs/resources/resource-overview.md). Data source? — [`developer-docs/datasources/datasource-overview.md`](developer-docs/datasources/datasource-overview.md). Follow an analogous package under `provider/`.
 3. Tests — [`developer-docs/testing.md`](developer-docs/testing.md); commands in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 4. Docs/examples — [`developer-docs/docs-and-examples.md`](developer-docs/docs-and-examples.md).

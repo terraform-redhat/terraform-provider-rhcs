@@ -5,11 +5,19 @@ Router: [`AGENTS.md`](../AGENTS.md). Schema surface: [`resources/resource-schema
 Catalog of user-visible contract risks and how to deprecate before a hard break. Shared by **resources and data sources**.
 
 WHEN your situation matches one of these, open **only** that section:
+- WHEN planning, before coding, a change that existing configurations could notice (including a fix) → [Compatibility check](#compatibility-check)
 - WHEN judging whether a change is breaking → [What counts as breaking](#what-counts-as-breaking)
 - WHEN a breaking change is unavoidable → [When a break is necessary](#when-a-break-is-necessary)
 - WHEN removing or replacing schema without an immediate hard break → [Schema deprecations](#schema-deprecations)
 - WHEN unsure if human review is required → [Human-in-the-loop](#human-in-the-loop)
 - DEFAULT: Prefer non-breaking changes; open [What counts as breaking](#what-counts-as-breaking) first.
+
+## Compatibility check
+
+WHEN planning a change that existing configurations, state, or callers could notice (including a bug fix), before coding:
+- MUST: Compare what succeeds today — results, defaults, and callers — with what the change adds: API requests, permissions, waits, failure modes, and side effects.
+- MUST: Choose the smallest appropriate design that keeps today's successful configurations working; otherwise treat the change as potentially breaking — see [What counts as breaking](#what-counts-as-breaking).
+- MUST NOT: Treat a `fix` type or bug label as an exemption.
 
 ## What counts as breaking
 

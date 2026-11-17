@@ -6,6 +6,9 @@ Open the linked files for rules — do not treat this file as the rulebook.
 
 DEFAULT: Prefer the nearest analogous package under `provider/` for layout and behavior shape (see [`package-layout.md`](../packages/package-layout.md)).
 
+WHEN a capability or completion condition depends on a cluster (new resource, new attribute, or added wait), before coding:
+- MUST: Decide which resource owns it — [Day 2 capabilities](resource-create.md#day-2-capabilities) — then apply [Lifecycle impact](resource-create.md#lifecycle-impact).
+
 ## WHEN adding a new resource
 
 Follow these steps **in order**. For each step, open **only** that step’s doc (and any link it requires), implement, then move on. Do **not** preload every linked file before coding.
@@ -57,6 +60,6 @@ WHEN your change matches one of these, open **only** that doc first (then any fa
 - WHEN changing docs / examples → [`docs-and-examples.md`](../docs-and-examples.md)
 - DEFAULT: Do not open sibling lifecycle docs unless the change forces it.
 
-WHEN the change may alter the user-visible contract or plan/apply behavior for existing configurations:
-- MUST: Read [`breaking-changes.md`](../breaking-changes.md) and follow the PR **Breaking Changes** section if applicable.
+WHEN the change may alter the user-visible contract or plan/apply behavior for existing configurations (including a fix):
+- MUST: Complete the [compatibility check](../breaking-changes.md#compatibility-check) before coding, and follow the PR **Breaking Changes** section if applicable.
 - MUST NOT: Duplicate the breaking-change catalog in resource step docs — that file is the single list.

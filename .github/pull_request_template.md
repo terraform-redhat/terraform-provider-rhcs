@@ -67,7 +67,7 @@ For details, see: ./CONTRIBUTING.md
 - Other artifacts:
 
 ## Breaking Changes
-- [ ] No breaking changes
+- [ ] No breaking changes (compatibility evidence per [testing](https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/developer-docs/testing.md#when-to-add-tests) is in **How to Test** when applicable)
 - [ ] Yes, this PR introduces a breaking change (describe impact and migration plan below; see [breaking-change guidance](https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/developer-docs/breaking-changes.md))
 
 ### Breaking Change Details / Migration Plan

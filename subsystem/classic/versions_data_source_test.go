@@ -34,6 +34,7 @@ var _ = Describe("Versions data source", func() {
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 				VerifyFormKV("search", "enabled = 't'"),
+				verifyNoVersionsProduct(),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 2,
@@ -290,5 +291,54 @@ var _ = Describe("Versions data source", func() {
 		// Check the state:
 		resource := Terraform.Resource("rhcs_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
+	})
+
+	It("Can request the hcp product collection", func() {
+		// Prepare the server:
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				VerifyFormKV("search", "enabled = 't'"),
+				VerifyFormKV("product", "hcp"),
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 1,
+				  "total": 1,
+				  "items": [
+				    {
+				      "id": "openshift-v5.0.1-fast",
+				      "raw_id": "5.0.1",
+				      "channel_group": "fast",
+				      "available_channels": ["fast-5.0", "stable-5.0"]
+				    }
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		Terraform.Source(`
+		  data "rhcs_versions" "my_versions" {
+		    product = "hcp"
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		// Check the state:
+		resource := Terraform.Resource("rhcs_versions", "my_versions")
+		Expect(resource).To(MatchJQ(`.attributes.item.id`, "openshift-v5.0.1-fast"))
+		Expect(resource).To(MatchJQ(`.attributes.item.name`, "5.0.1"))
+	})
+
+	It("Rejects an unsupported product", func() {
+		Terraform.Source(`
+		  data "rhcs_versions" "my_versions" {
+		    product = "classic"
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).NotTo(BeZero())
+		runOutput.VerifyErrorContainsSubstring("Attribute product value must be one of: [\"hcp\"]")
 	})
 })

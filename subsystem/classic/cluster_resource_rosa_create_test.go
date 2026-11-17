@@ -30,6 +30,14 @@ import (
 	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
+// verifyNoVersionsProduct asserts the versions request omits the OCM 'product' query
+// parameter: OCM rejects it for classic (only hosted control plane is a valid product).
+var verifyNoVersionsProduct = func() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		Expect(r.URL.Query().Has("product")).To(BeFalse())
+	}
+}
+
 const versionListPage1 = `{
 	"kind": "VersionList",
 	"page": 1,
@@ -291,6 +299,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						verifyNoVersionsProduct(),
 						RespondWithJSON(http.StatusOK, versionListPage1),
 					),
 					CombineHandlers(

@@ -19,10 +19,11 @@ package versions
 import "github.com/hashicorp/terraform-plugin-framework/types"
 
 type VersionsState struct {
-	Search types.String    `tfsdk:"search"`
-	Order  types.String    `tfsdk:"order"`
-	Item   *VersionState   `tfsdk:"item"`
-	Items  []*VersionState `tfsdk:"items"`
+	Search  types.String    `tfsdk:"search"`
+	Order   types.String    `tfsdk:"order"`
+	Product types.String    `tfsdk:"product"`
+	Item    *VersionState   `tfsdk:"item"`
+	Items   []*VersionState `tfsdk:"items"`
 }
 
 type VersionState struct {

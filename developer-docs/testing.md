@@ -42,7 +42,7 @@ WHEN the change touches `tests/utils/exec` or tf-manifests:
 
 WHEN claiming that a change, including a fix, is non-breaking for existing configurations:
 - MUST: Support the claim in proportion to its risk, covering as applicable: prior configuration and state, omitted or disabled settings ([omission semantics](resources/resource-attribute-omission-semantics.md)), the new opt-in, delayed or unavailable dependencies, refresh, import, and shared-helper callers.
-- MUST: Assert requests, waits, diagnostics, and resulting state; a no-drift plan alone is not sufficient proof.
+- MUST: Assert, as applicable, requests, waits, diagnostics, and resulting state; a no-drift plan alone is not sufficient proof.
 - MUST: Report the evidence in the PR **How to Test** and, when required, the [PR Verification Template](verification_template.md).
 - NOTE: For an intentional break, follow [When a break is necessary](breaking-changes.md#when-a-break-is-necessary) instead.
 

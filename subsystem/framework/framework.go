@@ -105,6 +105,16 @@ func (ro *RunOutput) VerifyOutputContainsSubstring(sub string) {
 	Expect(ro.out).To(ContainSubstring(sub))
 }
 
+func (ro *RunOutput) VerifyErrorDoesNotContainSubstring(sub string) {
+	GinkgoHelper()
+	Expect(ro.err).ToNot(ContainSubstring(sub))
+}
+
+func (ro *RunOutput) VerifyOutputDoesNotContainSubstring(sub string) {
+	GinkgoHelper()
+	Expect(ro.out).ToNot(ContainSubstring(sub))
+}
+
 // TerraformRunner contains the data and logic needed to run Terraform.
 type TerraformRunner struct {
 	binary string

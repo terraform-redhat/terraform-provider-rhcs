@@ -5888,6 +5888,7 @@ var _ = Describe("HCP Cluster", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyJQ(`.additional_trust_bundle`, ""),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 				{
 				  "op": "add",
@@ -5958,7 +5959,35 @@ var _ = Describe("HCP Cluster", func() {
 			 }`)
 			runOutput = Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, ""))
 
+			// The cluster no longer reports a trust bundle, so the next plan is empty.
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+				{
+				  "op": "add",
+				  "path": "/aws",
+				  "value": {
+					  "ec2_metadata_http_tokens": "required",
+					  "sts" : {
+						  "oidc_endpoint_url": "https://127.0.0.1",
+						  "thumbprint": "111111",
+						  "role_arn": "",
+						  "support_role_arn": "",
+						  "instance_iam_roles" : {
+							"worker_role_arn" : ""
+						  },
+						  "operator_role_prefix" : "test"
+					  }
+				  }
+				}]`),
+				),
+			)
+			runOutput = Terraform.Run("plan", "-detailed-exitcode")
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 		It("Creates private cluster with aws subnet ids & private link", func() {
 			// Prepare the server:

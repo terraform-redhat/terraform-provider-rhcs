@@ -2134,16 +2134,31 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 func updateProxy(state, plan *ClusterRosaHcpState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, error) {
 	if !reflect.DeepEqual(state.Proxy, plan.Proxy) {
 		var err error
-		if plan.Proxy == nil {
-			plan.Proxy = &proxy.Proxy{}
-		}
+		// BuildProxy ignores a nil proxy. Leave plan.Proxy as planned so that a
+		// removed proxy is saved as null instead of an empty object.
 		clusterBuilder, err = proxy.BuildProxy(plan.Proxy, clusterBuilder)
 		if err != nil {
 			return nil, err
 		}
+		// A PATCH without additional_trust_bundle keeps the current bundle and
+		// an empty string removes it, so send the empty string when the
+		// configuration no longer sets the bundle.
+		if additionalTrustBundleRemoved(state.Proxy, plan.Proxy) {
+			clusterBuilder.AdditionalTrustBundle("")
+		}
 	}
 
 	return clusterBuilder, nil
+}
+
+// additionalTrustBundleRemoved reports whether the prior state has a non-empty
+// additional trust bundle and the plan removes it, either by removing the proxy
+// or by leaving additional_trust_bundle null. An unknown plan value is not a removal.
+func additionalTrustBundleRemoved(prior, planned *proxy.Proxy) bool {
+	if prior == nil || common.IsStringAttributeUnknownOrEmpty(prior.AdditionalTrustBundle) {
+		return false
+	}
+	return planned == nil || planned.AdditionalTrustBundle.IsNull()
 }
 
 func (r *ClusterRosaHcpResource) Delete(ctx context.Context, request resource.DeleteRequest,

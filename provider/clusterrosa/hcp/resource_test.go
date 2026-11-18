@@ -22,7 +22,9 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -72,6 +74,10 @@ const (
 	auditLogRoleArn     = "arn:aws:iam::123456789012:role/audit-log-role"
 	autoNodeRoleArn     = "arn:aws:iam::123456789012:role/karpenter-role"
 	fipsEnabled         = true
+	// Placeholder trust bundles; tests never use real certificates.
+	testTrustBundle      = "123"
+	otherTestTrustBundle = "456"
+	redactedTrustBundle  = "REDACTED"
 )
 
 var (
@@ -633,6 +639,187 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 
 			Expect(clusterState.Channel.IsNull()).To(BeTrue())
 			Expect(clusterState.ChannelGroup.ValueString()).To(Equal("stable"))
+		})
+
+		Context("proxy and additional trust bundle", func() {
+			populateWith := func(clusterState *ClusterRosaHcpState, apiFields map[string]any) {
+				GinkgoHelper()
+				clusterJson := generateBasicRosaHcpClusterJson()
+				maps.Copy(clusterJson, apiFields)
+				clusterJsonString, err := json.Marshal(clusterJson)
+				Expect(err).ToNot(HaveOccurred())
+				clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)).To(Succeed())
+			}
+
+			It("Keeps a null proxy null when the API reports no proxy and no trust bundle", func() {
+				clusterState := &ClusterRosaHcpState{}
+				populateWith(clusterState, nil)
+				Expect(clusterState.Proxy).To(BeNil())
+			})
+
+			It("Keeps a planned proxy object with null attributes when the API reports no proxy", func() {
+				clusterState := &ClusterRosaHcpState{Proxy: &proxy.Proxy{}}
+				populateWith(clusterState, nil)
+				Expect(clusterState.Proxy).To(Equal(&proxy.Proxy{}))
+			})
+
+			It("Keeps a null trust bundle when the API reports the proxy without a trust bundle", func() {
+				clusterState := &ClusterRosaHcpState{Proxy: &proxy.Proxy{
+					HttpProxy:             types.StringValue(httpProxy),
+					AdditionalTrustBundle: types.StringNull(),
+				}}
+				populateWith(clusterState, map[string]any{
+					"proxy": map[string]any{"http_proxy": httpProxy},
+				})
+				Expect(clusterState.Proxy).ToNot(BeNil())
+				Expect(clusterState.Proxy.HttpProxy.ValueString()).To(Equal(httpProxy))
+				Expect(clusterState.Proxy.AdditionalTrustBundle.IsNull()).To(BeTrue())
+			})
+
+			It("Keeps a known trust bundle when the API returns REDACTED", func() {
+				clusterState := &ClusterRosaHcpState{Proxy: &proxy.Proxy{
+					AdditionalTrustBundle: types.StringValue(testTrustBundle),
+				}}
+				populateWith(clusterState, map[string]any{"additional_trust_bundle": redactedTrustBundle})
+				Expect(clusterState.Proxy.AdditionalTrustBundle.ValueString()).To(Equal(testTrustBundle))
+			})
+
+			It("Records REDACTED when there is no prior trust bundle", func() {
+				clusterState := &ClusterRosaHcpState{}
+				populateWith(clusterState, map[string]any{"additional_trust_bundle": redactedTrustBundle})
+				Expect(clusterState.Proxy).To(Equal(&proxy.Proxy{
+					AdditionalTrustBundle: types.StringValue(redactedTrustBundle),
+				}))
+			})
+		})
+	})
+
+	Context("updateProxy", func() {
+		// patchBody runs updateProxy, checks that it leaves the plan unchanged,
+		// and returns whether the builder is empty and the marshaled PATCH body.
+		patchBody := func(prior, planned *proxy.Proxy) (bool, map[string]any) {
+			GinkgoHelper()
+			state := &ClusterRosaHcpState{Proxy: prior}
+			plan := &ClusterRosaHcpState{Proxy: planned}
+			var plannedCopy proxy.Proxy
+			if planned != nil {
+				plannedCopy = *planned
+			}
+
+			builder, err := updateProxy(state, plan, cmv1.NewCluster())
+			Expect(err).ToNot(HaveOccurred())
+			if planned == nil {
+				Expect(plan.Proxy).To(BeNil())
+			} else {
+				Expect(plan.Proxy).To(BeIdenticalTo(planned))
+				Expect(*plan.Proxy).To(Equal(plannedCopy))
+			}
+
+			empty := builder.Empty()
+			cluster, err := builder.Build()
+			Expect(err).ToNot(HaveOccurred())
+			raw := new(strings.Builder)
+			Expect(cmv1.MarshalCluster(cluster, raw)).To(Succeed())
+			body := map[string]any{}
+			Expect(json.Unmarshal([]byte(raw.String()), &body)).To(Succeed())
+			return empty, body
+		}
+		bundleOnly := func(bundle types.String) *proxy.Proxy {
+			return &proxy.Proxy{AdditionalTrustBundle: bundle}
+		}
+
+		It("Sends an empty trust bundle when the proxy is removed", func() {
+			empty, body := patchBody(bundleOnly(types.StringValue(testTrustBundle)), nil)
+			Expect(empty).To(BeFalse())
+			Expect(body).To(HaveKeyWithValue("additional_trust_bundle", ""))
+			Expect(body).ToNot(HaveKey("proxy"))
+		})
+
+		It("Sends an empty trust bundle with the kept proxy attributes when only the trust bundle is removed", func() {
+			prior := &proxy.Proxy{
+				HttpProxy:             types.StringValue(httpProxy),
+				AdditionalTrustBundle: types.StringValue(testTrustBundle),
+			}
+			planned := &proxy.Proxy{
+				HttpProxy:             types.StringValue(httpProxy),
+				AdditionalTrustBundle: types.StringNull(),
+			}
+			_, body := patchBody(prior, planned)
+			Expect(body).To(HaveKeyWithValue("additional_trust_bundle", ""))
+			Expect(body).To(HaveKeyWithValue("proxy", HaveKeyWithValue("http_proxy", httpProxy)))
+		})
+
+		It("Sends an empty trust bundle and keeps a planned proxy object with null attributes", func() {
+			empty, body := patchBody(bundleOnly(types.StringValue(testTrustBundle)), &proxy.Proxy{})
+			Expect(empty).To(BeFalse())
+			Expect(body).To(HaveKeyWithValue("additional_trust_bundle", ""))
+			Expect(body).ToNot(HaveKey("proxy"))
+		})
+
+		It("Sends an empty trust bundle when the prior state holds REDACTED and the proxy is removed", func() {
+			_, body := patchBody(bundleOnly(types.StringValue(redactedTrustBundle)), nil)
+			Expect(body).To(HaveKeyWithValue("additional_trust_bundle", ""))
+		})
+
+		It("Sends an explicitly configured empty trust bundle as configured", func() {
+			prior := bundleOnly(types.StringValue(testTrustBundle))
+			planned := bundleOnly(types.StringValue(""))
+			// The configured empty string is not a removal, so only BuildProxy sets it.
+			Expect(additionalTrustBundleRemoved(prior, planned)).To(BeFalse())
+			_, body := patchBody(prior, planned)
+			Expect(body).To(HaveKeyWithValue("additional_trust_bundle", ""))
+		})
+
+		It("Does not send a trust bundle when it is unchanged", func() {
+			empty, body := patchBody(
+				bundleOnly(types.StringValue(testTrustBundle)),
+				bundleOnly(types.StringValue(testTrustBundle)),
+			)
+			Expect(empty).To(BeTrue())
+			Expect(body).ToNot(HaveKey("additional_trust_bundle"))
+		})
+
+		It("Does not send a trust bundle when the proxy stays null", func() {
+			empty, body := patchBody(nil, nil)
+			Expect(empty).To(BeTrue())
+			Expect(body).ToNot(HaveKey("additional_trust_bundle"))
+		})
+
+		It("Sends a new trust bundle when it is added", func() {
+			_, body := patchBody(nil, bundleOnly(types.StringValue(testTrustBundle)))
+			Expect(body).To(HaveKeyWithValue("additional_trust_bundle", testTrustBundle))
+		})
+
+		It("Sends the new trust bundle when it is replaced", func() {
+			_, body := patchBody(
+				bundleOnly(types.StringValue(testTrustBundle)),
+				bundleOnly(types.StringValue(otherTestTrustBundle)),
+			)
+			Expect(body).To(HaveKeyWithValue("additional_trust_bundle", otherTestTrustBundle))
+		})
+
+		It("Does not send a trust bundle when the prior trust bundle is empty", func() {
+			empty, body := patchBody(bundleOnly(types.StringValue("")), nil)
+			Expect(empty).To(BeTrue())
+			Expect(body).ToNot(HaveKey("additional_trust_bundle"))
+		})
+
+		It("Does not send a trust bundle when the planned trust bundle is unknown", func() {
+			empty, body := patchBody(
+				bundleOnly(types.StringValue(testTrustBundle)),
+				bundleOnly(types.StringUnknown()),
+			)
+			Expect(empty).To(BeTrue())
+			Expect(body).ToNot(HaveKey("additional_trust_bundle"))
+		})
+
+		It("Does not change the request when a proxy without a trust bundle is removed", func() {
+			empty, body := patchBody(&proxy.Proxy{HttpProxy: types.StringValue(httpProxy)}, nil)
+			Expect(empty).To(BeTrue())
+			Expect(body).ToNot(HaveKey("additional_trust_bundle"))
+			Expect(body).ToNot(HaveKey("proxy"))
 		})
 	})
 

@@ -5989,6 +5989,257 @@ var _ = Describe("HCP Cluster", func() {
 			runOutput = Terraform.Run("plan", "-detailed-exitcode")
 			Expect(runOutput.ExitCode).To(BeZero())
 		})
+		Context("Remove additional trust bundle", func() {
+			// The bundle is a placeholder, not a certificate. It is distinctive so
+			// that the tests can check that plan and apply output never shows it.
+			const trustBundle = "placeholder-additional-trust-bundle"
+			// Adds STS details and keeps the template's account and subnet IDs,
+			// which import needs to match the configuration.
+			const stsPatch = `{
+				"op": "add",
+				"path": "/aws/sts",
+				"value": {
+					"oidc_endpoint_url": "https://127.0.0.1",
+					"thumbprint": "111111",
+					"role_arn": "",
+					"support_role_arn": "",
+					"instance_iam_roles": {
+						"worker_role_arn": ""
+					},
+					"operator_role_prefix": "test"
+				}
+			}`
+
+			// clusterResponse returns the mocked cluster. Like the API, it reports
+			// a set trust bundle as REDACTED and omits the field when none is set.
+			clusterResponse := func(withTrustBundle bool, httpProxy string, property string) http.HandlerFunc {
+				body := template
+				if withTrustBundle {
+					body = templateWithTrustBundle
+				}
+				patches := []string{stsPatch, fmt.Sprintf(`{
+					"op": "add",
+					"path": "/properties",
+					"value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						"rosa_tf_commit": %q,
+						"rosa_tf_version": %q,
+						%q: %q
+					}
+				}`, build.Commit, build.Version, propKey, property)}
+				if httpProxy != "" {
+					patches = append(patches, fmt.Sprintf(
+						`{"op": "add", "path": "/proxy", "value": {"http_proxy": %q}}`, httpProxy))
+				}
+				return RespondWithPatchedJSON(http.StatusOK, body, "["+strings.Join(patches, ",")+"]")
+			}
+			clusterSource := func(property string, proxyBlock string) string {
+				return fmt.Sprintf(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					properties = {
+						rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+						%s = %q
+					}
+					%s
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+				}`, propKey, property, proxyBlock)
+			}
+			expectApplied := func(runOutput RunOutput) {
+				GinkgoHelper()
+				// Checked before the exit code so that a regression reports this error.
+				runOutput.VerifyErrorDoesNotContainSubstring("Provider produced inconsistent result")
+				Expect(runOutput.ExitCode).To(BeZero())
+				runOutput.VerifyOutputDoesNotContainSubstring(trustBundle)
+			}
+			createCluster := func(proxyBlock string, response http.HandlerFunc, verifiers ...http.HandlerFunc) {
+				GinkgoHelper()
+				post := append([]http.HandlerFunc{
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				}, verifiers...)
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(append(post, response)...),
+				)
+				Terraform.Source(clusterSource(propValue, proxyBlock))
+				expectApplied(Terraform.Apply())
+			}
+			// updateCluster applies the configuration: refresh, PATCH checked by
+			// the verifiers, then the GET that populates the state.
+			updateCluster := func(source string, before, after http.HandlerFunc, verifiers ...http.HandlerFunc) {
+				GinkgoHelper()
+				patch := append([]http.HandlerFunc{
+					VerifyRequest(http.MethodPatch, cluster123Route),
+				}, verifiers...)
+				TestServer.AppendHandlers(
+					CombineHandlers(VerifyRequest(http.MethodGet, cluster123Route), before),
+					CombineHandlers(append(patch, after)...),
+					CombineHandlers(VerifyRequest(http.MethodGet, cluster123Route), after),
+				)
+				Terraform.Source(source)
+				expectApplied(Terraform.Apply())
+			}
+			expectNoChanges := func(refresh http.HandlerFunc) {
+				GinkgoHelper()
+				TestServer.AppendHandlers(CombineHandlers(VerifyRequest(http.MethodGet, cluster123Route), refresh))
+				runOutput := Terraform.Run("plan", "-detailed-exitcode")
+				Expect(runOutput.ExitCode).To(BeZero())
+				runOutput.VerifyOutputDoesNotContainSubstring(trustBundle)
+			}
+			clusterResource := func() any {
+				return Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			}
+
+			It("Removes the trust bundle when the proxy is removed after it was added", func() {
+				// No proxy on create.
+				createCluster("", clusterResponse(false, "", propValue),
+					VerifyJQ(`.additional_trust_bundle`, nil))
+				Expect(clusterResource()).To(MatchJQ(`.attributes.proxy`, nil))
+
+				// An unrelated update sends no trust bundle when none was set.
+				updateCluster(clusterSource(propValue+"_1", ""),
+					clusterResponse(false, "", propValue),
+					clusterResponse(false, "", propValue+"_1"),
+					VerifyJQ(`.properties.`+propKey, propValue+"_1"),
+					VerifyJQ(`.additional_trust_bundle`, nil),
+				)
+				Expect(clusterResource()).To(MatchJQ(`.attributes.proxy`, nil))
+				expectNoChanges(clusterResponse(false, "", propValue+"_1"))
+
+				// Add the bundle. The API then reports REDACTED and the state keeps the configured value.
+				updateCluster(clusterSource(propValue+"_1", fmt.Sprintf(`proxy = {
+						additional_trust_bundle = %q
+					}`, trustBundle)),
+					clusterResponse(false, "", propValue+"_1"),
+					clusterResponse(true, "", propValue+"_1"),
+					VerifyJQ(`.additional_trust_bundle`, trustBundle),
+				)
+				Expect(clusterResource()).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, trustBundle))
+				expectNoChanges(clusterResponse(true, "", propValue+"_1"))
+
+				// Remove the proxy. The PATCH clears the bundle with an empty string.
+				updateCluster(clusterSource(propValue+"_1", ""),
+					clusterResponse(true, "", propValue+"_1"),
+					clusterResponse(false, "", propValue+"_1"),
+					VerifyJQ(`.additional_trust_bundle`, ""),
+					VerifyJQ(`.proxy`, nil),
+				)
+				Expect(clusterResource()).To(MatchJQ(`.attributes.proxy`, nil))
+				expectNoChanges(clusterResponse(false, "", propValue+"_1"))
+			})
+
+			It("Removes the trust bundle and keeps http_proxy when only the trust bundle is removed", func() {
+				createCluster(fmt.Sprintf(`proxy = {
+						http_proxy = "http://proxy.com"
+						additional_trust_bundle = %q
+					}`, trustBundle),
+					clusterResponse(true, "http://proxy.com", propValue),
+					VerifyJQ(`.additional_trust_bundle`, trustBundle),
+				)
+
+				updateCluster(clusterSource(propValue, `proxy = {
+						http_proxy = "http://proxy.com"
+					}`),
+					clusterResponse(true, "http://proxy.com", propValue),
+					clusterResponse(false, "http://proxy.com", propValue),
+					VerifyJQ(`.additional_trust_bundle`, ""),
+					VerifyJQ(`.proxy.http_proxy`, "http://proxy.com"),
+				)
+				Expect(clusterResource()).To(MatchJQ(`.attributes.proxy.http_proxy`, "http://proxy.com"))
+				Expect(clusterResource()).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, nil))
+				expectNoChanges(clusterResponse(false, "http://proxy.com", propValue))
+			})
+
+			It("Removes the trust bundle and keeps a proxy object whose attributes are all null", func() {
+				createCluster(fmt.Sprintf(`proxy = {
+						additional_trust_bundle = %q
+					}`, trustBundle),
+					clusterResponse(true, "", propValue),
+					VerifyJQ(`.additional_trust_bundle`, trustBundle),
+				)
+
+				updateCluster(clusterSource(propValue, `proxy = {
+						additional_trust_bundle = null
+					}`),
+					clusterResponse(true, "", propValue),
+					clusterResponse(false, "", propValue),
+					VerifyJQ(`.additional_trust_bundle`, ""),
+					VerifyJQ(`.proxy`, nil),
+				)
+				Expect(clusterResource()).To(MatchJQ(`.attributes.proxy | type`, "object"))
+				Expect(clusterResource()).To(MatchJQ(`[.attributes.proxy[]] | all(. == null)`, true))
+				expectNoChanges(clusterResponse(false, "", propValue))
+			})
+
+			It("Removes an imported REDACTED trust bundle when the configuration omits the proxy", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(VerifyRequest(http.MethodGet, cluster123Route), clusterResponse(true, "", propValue)),
+				)
+				Terraform.Source(clusterSource(propValue, ""))
+				runOutput := Terraform.Import("rhcs_cluster_rosa_hcp.my_cluster", "123")
+				Expect(runOutput.ExitCode).To(BeZero())
+				Expect(clusterResource()).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "REDACTED"))
+
+				// The plan shows the proxy removal before anything is applied.
+				TestServer.AppendHandlers(
+					CombineHandlers(VerifyRequest(http.MethodGet, cluster123Route), clusterResponse(true, "", propValue)),
+				)
+				runOutput = Terraform.Run("plan", "-detailed-exitcode")
+				Expect(runOutput.ExitCode).To(Equal(2))
+				runOutput.VerifyOutputContainsSubstring("additional_trust_bundle")
+				runOutput.VerifyOutputContainsSubstring("(sensitive value)")
+				runOutput.VerifyOutputDoesNotContainSubstring("REDACTED")
+
+				updateCluster(clusterSource(propValue, ""),
+					clusterResponse(true, "", propValue),
+					clusterResponse(false, "", propValue),
+					VerifyJQ(`.additional_trust_bundle`, ""),
+				)
+				Expect(clusterResource()).To(MatchJQ(`.attributes.proxy`, nil))
+				expectNoChanges(clusterResponse(false, "", propValue))
+			})
+
+			It("Does not send the trust bundle when it is unchanged during an unrelated update", func() {
+				createCluster(fmt.Sprintf(`proxy = {
+						additional_trust_bundle = %q
+					}`, trustBundle),
+					clusterResponse(true, "", propValue),
+					VerifyJQ(`.additional_trust_bundle`, trustBundle),
+				)
+
+				updateCluster(clusterSource(propValue+"_1", fmt.Sprintf(`proxy = {
+						additional_trust_bundle = %q
+					}`, trustBundle)),
+					clusterResponse(true, "", propValue),
+					clusterResponse(true, "", propValue+"_1"),
+					VerifyJQ(`.properties.`+propKey, propValue+"_1"),
+					VerifyJQ(`.additional_trust_bundle`, nil),
+				)
+				Expect(clusterResource()).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, trustBundle))
+				expectNoChanges(clusterResponse(true, "", propValue+"_1"))
+			})
+		})
 		It("Creates private cluster with aws subnet ids & private link", func() {
 			// Prepare the server:
 			TestServer.AppendHandlers(

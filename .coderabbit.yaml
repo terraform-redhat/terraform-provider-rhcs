@@ -221,6 +221,11 @@ reviews:
       instructions: |
         - AGENTS.md is the hub for AI assistants and review tooling; rules live in developer-docs/; commands live in CONTRIBUTING.md; PR submission checklist is .github/pull_request_template.md.
         - Do not reintroduce .cursor/rules/ as a source of truth; prefer developer-docs/ MUST/WHEN/DEFAULT rules.
+    - path: "**/*"
+      instructions: |
+        For Renovate dependency-update PRs, suggest running a relevant E2E
+        test, if one is available, once per PR. Treat this as an
+        informational suggestion, not a merge requirement.
   tools:
     checkov:
       enabled: true

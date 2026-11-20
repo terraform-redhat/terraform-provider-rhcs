@@ -4,11 +4,15 @@
 package seaplane
 
 import (
+	"context"
+	"os"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	spplatform "github.com/openshift-online/rosa-seaplane-api/clientset/platform"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
@@ -27,18 +31,54 @@ var _ = Describe("Seaplane cluster IPv4 networking", ci.SeaplaneValidated, func(
 			Skip("Test requires a profile containing CIDRs and host prefix")
 		}
 
+		seaplaneURL := requireEnv("SEAPLANE_URL")
+		region := awsRegionRE.FindString(seaplaneURL)
+		if region == "" {
+			region = profile.Profile().GetRegion()
+		}
+
 		service, err := exec.NewSeaplaneClusterService(profile.Profile().GetName())
 		Expect(err).NotTo(HaveOccurred())
 		output, err := service.Output()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(output.ClusterID).NotTo(BeEmpty(), "an existing profile-managed cluster is required")
-		Expect(output.ClusterName).NotTo(BeEmpty())
+
+		clusterName := ""
+		clusterID := ""
+		if output != nil && output.ClusterID != "" && output.ClusterName != "" {
+			clusterName = output.ClusterName
+			clusterID = output.ClusterID
+		} else {
+			By("No existing cluster in profile workspace, creating ephemeral cluster to verify networking")
+			Expect(os.Getenv("SEAPLANE_URL")).NotTo(BeEmpty())
+			Expect(os.Getenv("SEAPLANE_RELEASE_IMAGE")).NotTo(BeEmpty(), "SEAPLANE_RELEASE_IMAGE is required to create cluster")
+			workspace := seaplaneTestWorkspace(profile.Profile().GetName(), "ipv4-net")
+			backend, err := clusterworkflow.New(profile, "", workspace)
+			Expect(err).NotTo(HaveOccurred())
+
+			DeferCleanup(func() {
+				destroyer, destroyErr := clusterworkflow.NewDestroyer(profile, "", workspace)
+				Expect(destroyErr).NotTo(HaveOccurred())
+				Expect(destroyer.Destroy(context.Background())).To(Succeed())
+			})
+
+			clusterID, err = exec.CreateAndWaitReady(ctx, backend.Lifecycle)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(clusterID).NotTo(BeEmpty())
+
+			clusterService, err := exec.NewSeaplaneClusterService(workspace)
+			Expect(err).NotTo(HaveOccurred())
+			ephemeralOut, err := clusterService.Output()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ephemeralOut.ClusterID).To(Equal(clusterID))
+			clusterName = ephemeralOut.ClusterName
+			Expect(clusterName).NotTo(BeEmpty())
+		}
 
 		By("Retrieve cluster detail")
-		client := mustBuildSeaplaneClient(requireEnv("SEAPLANE_URL"), profile.Profile().GetRegion())
-		cluster, err := client.SeaplaneV1alpha1().Clusters().Get(ctx, output.ClusterName, spplatform.GetOptions{})
+		client := mustBuildSeaplaneClient(seaplaneURL, region)
+		cluster, err := client.SeaplaneV1alpha1().Clusters().Get(ctx, clusterName, spplatform.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(cluster.UID)).To(Equal(output.ClusterID))
+		Expect(string(cluster.UID)).To(Equal(clusterID))
 
 		By("Check cluster networking against the profile")
 		network := cluster.Spec.HostedCluster.Networking

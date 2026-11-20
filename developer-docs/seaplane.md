@@ -302,6 +302,29 @@ Run the E2E suite:
 SEAPLANE_URL=https://<platform-api-host> make e2e-seaplane
 ```
 
+Run all `seaplane-validated` tests across every seaplane profile with deduplication:
+```
+SEAPLANE_URL=https://<platform-api-host> SEAPLANE_RELEASE_IMAGE=<release-pullspec> make e2e-seaplane-validated
+```
+`SEAPLANE_RELEASE_IMAGE` is the HostedCluster release image pullspec (not an OCP version label), e.g. `quay.io/openshift-release-dev/ocp-release@sha256:<digest>` or `registry.ci.openshift.org/ocp/release:4.19.0-...`. Retrieve it via `rosa list versions --hosted-cp`, the release controller at `https://amd64.ocp.releases.ci.openshift.org/`, or from the Seaplane platform team. Both `SEAPLANE_URL` and `SEAPLANE_RELEASE_IMAGE` are required; the runner fails fast with guidance if either is missing.
+
+This iterates over all profiles in `tests/ci/profiles/tf_seaplane_cluster_profiles.yml`,
+runs `ginkgo --label-filter=seaplane-validated -r tests/e2e` for each, and skips any
+spec already executed on a prior profile. Executed specs are tracked by FullText
+(`ContainerHierarchyTexts + LeafNodeText`) in `tests/rhcs_output/seaplane-validated-dedup.txt`
+with per-profile JSON reports (`tests/rhcs_output/seaplane-validated-<profile>-<phase>.json` and merged `tests/rhcs_output/seaplane-validated-<profile>.json`).
+Specs that `Skip` due to a profile gate (e.g., proxy-only on a non-proxy profile) are
+not recorded, so they will run on the first profile where they are applicable. Phases
+are run in dependency order (`day1-prepare`, `day1`, `day1-post`, `day2`, `day3`, `destroy`, `other`) so a `day1` cluster creation is always executed before any `day1-post`/`day2` verification that requires an existing cluster. Before a dependent phase (`day1-post`, `day2`, `day3`, `other`, `destroy`) the runner checks `terraform output` for the profile workspace; if the cluster is missing and the phase has pending specs (after dedup), it automatically provisions a cluster for that profile via `hack/ensure-seaplane-cluster.go`. To
+re-run from scratch, delete the dedup file or pass `DRY_RUN=1` for a dry-run without
+live clusters:
+
+```
+DRY_RUN=1 make e2e-seaplane-validated
+SEAPLANE_PROFILES="sp-basic sp-explicit-proxy" make e2e-seaplane-validated
+```
+
+
 Optional overrides (all default to derived values):
 ```
 SEAPLANE_CLUSTER_NAME   # default: sp-e2e-<unix-timestamp>  (max 18 chars)

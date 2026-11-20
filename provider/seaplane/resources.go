@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
@@ -104,6 +105,16 @@ func fixClusterResourceSchema(s *schema.Schema) error {
 	if err := useStateBeforeReplaceString(aws.Attributes, "aws_partition"); err != nil {
 		return err
 	}
+	additionalPrincipals, ok := aws.Attributes["additional_allowed_principals"].(schema.ListAttribute)
+	if !ok {
+		return fmt.Errorf("additional_allowed_principals is not a list attribute")
+	}
+	additionalPrincipals.Optional = true
+	additionalPrincipals.Computed = true
+	additionalPrincipals.PlanModifiers = []planmodifier.List{
+		listplanmodifier.UseStateForUnknown(),
+	}
+	aws.Attributes["additional_allowed_principals"] = additionalPrincipals
 	s.Attributes["aws"] = aws
 
 	return nil

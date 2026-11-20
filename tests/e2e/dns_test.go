@@ -88,6 +88,22 @@ var _ = Describe("Seaplane DNS reservation", ci.SeaplaneValidated, func() {
 		dnsService, err := exec.NewDnsDomainService(workspace+"-reservation", constants.SEAPLANE)
 		Expect(err).NotTo(HaveOccurred())
 
+		// Use a unique cluster name to avoid colliding with the shared
+		// seaplane-validated cluster's OIDC config (e.g. sp-explicit-proxy.oidc).
+		// The workspace is already unique, but clusterName defaults to the
+		// profile name (sp-explicit-proxy) which shares the OIDC config name
+		// and cannot be deleted while the main cluster still references it.
+		uniqueClusterName := helper.GenerateRandomName("sp-dns", 2)
+		originalClusterName := os.Getenv("RHCS_CLUSTER_NAME")
+		Expect(os.Setenv("RHCS_CLUSTER_NAME", uniqueClusterName)).To(Succeed())
+		DeferCleanup(func() {
+			if originalClusterName != "" {
+				Expect(os.Setenv("RHCS_CLUSTER_NAME", originalClusterName)).To(Succeed())
+			} else {
+				Expect(os.Unsetenv("RHCS_CLUSTER_NAME")).To(Succeed())
+			}
+		})
+
 		reservationName := helper.GenerateRandomName("dns-"+profileHandler.Profile().GetName(), 2)
 		_, err = dnsService.Apply(&exec.DnsDomainArgs{
 			Name:        &reservationName,

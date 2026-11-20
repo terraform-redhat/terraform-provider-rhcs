@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"hash/crc32"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -71,6 +72,21 @@ func newSeaplaneDestroyer(profile profilehandler.ProfileHandler, workspace strin
 	if workspace == "" {
 		workspace = clusterName + "-seaplane"
 	}
+	if workspace != clusterName && workspace != clusterName+"-seaplane" {
+		effectiveName := workspace
+		for _, suffix := range []string{"-vpc", "-oidc", "-iam", "-proxy"} {
+			if strings.HasSuffix(effectiveName, suffix) {
+				effectiveName = strings.TrimSuffix(effectiveName, suffix)
+				break
+			}
+		}
+		if len(effectiveName) > 18 {
+			hashSuffix := fmt.Sprintf("%03d", crc32.ChecksumIEEE([]byte(effectiveName))%1000)
+			prefix := helper.TruncateString(effectiveName, 14)
+			effectiveName = prefix + "-" + hashSuffix
+		}
+		clusterName = effectiveName
+	}
 	seaplaneURL, err := requiredEnv("SEAPLANE_URL")
 	if err != nil {
 		return nil, err
@@ -112,6 +128,22 @@ func newSeaplaneDestroyer(profile profilehandler.ProfileHandler, workspace strin
 	if err != nil {
 		return nil, err
 	}
+	// For secondary workspaces the computed clusterName changed over time
+	// (truncate-18 -> hash suffix). If Terraform state already exists for
+	// this workspace with the old name, reuse it to avoid a forced
+	// replacement of the OIDC config that is blocked by DELETE-003 when
+	// the cluster still references the old OIDC.
+	if existingOut, err := clusterService.Output(); err == nil && existingOut != nil && existingOut.ClusterName != "" {
+		if existingOut.ClusterName != clusterName {
+			log.Logger.Infof("Workspace %q has existing cluster %q in TF state, reusing instead of computed %q", workspace, existingOut.ClusterName, clusterName)
+			clusterName = existingOut.ClusterName
+		}
+	} else if existingOidcOut, err := oidcService.Output(); err == nil && existingOidcOut != nil && existingOidcOut.Name != "" {
+		if trimmed := strings.TrimSuffix(existingOidcOut.Name, ".oidc"); trimmed != "" && trimmed != clusterName {
+			log.Logger.Infof("Workspace %q has existing OIDC %q in TF state, reusing cluster name %q instead of computed %q", workspace, existingOidcOut.Name, trimmed, clusterName)
+			clusterName = trimmed
+		}
+	}
 	clusterID := os.Getenv(config.EnvClusterID)
 	if clusterID == "" {
 		output, outputErr := clusterService.Output()
@@ -120,8 +152,13 @@ func newSeaplaneDestroyer(profile profilehandler.ProfileHandler, workspace strin
 		}
 		clusterID = output.ClusterID
 	}
+	// For secondary test clusters (e.g. DNS reservation), the destroyer is
+	// created before the cluster exists. Don't require clusterID at this
+	// point – Destroy will handle whatever Terraform state exists (including
+	// none) and the Seaplane API deletion will be a no-op if the cluster
+	// was never created.
 	if clusterID == "" {
-		return nil, fmt.Errorf("%s is not set and Terraform state has no Seaplane cluster ID", config.EnvClusterID)
+		log.Logger.Infof("ClusterID not found for workspace %q (pre-create), creating destroyer anyway", workspace)
 	}
 	return &seaplaneDestroyer{
 		cluster:     clusterService,
@@ -323,6 +360,16 @@ func newExistingSeaplaneBackend(profile profilehandler.ProfileHandler) (*Backend
 	if err != nil {
 		return nil, err
 	}
+	if args.SeaplaneURL == nil || *args.SeaplaneURL == "" ||
+		args.AWSRegion == nil || *args.AWSRegion == "" ||
+		args.ClusterName == nil || *args.ClusterName == "" ||
+		args.ReleaseImage == nil || *args.ReleaseImage == "" ||
+		args.OperatorRolesPrefix == nil || *args.OperatorRolesPrefix == "" ||
+		args.SubnetID == nil || *args.SubnetID == "" ||
+		args.VPCID == nil || *args.VPCID == "" ||
+		args.AvailabilityZone == nil || *args.AvailabilityZone == "" {
+		return nil, fmt.Errorf("seaplane cluster Terraform state not found for workspace %q (missing required variables); create the cluster first via 'CLUSTER_PROFILE=%s go run ./hack/ensure-seaplane-cluster.go' or ensure SEAPLANE_URL/SEAPLANE_RELEASE_IMAGE are set and the profile workspace has been provisioned", profile.Profile().GetName(), profile.Profile().GetName())
+	}
 	client, err := buildSeaplaneClient(seaplaneURL, region)
 	if err != nil {
 		return nil, err
@@ -365,6 +412,51 @@ func newSeaplaneBackendWithOptions(
 	operatorRolesPrefix := clusterName
 	if workspace == "" {
 		workspace = clusterName + "-seaplane"
+	}
+	if workspace != clusterName && workspace != clusterName+"-seaplane" {
+		effectiveName := workspace
+		for _, suffix := range []string{"-vpc", "-oidc", "-iam", "-proxy"} {
+			if strings.HasSuffix(effectiveName, suffix) {
+				effectiveName = strings.TrimSuffix(effectiveName, suffix)
+				break
+			}
+		}
+		if len(effectiveName) > 18 {
+			hashSuffix := fmt.Sprintf("%03d", crc32.ChecksumIEEE([]byte(effectiveName))%1000)
+			prefix := helper.TruncateString(effectiveName, 14)
+			effectiveName = prefix + "-" + hashSuffix
+		}
+		clusterName = effectiveName
+		operatorRolesPrefix = effectiveName
+		log.Logger.Infof("Secondary seaplane workspace %q mapped to cluster name %q to avoid OIDC 1:1 collision", workspace, clusterName)
+	}
+	// Preserve backward compatibility for workspaces that already have
+	// Terraform state with the old truncate-18 naming (e.g.
+	// sp-optional-conf-s). The hash-suffix change would otherwise force a
+	// replacement of the OIDC config, which fails with DELETE-003 when a
+	// cluster still references it. Check TF state before deciding final
+	// clusterName for VPC/IAM/OIDC resources.
+	tmpOidcService, tmpOidcErr := exec.NewSeaplaneOidcConfigService(workspace + "-oidc")
+	if tmpOidcErr == nil {
+		if existingOidcOut, err := tmpOidcService.Output(); err == nil && existingOidcOut != nil && existingOidcOut.Name != "" {
+			if trimmed := strings.TrimSuffix(existingOidcOut.Name, ".oidc"); trimmed != "" && trimmed != clusterName {
+				log.Logger.Infof("Workspace %q has existing OIDC %q in TF state, reusing cluster name %q instead of computed %q", workspace, existingOidcOut.Name, trimmed, clusterName)
+				clusterName = trimmed
+				operatorRolesPrefix = trimmed
+			}
+		}
+		// Also check cluster output directly – it is more authoritative when
+		// both exist; OIDC check above covers case where cluster not yet created.
+		tmpClusterService, tmpClusterErr := exec.NewSeaplaneClusterService(workspace)
+		if tmpClusterErr == nil {
+			if existingClusterOut, err := tmpClusterService.Output(); err == nil && existingClusterOut != nil && existingClusterOut.ClusterName != "" {
+				if existingClusterOut.ClusterName != clusterName {
+					log.Logger.Infof("Workspace %q has existing cluster %q in TF state, reusing instead of computed %q", workspace, existingClusterOut.ClusterName, clusterName)
+					clusterName = existingClusterOut.ClusterName
+					operatorRolesPrefix = existingClusterOut.ClusterName
+				}
+			}
+		}
 	}
 	region := config.GetRegion()
 	if region == "" {
@@ -438,16 +530,54 @@ func newSeaplaneBackendWithOptions(
 		oidcType = "managed"
 	}
 	oidcConfigName := clusterName + ".oidc"
+	var oidcOutput *exec.SeaplaneOidcConfigOutput
 	if _, err := oidcService.Apply(&exec.SeaplaneOidcConfigArgs{
 		SeaplaneURL: &seaplaneURL,
 		Name:        &oidcConfigName,
 		Type:        &oidcType,
 	}); err != nil {
-		return nil, err
-	}
-	oidcOutput, err := oidcService.Output()
-	if err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "referenced by clusters") || strings.Contains(err.Error(), "DELETE-003") || strings.Contains(err.Error(), "Failed to delete OidcConfig") {
+			ctx := context.Background()
+			if existing, getErr := client.SeaplaneV1alpha1().OidcConfigs().Get(ctx, oidcConfigName, spplatform.GetOptions{}); getErr == nil && existing != nil {
+				log.Logger.Infof("OIDC config %q already exists (not in workspace %q state), deleting orphan and retrying", oidcConfigName, workspace+"-oidc")
+				if delErr := client.SeaplaneV1alpha1().OidcConfigs().Delete(ctx, oidcConfigName, spplatform.DeleteOptions{}); delErr != nil {
+					if apierrors.IsConflict(delErr) || strings.Contains(delErr.Error(), "referenced by clusters") {
+						log.Logger.Infof("OIDC config %q is referenced by existing cluster(s), reusing existing config", oidcConfigName)
+						oidcOutput = &exec.SeaplaneOidcConfigOutput{
+							OidcConfigID: string(existing.UID),
+							Name:         existing.Name,
+							IssuerURL:    existing.Spec.IssuerUrl,
+							Phase:        string(existing.Status.Phase),
+							Thumbprint:   existing.Status.Thumbprint,
+						}
+					} else {
+						return nil, fmt.Errorf("oidc config %q already exists and failed to delete orphan: %w (original: %w)", oidcConfigName, delErr, err)
+					}
+				} else {
+					time.Sleep(5 * time.Second)
+					if _, err := oidcService.Apply(&exec.SeaplaneOidcConfigArgs{
+						SeaplaneURL: &seaplaneURL,
+						Name:        &oidcConfigName,
+						Type:        &oidcType,
+					}); err != nil {
+						return nil, err
+					}
+					oidcOutput, err = oidcService.Output()
+					if err != nil {
+						return nil, err
+					}
+				}
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+		oidcOutput, err = oidcService.Output()
+		if err != nil {
+			return nil, err
+		}
 	}
 	iamService, err := exec.NewSeaplaneIAMService(workspace + "-iam")
 	if err != nil {
@@ -459,7 +589,11 @@ func newSeaplaneBackendWithOptions(
 		OIDCIssuerURL:       &oidcOutput.IssuerURL,
 		OIDCThumbprint:      &oidcOutput.Thumbprint,
 	}); err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "EntityAlreadyExists") {
+			log.Logger.Infof("IAM roles for prefix %q already exist, reusing", operatorRolesPrefix)
+		} else {
+			return nil, err
+		}
 	}
 	var proxyService exec.ProxyService
 	var proxyOutput *exec.ProxyOutput

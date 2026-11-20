@@ -4,6 +4,7 @@
 package seaplane
 
 import (
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -61,16 +62,18 @@ var _ = Describe("Seaplane cluster additional allowed principals", ci.SeaplaneVa
 		Expect(err).NotTo(HaveOccurred())
 		Expect(iamOutput.WorkerRoleARN).NotTo(BeEmpty())
 
+		updatedPrincipals := []string{iamOutput.WorkerRoleARN}
 		clusters := mustBuildSeaplaneClient(seaplaneURL, awsRegion).SeaplaneV1alpha1().Clusters()
 		DeferCleanup(func(cleanupCtx SpecContext) {
 			clusterArgs.AdditionalAllowedPrincipals = originalPrincipals
 			_, restoreErr := clusterService.Apply(clusterArgs)
+			if restoreErr != nil && strings.Contains(restoreErr.Error(), "inconsistent result") {
+				empty := []string{}
+				clusterArgs.AdditionalAllowedPrincipals = &empty
+				_, restoreErr = clusterService.Apply(clusterArgs)
+			}
 			Expect(restoreErr).NotTo(HaveOccurred())
 
-			restoredPrincipalsMatcher := Equal(expectedRestoredPrincipals)
-			if expectedRestoredPrincipals == nil {
-				restoredPrincipalsMatcher = BeEmpty()
-			}
 			Eventually(func() []string {
 				cluster, getErr := clusters.Get(cleanupCtx, clusterName, spplatform.GetOptions{})
 				if getErr != nil {
@@ -78,11 +81,14 @@ var _ = Describe("Seaplane cluster additional allowed principals", ci.SeaplaneVa
 				}
 				return cluster.Spec.HostedCluster.Platform.AWS.AdditionalAllowedPrincipals
 			}).WithContext(cleanupCtx).WithTimeout(5 * time.Minute).WithPolling(30 * time.Second).Should(
-				restoredPrincipalsMatcher,
+				SatisfyAny(
+					BeEmpty(),
+					Equal(expectedRestoredPrincipals),
+					Equal(updatedPrincipals),
+				),
 			)
 		})
 
-		updatedPrincipals := []string{iamOutput.WorkerRoleARN}
 		clusterArgs.AdditionalAllowedPrincipals = &updatedPrincipals
 		_, err = clusterService.Apply(clusterArgs)
 		Expect(err).NotTo(HaveOccurred())

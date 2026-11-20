@@ -88,12 +88,10 @@ $(GCI): | $(LOCALBIN)
 	GOBIN="$(LOCALBIN_ABS)" go install github.com/daixiang0/gci@$(GCI_VERSION)
 
 $(GINKGO): | $(LOCALBIN)
-	# resolve tool version from go.mod
-	GOBIN="$(LOCALBIN_ABS)" go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
+	GOBIN="$(LOCALBIN_ABS)" go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@$$(go list -m -f '{{.Version}}' github.com/onsi/ginkgo/v2)
 
 $(MOCKGEN): | $(LOCALBIN)
-	# resolve tool version from go.mod
-	GOBIN="$(LOCALBIN_ABS)" go install -mod=mod go.uber.org/mock/mockgen
+	GOBIN="$(LOCALBIN_ABS)" go install -mod=mod go.uber.org/mock/mockgen@$$(go list -m -f '{{.Version}}' go.uber.org/mock)
 
 $(GOLANGCI_LINT): | $(LOCALBIN)
 	GOBIN="$(LOCALBIN_ABS)" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
@@ -216,7 +214,7 @@ docs-lint: $(VALE)
 
 .PHONY: clean
 clean:
-	rm -rf "$(RHCS_LOCAL_DIR)"
+	rm -rf "$(RHCS_LOCAL_DIR)" || true
 
 generate: $(MOCKGEN)
 	PATH="$(LOCALBIN_ABS):$$PATH" go generate ./...
@@ -335,6 +333,10 @@ e2e-seaplane: $(GINKGO) install
 		--timeout 3h \
 		./tests/e2e/seaplane/... \
 		$(NULL)
+
+.PHONY: e2e-seaplane-validated
+e2e-seaplane-validated: $(GINKGO)
+	./hack/run-seaplane-validated.sh
 
 # Optional local diagnostic (gocovdiff on changed provider/internal lines vs main).
 .PHONY: coverage-changed-files

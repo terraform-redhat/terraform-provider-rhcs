@@ -195,6 +195,57 @@ var _ = Describe("HCP Cluster", func() {
 			})
 		})
 		Context("Test channel groups", func() {
+			appendVersionGetFallbackRejectionTest := func(versionBuilder *cmv1.VersionBuilder, extraTFAttributes string) {
+				vSpec, err := versionBuilder.Build()
+				Expect(err).ToNot(HaveOccurred())
+				vBuilder := new(strings.Builder)
+				err = cmv1.MarshalVersion(vSpec, vBuilder)
+				Expect(err).ToNot(HaveOccurred())
+				vInfo := vBuilder.String()
+
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v5.0.1-fast"),
+						RespondWithJSON(http.StatusOK, vInfo),
+					),
+				)
+
+				extra := ""
+				if extraTFAttributes != "" {
+					extra = "\n\t\t\t\t" + extraTFAttributes
+				}
+				Terraform.Source(fmt.Sprintf(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					channel_group = "fast"
+					version = "5.0.1"%s
+				}`, extra))
+				Expect(Terraform.Apply()).NotTo(BeZero())
+			}
+
 			It("doesn't append the channel group when on the default channel", func() {
 				TestServer.AppendHandlers(
 					CombineHandlers(
@@ -435,6 +486,10 @@ var _ = Describe("HCP Cluster", func() {
 							}
 						}]`),
 					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.99.99-fast"),
+						RespondWithJSON(http.StatusNotFound, `{"kind":"Error","id":"404","code":"CLUSTERS-MGMT-404","reason":"Version not found"}`),
+					),
 				)
 				Terraform.Source(`
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
@@ -457,6 +512,212 @@ var _ = Describe("HCP Cluster", func() {
 					version = "4.99.99"
 				}`)
 				Expect(Terraform.Apply()).NotTo(BeZero())
+			})
+			It("accepts explicit version via GET when absent from paginated list", func() {
+				v501FastSpec, err := cmv1.NewVersion().ChannelGroup("fast").
+					Enabled(true).
+					ROSAEnabled(true).
+					HostedControlPlaneEnabled(true).
+					ID("openshift-v5.0.1-fast").
+					RawID("5.0.1").
+					AvailableChannels("fast-5.0", "stable-5.0").Build()
+				Expect(err).ToNot(HaveOccurred())
+				v501FastBuilder := new(strings.Builder)
+				err = cmv1.MarshalVersion(v501FastSpec, v501FastBuilder)
+				Expect(err).ToNot(HaveOccurred())
+				v501FastInfo := v501FastBuilder.String()
+
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v5.0.1-fast"),
+						RespondWithJSON(http.StatusOK, v501FastInfo),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.version.id`, "openshift-v5.0.1-fast"),
+						VerifyJQ(`.version.channel_group`, "fast"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "ec2_metadata_http_tokens": "required",
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+							"op": "replace",
+							"path": "/version/id",
+							"value": "openshift-v5.0.1-fast"
+						},
+						{
+							"op": "add",
+							"path": "/version/channel_group",
+							"value": "fast"
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					channel_group = "fast"
+					version = "5.0.1"
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+			})
+			It("accepts channel filter via GET fallback when list has no matching stream", func() {
+				v501FastSpec, err := cmv1.NewVersion().ChannelGroup("fast").
+					Enabled(true).
+					ROSAEnabled(true).
+					HostedControlPlaneEnabled(true).
+					ID("openshift-v5.0.1-fast").
+					RawID("5.0.1").
+					AvailableChannels("fast-5.0", "stable-5.0").Build()
+				Expect(err).ToNot(HaveOccurred())
+				v501FastBuilder := new(strings.Builder)
+				err = cmv1.MarshalVersion(v501FastSpec, v501FastBuilder)
+				Expect(err).ToNot(HaveOccurred())
+				v501FastInfo := v501FastBuilder.String()
+
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v5.0.1-fast"),
+						RespondWithJSON(http.StatusOK, v501FastInfo),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.version.id`, "openshift-v5.0.1-fast"),
+						VerifyJQ(`.channel`, "fast-5.0"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "ec2_metadata_http_tokens": "required",
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+							"op": "replace",
+							"path": "/version/id",
+							"value": "openshift-v5.0.1-fast"
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "fast-5.0"
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					channel = "fast-5.0"
+					version = "5.0.1"
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+			})
+			It("rejects explicit version via GET when not enabled for HCP", func() {
+				appendVersionGetFallbackRejectionTest(
+					cmv1.NewVersion().ChannelGroup("fast").
+						Enabled(true).
+						ROSAEnabled(true).
+						HostedControlPlaneEnabled(false).
+						ID("openshift-v5.0.1-fast").
+						RawID("5.0.1").
+						AvailableChannels("fast-5.0", "stable-5.0"),
+					"",
+				)
+			})
+			It("rejects explicit version via GET when version is disabled", func() {
+				appendVersionGetFallbackRejectionTest(
+					cmv1.NewVersion().ChannelGroup("fast").
+						Enabled(false).
+						ROSAEnabled(true).
+						HostedControlPlaneEnabled(true).
+						ID("openshift-v5.0.1-fast").
+						RawID("5.0.1").
+						AvailableChannels("fast-5.0", "stable-5.0"),
+					"",
+				)
+			})
+			It("rejects explicit version via GET when channel stream is unsupported", func() {
+				appendVersionGetFallbackRejectionTest(
+					cmv1.NewVersion().ChannelGroup("fast").
+						Enabled(true).
+						ROSAEnabled(true).
+						HostedControlPlaneEnabled(true).
+						ID("openshift-v5.0.1-fast").
+						RawID("5.0.1").
+						AvailableChannels("stable-5.0"),
+					`channel = "fast-5.0"`,
+				)
 			})
 		})
 

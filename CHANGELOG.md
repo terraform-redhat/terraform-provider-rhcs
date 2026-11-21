@@ -1,3 +1,25 @@
+## 1.7.14 (16 Nov, 2026)
+
+FEATURES:
+   * Enable day-2 HCP AWS tag edits
+ * Provider
+   * Add allow_tls12 attribute for TLS 1.2 opt-out
+
+ENHANCEMENTS:
+ * Bug fixes
+   * Improve AllowTLS12 unknown diagnostic and add unit test
+   * Guard AllowTLS12 against unknown values in provider config
+ * Dependencies
+   * Update aws-sdk
+ * Documentation
+   * Remove redundant GitHub lifecycle citation
+   * Explain resource attribute omission semantics
+ * Build
+   * Fail release packaging when binary generation fails
+ * Deps
+   * Bump golang.org/x/net to fix GO-2026-6860, GO-2026-6866
+   * Bump go-jose to v4.1.6
+
 ## 1.7.13 (09 Nov, 2026)
 
 BREAKING CHANGES:

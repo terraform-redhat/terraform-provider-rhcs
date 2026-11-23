@@ -1,3 +1,40 @@
+## 1.7.14 (23 Nov, 2026)
+
+FEATURES:
+   * Enable day-2 HCP AWS tag edits
+ * Cluster
+   * Add opt-in wait_for_urls to rhcs_cluster_rosa_classic
+ * Provider
+   * Add allow_tls12 attribute for TLS 1.2 opt-out
+
+ENHANCEMENTS:
+ * Bug fixes
+   * Improve AllowTLS12 unknown diagnostic and add unit test
+   * Guard AllowTLS12 against unknown values in provider config
+ * Dependencies
+   * Update openshift-ocm (ocm-sdk-go v0.1.521)
+   * Update aws-sdk
+ * Documentation
+   * Qualify compatibility assertions as applicable
+   * Add compatibility and resource ownership checks
+   * Remove redundant GitHub lifecycle citation
+   * Explain resource attribute omission semantics
+ * Other
+   * Revert "ROSAENG-76124 | chore(build): bump Go to 1.26.11"
+ * Build
+   * Fail release packaging when binary generation fails
+ * Cluster
+   * Require wait_for_create_complete for wait_for_urls
+   * Keep created Classic cluster on non-positive wait timeout
+ * Common
+   * Restore WaitForClusterToBeReady and add WaitForClusterToBeReadyWithURLs
+   * Add a URL option to WaitForClusterToBeReady
+ * Deps
+   * Bump golang.org/x/net to fix GO-2026-6860, GO-2026-6866
+   * Bump go-jose to v4.1.6
+ * Hcp
+   * Use the hosted control plane version collection
+
 ## 1.7.13 (09 Nov, 2026)
 
 BREAKING CHANGES:

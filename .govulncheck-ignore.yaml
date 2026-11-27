@@ -13,3 +13,6 @@ ignored_vulnerabilities:
   - id: GO-2026-5932
     module: golang.org/x/crypto
     reason: "Known binary-mode false positive: advisory only affects golang.org/x/crypto/openpgp, which is not imported (source scan is clean). hack/govulncheck-wrapper.sh guards this: the ignore only applies while golang.org/x/crypto/openpgp is absent from the import graph, so a future change that starts using openpgp will surface this finding instead of masking it."
+  - id: GO-2026-6859
+    module: stdlib
+    reason: "CI scans with Go 1.26.10. Go 1.26.11 fixes this vulnerability, but the UBI 9 Go Toolset image does not yet provide that version. Remove this exception once CI builds and scans with a Go toolchain that includes the fix."

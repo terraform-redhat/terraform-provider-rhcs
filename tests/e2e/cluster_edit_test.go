@@ -4,6 +4,7 @@
 package e2e
 
 import (
+	"encoding/json"
 	"fmt"
 	"slices"
 
@@ -300,10 +301,17 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		})
 
 		validateClusterArg := func(updateFields func(args *exec.ClusterArgs), validateFunc func(output string, err error)) {
+			// Deep-copy clusterArgs so each validation step starts from a clean baseline,
+			// preventing state from leaking between steps.
+			savedData, marshalErr := json.Marshal(clusterArgs)
+			Expect(marshalErr).ShouldNot(HaveOccurred())
+			var savedArgs exec.ClusterArgs
+			Expect(json.Unmarshal(savedData, &savedArgs)).ShouldNot(HaveOccurred())
+
 			updateFields(clusterArgs)
 			applyOutput, err := clusterService.Apply(clusterArgs)
 			validateFunc(applyOutput, err)
-			clusterArgs = retrieveClusterArgs()
+			clusterArgs = &savedArgs
 		}
 		validateClusterArgAgainstErrorSubstrings := func(updateFields func(args *exec.ClusterArgs), errSubStrings ...string) {
 			validateClusterArg(updateFields, func(output string, err error) {
@@ -830,7 +838,6 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 			By("Additional Trust CA is invalid")
 			validateRegistryConfigArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.RegistryConfig.PlatformAllowlistID = nil
 				trustedCA := map[string]string{}
 				trustedCA[registry] = "invalid"
 				args.RegistryConfig.AdditionalTrustedCA = &trustedCA

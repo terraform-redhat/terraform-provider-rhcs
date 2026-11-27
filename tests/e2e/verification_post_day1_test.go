@@ -143,6 +143,9 @@ var _ = Describe("Verify cluster", func() {
 	})
 
 	It("compute_replicas is correctly set - [id:73153]", ci.Day1Post, ci.Medium, func() {
+		if profile.IsAutoscaling() {
+			Skip("Autoscaling cluster uses min/max replicas, verified by id:88408")
+		}
 		if profile.GetComputeReplicas() <= 0 {
 			Skip("No compute_replicas is configured for the cluster. skipping the test.")
 		}

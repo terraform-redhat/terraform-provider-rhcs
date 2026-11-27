@@ -831,6 +831,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			By("Additional Trust CA is invalid")
 			validateRegistryConfigArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.RegistryConfig.PlatformAllowlistID = nil
+				args.Autoscaling = nil
 				trustedCA := map[string]string{}
 				trustedCA[registry] = "invalid"
 				args.RegistryConfig.AdditionalTrustedCA = &trustedCA

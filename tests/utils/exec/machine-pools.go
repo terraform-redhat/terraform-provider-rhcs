@@ -247,6 +247,9 @@ func BuildMachinePoolArgsFromCSResponse(clusterID string, machinePool *cmv1.Mach
 		machinePoolArgs.MachineType = new(instanceType)
 	}
 	if autoscalingEnabled, ok := machinePool.GetAutoscaling(); ok {
+		isEnabled := true
+		machinePoolArgs.AutoscalingEnabled = &isEnabled
+		machinePoolArgs.Replicas = nil
 		machinePoolArgs.MaxReplicas = new(autoscalingEnabled.MaxReplicas())
 		machinePoolArgs.MinReplicas = new(autoscalingEnabled.MinReplicas())
 	}

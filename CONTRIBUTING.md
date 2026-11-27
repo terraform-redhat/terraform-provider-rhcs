@@ -169,8 +169,9 @@ When bumping the Go version, update these together so compile, presubmits, E2E b
 
 - `go.mod` (`go` directive)
 - `renovate.json` — `gomod.constraints.go` (must match `go.mod` so Renovate `gomodTidy` PRs succeed)
-- `Dockerfile`, `Dockerfile.clients`, `build/Dockerfile.ci`, `build/ci-tf-e2e.Dockerfile`, `build/custom-ci-build-root.Dockerfile` — `ubi9/go-toolset` image tag (keep `Dockerfile.clients` and `build/Dockerfile.ci` in sync until the release path switch)
-- `.ci-operator.yaml` — `build_root_image` imagestream (`namespace` / `name` / `tag`) while release still uses `from_repository: true`. After the release follow-up switches to `project_image.dockerfile_path`, Go for build_root/Snyk is controlled by `build/custom-ci-build-root.Dockerfile` instead
+- `Dockerfile`, `Dockerfile.clients`, `build/Dockerfile.ci`, `build/ci-tf-e2e.Dockerfile`, `build/custom-ci-build-root.Dockerfile` — `ubi10/go-toolset` image tag (keep `Dockerfile.clients` and `build/Dockerfile.ci` in sync until root `Dockerfile.clients` is deleted)
+- `.ci-operator.yaml` — `build_root_image` imagestream (`namespace` / `name` / `tag`). This now drives only the two e2e variants, which still use `from_repository: true`; the main config switched to `project_image.dockerfile_path`, so Go for build_root/Snyk comes from `build/custom-ci-build-root.Dockerfile`. Point `build_root_image` at an `ocp/builder` tag that actually exists: as of the Go 1.27.4 bump `ocp/builder` publishes no `golang-1.27` or `rhel-10-golang-*` tag, so it stays on `rhel-9-golang-1.26-openshift-4.23`. The e2e runner image compiles the provider in its own `ubi10/go-toolset` builder stage, so that tag does not gate the e2e Go version
+- `templates/index.md.tmpl` — the `GoLang version N.M or newer` prerequisite, then regenerate `docs/` with `make docs` (the generated-files check enforces it)
 - `TERRAFORM_VERSION` in `Dockerfile.clients` / `build/Dockerfile.ci` when `terraform fmt` checks need a newer Terraform CLI
 
 Sibling checklist for the ROSA CLI: `openshift/rosa` `AGENTS.md`.
@@ -189,7 +190,7 @@ a stdlib fix that requires a newer Go toolchain), add an entry to `.govulncheck-
 with the GO ID, exact module path, and reason. Remove entries once the fix is adopted.
 
 The ignore wrapper requires `jq` to parse govulncheck JSON output. Provider Prow jobs use the
-`terraform-provider-rhcs-clients` image (`Dockerfile.clients`), which includes `jq` as a system
+`terraform-provider-rhcs-clients` image (`build/Dockerfile.ci`), which includes `jq` as a system
 package. For local runs, install `jq` if it is not already available. `yq` is optional; the
 wrapper falls back to awk when `yq` is not installed.
 

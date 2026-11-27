@@ -68,17 +68,17 @@ This repo uses **OpenShift ci-operator** (config in `openshift/release`) and **K
 
 | Dockerfile | Built by | Used for |
 |------------|----------|----------|
-| `Dockerfile` | Konflux | Shipping provider binary (product) |
-| `Dockerfile.clients` | Prow (main config, active) | Presubmit: `make pre-push-checks` → image `terraform-provider-rhcs-clients` |
-| `build/Dockerfile.ci` | Prow (after release follow-up) | Same presubmit image; staged rename/move under `build/` |
+| `Dockerfile` | Konflux + Prow (main config) | Shipping provider binary (product); Prow builds it as `terraform-provider-rhcs-release` |
+| `Dockerfile.clients` | nothing (superseded) | Former presubmit image; kept only until it is deleted |
+| `build/Dockerfile.ci` | Prow (main config, active) | Presubmit: `make pre-push-checks` → image `terraform-provider-rhcs-clients` |
 | `build/ci-tf-e2e.Dockerfile` | Prow (e2e variants) | E2E runner; image `rhcs-tf-e2e` |
-| `build/custom-ci-build-root.Dockerfile` | Prow (`project_image`, after release follow-up) | ci-operator `build_root` / src image (clone, image builds, Snyk) |
+| `build/custom-ci-build-root.Dockerfile` | Prow (`project_image`, active) | ci-operator `build_root` / src image (clone, image builds, Snyk) |
 
-- Presubmit jobs run inside **`terraform-provider-rhcs-clients`** (from `Dockerfile.clients` today).
+- Presubmit jobs run inside **`terraform-provider-rhcs-clients`**, built from `build/Dockerfile.ci`: `openshift/release` `...-rhcs-main.yaml` already sets `images.items[].dockerfile_path: build/Dockerfile.ci`.
 - Prow E2E runs inside **`rhcs-tf-e2e`** (from `build/ci-tf-e2e.Dockerfile`); step scripts expect `/root/terraform-provider-rhcs`.
-- **`.ci-operator.yaml`** still pins ci-operator `build_root` to an `ocp/builder` imagestream while `openshift/release` uses `build_root: from_repository: true`.
-- **`build/custom-ci-build-root.Dockerfile`** (`ubi9/go-toolset`) is the intended build root. After it is on `main`, change the terraform-provider-rhcs configs in `openshift/release` from `from_repository: true` to `build_root.project_image.dockerfile_path: build/custom-ci-build-root.Dockerfile` (common pattern across many OpenShift CI projects). Goal: bump Go on our schedule and give the Snyk `security` job a matching toolchain.
-- **`build/Dockerfile.ci`** is a staged copy of `Dockerfile.clients` for layout consistency (`Dockerfile.ci` is a common OpenShift CI name). In the same release follow-up (or a small companion change), set `images.items[].dockerfile_path: build/Dockerfile.ci` and delete root `Dockerfile.clients`. No technical behavior change—naming/path only.
+- **`.ci-operator.yaml`** pins ci-operator `build_root` to an `ocp/builder` imagestream. It now applies only to the two e2e variants (`...-main__e2e.yaml`, `...-main__e2e-presubmits.yaml`), which still use `build_root: from_repository: true` and also set `binary_build_commands: make install`. The e2e runner image itself compiles the provider in its own `ubi10/go-toolset` builder stage, so the `ocp/builder` Go version does not gate it. Keep the pinned tag to one that exists: as of the Go 1.27.4 bump `ocp/builder` publishes no `golang-1.27` or `rhel-10-golang-*` tag.
+- **`build/custom-ci-build-root.Dockerfile`** (`ubi10/go-toolset`) is the build root for the main config: `openshift/release` `...-rhcs-main.yaml` already sets `build_root.project_image.dockerfile_path: build/custom-ci-build-root.Dockerfile`, so this file — not `.ci-operator.yaml` — controls Go for `pre-push-checks`, `govulncheck` and the Snyk `security` job.
+- **`build/Dockerfile.ci`** replaced root `Dockerfile.clients` for layout consistency (`Dockerfile.ci` is a common OpenShift CI name). `openshift/release` has made the switch, so root `Dockerfile.clients` is no longer built by any job. It is kept functionally in sync (same base image, packages, `TERRAFORM_VERSION`) until a follow-up deletes it; keep both updated in the meantime.
 
 ### Bumping the Go version
 
